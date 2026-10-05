@@ -1,0 +1,51 @@
+# Render Blueprint — Ecosistema FUR
+# Dashboard de Render > New > Blueprint > seleccionar este repositorio.
+# Las variables con `sync: false` se piden al crear el Blueprint (no se guardan en git).
+services:
+  # API NestJS
+  - type: web
+    name: fur-api
+    runtime: node
+    plan: free
+    buildCommand: npm ci --include=dev && npm run build -w @fur/api
+    # Aplica migraciones pendientes y arranca (apps/api/dist/database/migrate.js).
+    startCommand: npm run start:prod -w @fur/api
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL # Neon: conexión con pooler (host "-pooler")
+        sync: false
+      - key: DATABASE_URL_UNPOOLED # Neon: conexión directa, usada por las migraciones
+        sync: false
+      - key: CORS_ORIGINS # URL del sitio web, p. ej. https://fur-web.onrender.com
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      # Web y API están en dominios distintos de onrender.com: la cookie del refresh token debe ser cross-site.
+      - key: COOKIE_SAMESITE
+        value: none
+      # ATENCIÓN (documentos): el disco de un web service de Render es EFÍMERO; los archivos subidos se
+      # pierden en cada deploy. Antes de publicar hay que usar un disco persistente (plan de pago, con
+      # STORAGE_DIR apuntando a su ruta de montaje) o implementar el driver S3 de StorageService.
+      - key: STORAGE_DIR
+        value: /var/data/documents
+
+  # Frontend React (sitio estático)
+  - type: web
+    name: fur-web
+    runtime: static
+    buildCommand: npm ci --include=dev && npm run build -w @fur/web
+    staticPublishPath: apps/web/dist
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: VITE_API_URL # p. ej. https://fur-api.onrender.com/api/v1
+        sync: false
+    routes:
+      # SPA: todas las rutas del router caen en index.html
+      - type: rewrite
+        source: /*
+        destination: /index.html

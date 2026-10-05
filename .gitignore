@@ -1,0 +1,29 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Dependencias y builds
+node_modules
+dist
+dist-ssr
+*.local
+*.tsbuildinfo
+
+# Secretos: nunca versionar (solo .env.example)
+.env
+.env.*
+!.env.example
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.sw?
+
+# Datos del Postgres local
+.local

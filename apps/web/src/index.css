@@ -1,0 +1,181 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
+@import "./styles/tokens.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Tailwind ↔ tokens FUR.
+ * `--color-fur-*` expone la paleta completa como utilidades (bg-fur-navy-900, text-fur-gold-500…).
+ * Los `--color-*` de shadcn se resuelven abajo en :root contra la paleta FUR.
+ */
+@theme inline {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-sans);
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "Cascadia Code", monospace;
+
+  --color-fur-navy-950: var(--fur-navy-950);
+  --color-fur-navy-900: var(--fur-navy-900);
+  --color-fur-navy-800: var(--fur-navy-800);
+  --color-fur-navy-700: var(--fur-navy-700);
+  --color-fur-gold-600: var(--fur-gold-600);
+  --color-fur-gold-500: var(--fur-gold-500);
+  --color-fur-gold-400: var(--fur-gold-400);
+  --color-fur-orange-500: var(--fur-orange-500);
+  --color-fur-gray-50: var(--fur-gray-50);
+  --color-fur-gray-100: var(--fur-gray-100);
+  --color-fur-gray-200: var(--fur-gray-200);
+  --color-fur-gray-300: var(--fur-gray-300);
+  --color-fur-gray-500: var(--fur-gray-500);
+  --color-fur-gray-600: var(--fur-gray-600);
+  --color-fur-gray-800: var(--fur-gray-800);
+  --color-fur-gray-900: var(--fur-gray-900);
+  --color-fur-green-500: var(--fur-green-500);
+  --color-fur-red-500: var(--fur-red-500);
+  --color-fur-yellow-500: var(--fur-yellow-500);
+  --color-fur-cyan-500: var(--fur-cyan-500);
+  --color-fur-blue-500: var(--fur-blue-500);
+  --color-fur-purple-500: var(--fur-purple-500);
+  --color-fur-magenta-500: var(--fur-magenta-500);
+  --color-fur-teal-500: var(--fur-teal-500);
+  --color-fur-steel-500: var(--fur-steel-500);
+
+  --color-network-proc: var(--network-proc);
+  --color-network-pte: var(--network-pte);
+  --color-network-iot: var(--network-iot);
+  --color-network-gpon: var(--network-gpon);
+  --color-network-cc: var(--network-cc);
+  --color-network-lab: var(--network-lab);
+  --color-network-mnt: var(--network-mnt);
+  --color-network-rq: var(--network-rq);
+  --color-network-of: var(--network-of);
+  --color-network-cam: var(--network-cam);
+
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-8: var(--chart-8);
+  --color-chart-7: var(--chart-7);
+  --color-chart-6: var(--chart-6);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+
+  --radius-sm: var(--fur-radius-sm);
+  --radius-md: var(--fur-radius-md);
+  --radius-lg: var(--fur-radius-lg);
+  --radius-xl: var(--fur-radius-xl);
+  --radius-2xl: calc(var(--fur-radius-xl) + 4px);
+  --radius-3xl: calc(var(--fur-radius-xl) + 8px);
+  --radius-4xl: calc(var(--fur-radius-xl) + 12px);
+
+  --shadow-sm: var(--fur-shadow-sm);
+  --shadow-md: var(--fur-shadow-md);
+  --shadow-lg: var(--fur-shadow-lg);
+
+  --container-fur: 1440px;
+}
+
+/* Tema claro FUR (el design.md no define modo oscuro). */
+:root {
+  --background: var(--fur-gray-50);
+  --foreground: var(--fur-gray-900);
+  --card: var(--fur-white);
+  --card-foreground: var(--fur-gray-900);
+  --popover: var(--fur-white);
+  --popover-foreground: var(--fur-gray-900);
+
+  /* Gold = CTA, selección y estados activos (§2.2) */
+  --primary: var(--fur-gold-500);
+  --primary-foreground: var(--fur-navy-900);
+  --secondary: var(--fur-white);
+  --secondary-foreground: var(--fur-navy-900);
+  --muted: var(--fur-gray-100);
+  --muted-foreground: var(--fur-gray-600);
+  --accent: var(--fur-gray-100);
+  --accent-foreground: var(--fur-navy-900);
+
+  --destructive: var(--fur-red-500);
+  --destructive-foreground: var(--fur-white);
+  --success: var(--fur-green-500);
+  --warning: var(--fur-orange-500);
+
+  --border: var(--fur-gray-200);
+  --input: var(--fur-gray-300);
+  --ring: var(--fur-blue-500);
+
+  /* Orden de series para charts (§43): navy, gold, blue, green, purple, orange, teal, red */
+  --chart-1: var(--fur-navy-900);
+  --chart-2: var(--fur-gold-500);
+  --chart-3: var(--fur-blue-500);
+  --chart-4: var(--fur-green-500);
+  --chart-5: var(--fur-purple-500);
+  --chart-6: var(--fur-orange-500);
+  --chart-7: var(--fur-teal-500);
+  --chart-8: var(--fur-red-500);
+
+  /* Navegación navy */
+  --sidebar: var(--fur-navy-900);
+  --sidebar-foreground: var(--fur-white);
+  --sidebar-primary: var(--fur-gold-500);
+  --sidebar-primary-foreground: var(--fur-navy-900);
+  --sidebar-accent: var(--fur-navy-800);
+  --sidebar-accent-foreground: var(--fur-white);
+  --sidebar-border: var(--fur-navy-800);
+  --sidebar-ring: var(--fur-gold-400);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  html {
+    @apply font-sans;
+  }
+  h1 { @apply text-4xl font-bold; }
+  h2 { @apply text-3xl font-bold; }
+  h3 { @apply text-2xl font-bold; }
+  h4 { @apply text-xl font-semibold; }
+  h5 { @apply text-lg font-semibold; }
+}
+
+/* Códigos técnicos (§57): D06, MB-301, FUR-IOT, OT-2026-00418 */
+.fur-code {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}

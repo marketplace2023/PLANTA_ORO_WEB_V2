@@ -1,0 +1,1 @@
+ALTER TABLE "iam"."user_plant_roles" ADD CONSTRAINT "user_plant_roles_user_id_plant_id_role_id_unique" UNIQUE("user_id","plant_id","role_id");

@@ -1,0 +1,1 @@
+ALTER TABLE "procurement"."requisition_lines" ADD COLUMN "position" integer DEFAULT 0 NOT NULL;

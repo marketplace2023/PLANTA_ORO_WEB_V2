@@ -1,0 +1,33 @@
+{
+  "name": "ecosistema-fur",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "dev": "npm-run-all --parallel db:local dev:api dev:web",
+    "dev:app": "npm-run-all --parallel dev:api dev:web",
+    "dev:web": "npm run dev -w @fur/web",
+    "dev:api": "npm run start:dev -w @fur/api",
+    "db:local": "node scripts/local-db.mjs",
+    "db:generate": "npm run db:generate -w @fur/api",
+    "db:migrate": "npm run db:migrate -w @fur/api",
+    "db:seed": "npm run db:seed -w @fur/api",
+    "setup:local": "npm run db:migrate && npm run db:seed:dev",
+    "test": "npm run test -w @fur/api && npm run test -w @fur/web",
+    "test:api": "npm run test -w @fur/api",
+    "test:web": "npm run test -w @fur/web",
+    "lint": "npm run lint -w @fur/web && npm run lint -w @fur/api",
+    "build": "npm run build -w @fur/api && npm run build -w @fur/web",
+    "check": "npm run lint && npm run test && npm run build",
+    "db:seed:dev": "npm run db:seed:dev -w @fur/api"
+  },
+  "devDependencies": {
+    "embedded-postgres": "17.10.0-beta.17",
+    "npm-run-all2": "^8.0.4"
+  }
+}

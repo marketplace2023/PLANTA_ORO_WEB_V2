@@ -1,0 +1,80 @@
+/* Design tokens — Ecosistema FUR (docs/design.md §2, §6, §8, §50) */
+:root {
+  /* Navy — navegación, headers, identidad */
+  --fur-navy-950: #061a36;
+  --fur-navy-900: #08254c;
+  --fur-navy-800: #103866;
+  --fur-navy-700: #184d7c;
+
+  /* Gold — CTA, selección, estados activos */
+  --fur-gold-600: #e89600;
+  --fur-gold-500: #f5a800;
+  --fur-gold-400: #fdba2d;
+
+  --fur-orange-500: #e87912;
+
+  --fur-white: #ffffff;
+  --fur-gray-50: #f7f9fc;
+  --fur-gray-100: #eef2f6;
+  --fur-gray-200: #dce3eb;
+  --fur-gray-300: #cbd5e1;
+  --fur-gray-500: #7b899a;
+  --fur-gray-600: #58677a;
+  --fur-gray-800: #283544;
+  --fur-gray-900: #17202b;
+
+  /* Estados / acentos */
+  --fur-green-500: #1f9d55;
+  --fur-red-500: #d74646;
+  --fur-yellow-500: #e9b300;
+  --fur-cyan-500: #2896d2;
+  --fur-blue-500: #2563b8;
+  --fur-purple-500: #7445c6;
+  --fur-magenta-500: #d9468d;
+  --fur-teal-500: #1b9c95;
+  --fur-steel-500: #6b7788;
+
+  /* Redes transversales (§3) */
+  --network-proc: #e87912;
+  --network-pte: #e9b300;
+  --network-iot: #2896d2;
+  --network-gpon: #7445c6;
+  --network-cc: #d74646;
+  --network-lab: #1b9c95;
+  --network-mnt: #6b7788;
+  --network-rq: #1f9d55;
+  --network-of: #d9468d;
+  --network-cam: #2563b8;
+
+  /* Espaciado base 4px (§6) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Radios y sombras (§8) */
+  --fur-radius-sm: 6px;
+  --fur-radius-md: 10px;
+  --fur-radius-lg: 14px;
+  --fur-radius-xl: 18px;
+  --fur-radius-pill: 9999px;
+
+  --fur-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --fur-shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --fur-shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
+
+  /* Aliases semánticos (§50). Prefijo --brand-* para no chocar con --color-* de Tailwind. */
+  --brand-primary: var(--fur-navy-900);
+  --brand-accent: var(--fur-gold-500);
+  --surface-page: var(--fur-gray-50);
+  --surface-card: var(--fur-white);
+  --border-default: var(--fur-gray-200);
+  --text-primary: var(--fur-gray-900);
+  --text-secondary: var(--fur-gray-600);
+}

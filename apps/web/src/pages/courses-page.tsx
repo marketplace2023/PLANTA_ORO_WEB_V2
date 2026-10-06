@@ -26,6 +26,12 @@ const SORTS = [
   { value: 'title', label: 'Título (A-Z)' },
   { value: 'newest', label: 'Más recientes' },
   { value: 'duration', label: 'Menor duración' },
+  { value: 'price_asc', label: 'Menor precio' },
+  { value: 'price_desc', label: 'Mayor precio' },
+]
+const PRICES = [
+  { value: '1', label: 'Gratis' },
+  { value: '0', label: 'De pago' },
 ]
 const DURATIONS = [
   { value: '60', label: 'Hasta 1 h' },
@@ -55,12 +61,13 @@ export function CoursesPage() {
     filters.level && { key: 'level', label: 'Nivel', value: levelLabel(filters.level) },
     filters.ownerType && { key: 'ownerType', label: 'Ofrece', value: OWNER_LABELS[filters.ownerType] ?? filters.ownerType },
     filters.maxMinutes && { key: 'maxMinutes', label: 'Duración', value: DURATIONS.find((d) => d.value === filters.maxMinutes)?.label ?? `${filters.maxMinutes} min` },
+    filters.free && { key: 'free', label: 'Precio', value: PRICES.find((p) => p.value === filters.free)?.label ?? filters.free },
     filters.certificate === '1' && { key: 'certificate', label: 'Certificación', value: 'Con certificado' },
     filters.search && { key: 'search', label: 'Búsqueda', value: filters.search },
   ].filter((c): c is Chip => !!c)
   const clearAll = () => {
     setSearchText('')
-    setParam({ stage: undefined, level: undefined, ownerType: undefined, maxMinutes: undefined, certificate: undefined, search: undefined })
+    setParam({ stage: undefined, level: undefined, ownerType: undefined, maxMinutes: undefined, certificate: undefined, free: undefined, search: undefined })
   }
 
   const data = courses.data
@@ -118,6 +125,7 @@ export function CoursesPage() {
           <FilterSelect label="Nivel" value={filters.level ?? ''} onChange={(v) => setParam({ level: v || undefined })} options={LEVELS.map((l) => ({ value: l, label: LEVEL_LABELS[l] }))} />
           <FilterSelect label="Ofrece" value={filters.ownerType ?? ''} onChange={(v) => setParam({ ownerType: v || undefined })} options={Object.entries(OWNER_LABELS).map(([value, label]) => ({ value, label }))} />
           <FilterSelect label="Duración" value={filters.maxMinutes ?? ''} onChange={(v) => setParam({ maxMinutes: v || undefined })} options={DURATIONS} />
+          <FilterSelect label="Precio" value={filters.free ?? ''} onChange={(v) => setParam({ free: v || undefined })} options={PRICES} />
           <FilterSelect label="Ordenar" value={filters.sort ?? ''} allLabel={SORTS[0].label} onChange={(v) => setParam({ sort: v || undefined })} options={SORTS.slice(1)} />
           <label className="flex h-10 items-center gap-2 text-sm">
             <Checkbox checked={filters.certificate === '1'} onCheckedChange={(on) => setParam({ certificate: on ? '1' : undefined })} />

@@ -12,6 +12,7 @@ import {
   manufacturers,
   networkMaster,
   permissions,
+  plantAccessRequests,
   plants,
   providers,
   roles,
@@ -116,12 +117,14 @@ export class EcosystemDashboardController {
         .limit(10),
     ])
 
+    const pendingAccessRequests = await this.count(plantAccessRequests, eq(plantAccessRequests.status, 'PENDING'))
+
     const sum = (r: Record<string, number>) => Object.values(r).reduce((a, b) => a + b, 0)
     return {
       generatedAt: new Date().toISOString(),
       plants: { total: sum(plantsByStatus), byStatus: plantsByStatus, byVisibility: plantsByVisibility },
       users: { total: sum(usersByStatus), byStatus: usersByStatus, globalAdmins: admins, activeLast30Days: activeLast30 },
-      access: { roles: roleCount, permissions: permissionCount, assignments },
+      access: { roles: roleCount, permissions: permissionCount, assignments, pendingRequests: pendingAccessRequests },
       catalog: { families, types, manufacturers: makers, models },
       masters: { stages, networks },
       organizations: {

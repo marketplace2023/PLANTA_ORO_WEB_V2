@@ -1,6 +1,7 @@
 import { BadgeCheck, Star } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import type { Tag } from '@/features/organizations/use-organizations'
+import { imageSrc } from '@/lib/media'
 import { ratingText } from '@/lib/organizations'
 
 /** Verificado por el administrador del ecosistema: icono + texto (el color no es el único canal). */
@@ -56,7 +57,7 @@ export function OrgLogo({ name, logoUrl }: { name: string; logoUrl: string | nul
     .join('')
   return logoUrl ? (
     // URL elegida por la organización: sin enviar el referer y sin bloquear la carga de la página.
-    <img src={logoUrl} alt="" referrerPolicy="no-referrer" loading="lazy" className="size-12 shrink-0 rounded-lg border border-border bg-card object-contain" />
+    <img src={imageSrc(logoUrl) ?? ''} alt="" referrerPolicy="no-referrer" loading="lazy" className="size-12 shrink-0 rounded-lg border border-border bg-card object-contain" />
   ) : (
     <span aria-hidden className="grid size-12 shrink-0 place-items-center rounded-lg bg-fur-navy-800 text-sm font-bold text-white">
       {initials}

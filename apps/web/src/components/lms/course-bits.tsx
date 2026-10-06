@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import type { CourseCard as Course } from '@/features/lms/use-lms'
-import { formatDuration, levelLabel } from '@/lib/lms'
+import { coursePriceText, formatDuration, levelLabel } from '@/lib/lms'
 
 /** Barra de progreso accesible (rol progressbar + texto, no solo color). */
 export function Progress({ percent, label }: { percent: number; label: string }) {
@@ -52,6 +52,9 @@ export function CourseCard({ course }: { course: Course }) {
           <Clock className="size-4" aria-hidden /> {formatDuration(course.durationMinutes)} · {course.lessonCount} {course.lessonCount === 1 ? 'lección' : 'lecciones'}
         </p>
         <StageTags stages={course.stages} />
+        <p className={course.price > 0 ? 'text-lg font-bold text-fur-navy-900' : 'text-lg font-bold text-fur-green-500'} aria-label={`Precio: ${coursePriceText(course.price, course.currency)}`}>
+          {coursePriceText(course.price, course.currency)}
+        </p>
         {mine ? (
           <div className="mt-auto">
             {mine.status === 'COMPLETED' ? <Badge>Completado</Badge> : <Progress percent={mine.progressPercent} label={`Progreso en ${course.title}`} />}

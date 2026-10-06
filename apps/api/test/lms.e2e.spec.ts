@@ -1,5 +1,7 @@
 import type { INestApplication } from '@nestjs/common'
+import { and, eq } from 'drizzle-orm'
 import request from 'supertest'
+import { auditEvents } from '../src/database/schema'
 import { bearer, createApp, login, type Session, TestDb } from './helpers'
 
 describe('Cursos (LMS) (e2e)', () => {
@@ -216,6 +218,74 @@ describe('Cursos (LMS) (e2e)', () => {
       const after = (await get(`/api/v1/courses/${c.id}`, admin)).body
       expect(after.lessons.map((l: { position: number }) => l.position)).toEqual([0, 1, 2, 3, 4, 5])
       expect(after.durationMinutes).toBe(60)
+    })
+  })
+
+  describe('precio del curso', () => {
+    const prc = async (qs: string) => titles(await get(`/api/v1/courses?search=E2E%20PRC&${qs}`).expect(200))
+    let free: { id: string }
+    let paid: { id: string }
+    let premium: { id: string }
+
+    beforeAll(async () => {
+      // Gratuito (sin precio), de pago fijado por el facilitador (proveedor) y uno más caro del ecosistema.
+      free = await published({ title: 'E2E PRC Gratuito', stageCodes: ['D06'] })
+      paid = await mkCourse({ ownerType: 'PROVIDER', ownerId: provId, title: 'E2E PRC De pago', price: 120.5, currency: 'pen', stageCodes: ['D06'] }, owner)
+      await addLesson(paid.id, {}, owner)
+      await send('patch', `/api/v1/courses/${paid.id}`, owner, { status: 'PUBLISHED' }).expect(200)
+      premium = await published({ title: 'E2E PRC Premium', price: 300, currency: 'USD', stageCodes: ['D07'] })
+    })
+
+    it('un curso nuevo es gratuito (precio 0, USD) salvo que quien lo ofrece fije un precio', async () => {
+      expect(free).toMatchObject({ price: 0, currency: 'USD' })
+      const c = await mkCourse({ title: 'E2E PRC Borrador' })
+      expect(c).toMatchObject({ price: 0, currency: 'USD' })
+    })
+
+    it('el facilitador fija el precio al crear (moneda en mayúsculas) y lo cambia después', async () => {
+      expect(paid).toMatchObject({ price: 120.5, currency: 'PEN' })
+      const res = await send('patch', `/api/v1/courses/${paid.id}`, member, { price: 99.99, currency: 'usd' }).expect(200) // un miembro también
+      expect(res.body).toMatchObject({ price: 99.99, currency: 'USD' })
+      await send('patch', `/api/v1/courses/${paid.id}`, owner, { price: 0 }).expect(200) // volver a gratuito
+      expect((await get(`/api/v1/courses/${paid.id}`)).body.price).toBe(0)
+      await send('patch', `/api/v1/courses/${paid.id}`, owner, { price: 120.5, currency: 'PEN' }).expect(200)
+    })
+
+    it('valida el precio: no negativo, hasta 2 decimales, número y moneda de 3 letras', async () => {
+      for (const bad of [{ price: -1 }, { price: 10.999 }, { price: '10' }, { price: 1e10 }, { currency: 'DOLARES' }, { currency: 'US' }]) {
+        await send('patch', `/api/v1/courses/${paid.id}`, owner, bad).expect(400)
+      }
+      await send('post', '/api/v1/courses', admin, { ownerType: 'ECOSYSTEM', title: 'E2E PRC Malo', price: -5 }).expect(400)
+      expect((await get(`/api/v1/courses/${paid.id}`)).body).toMatchObject({ price: 120.5, currency: 'PEN' }) // nada cambió
+    })
+
+    it('el precio se ve en el catálogo público y en el detalle, sin sesión', async () => {
+      const list = (await get('/api/v1/courses?search=E2E%20PRC').expect(200)).body.items as Array<{ title: string; price: number; currency: string }>
+      expect(list.find((c) => c.title === 'E2E PRC De pago')).toMatchObject({ price: 120.5, currency: 'PEN' })
+      expect(list.find((c) => c.title === 'E2E PRC Gratuito')).toMatchObject({ price: 0 })
+      expect((await get(`/api/v1/courses/${premium.id}`)).body).toMatchObject({ price: 300, currency: 'USD' })
+    })
+
+    it('filtra gratuitos o de pago y ordena por precio', async () => {
+      expect(await prc('free=1')).toEqual(['E2E PRC Gratuito'])
+      expect(await prc('free=0&sort=price_asc')).toEqual(['E2E PRC De pago', 'E2E PRC Premium'])
+      expect(await prc('free=0&sort=price_desc')).toEqual(['E2E PRC Premium', 'E2E PRC De pago'])
+      expect(await prc('sort=price_asc')).toEqual(['E2E PRC Gratuito', 'E2E PRC De pago', 'E2E PRC Premium'])
+      await get('/api/v1/courses?free=2').expect(400)
+    })
+
+    it('solo gestiona el precio quien gestiona el curso', async () => {
+      await send('patch', `/api/v1/courses/${paid.id}`, stranger, { price: 1 }).expect(403)
+      await send('patch', `/api/v1/courses/${paid.id}`, stu1, { price: 1 }).expect(403)
+      await send('patch', `/api/v1/courses/${paid.id}`, null, { price: 1 }).expect(401)
+      await send('patch', `/api/v1/courses/${paid.id}`, cowner, { price: 1 }).expect(403) // otro dueño
+      expect((await get(`/api/v1/courses/${paid.id}`)).body.price).toBe(120.5)
+    })
+
+    it('el cambio de precio queda auditado con el valor anterior', async () => {
+      const events = await t.db.select().from(auditEvents).where(and(eq(auditEvents.module, 'lms'), eq(auditEvents.entityId, paid.id)))
+      const changed = events.find((e) => (e.newData as { price?: number } | null)?.price === 99.99)
+      expect(changed?.oldData).toMatchObject({ price: '120.50', currency: 'PEN' })
     })
   })
 

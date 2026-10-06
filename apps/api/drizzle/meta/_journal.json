@@ -127,6 +127,34 @@
       "when": 1791226146331,
       "tag": "0017_catalog_model_image",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791231299455,
+      "tag": "0018_listing_photo_provider_logo",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791294701219,
+      "tag": "0019_course_price",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791300516060,
+      "tag": "0020_contractor_logo",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1791302321207,
+      "tag": "0021_plant_access_requests",
+      "breakpoints": true
     }
   ]
 }

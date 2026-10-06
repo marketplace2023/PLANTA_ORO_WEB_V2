@@ -86,7 +86,25 @@ export const assignMemberSchema = z.object({
   roleCode: z.string().trim().min(1).max(60),
 })
 
-export type CreatePlantDto = z.infer<typeof createPlantSchema>
+export const createAccessRequestSchema = z.object({
+  /** UUID o slug de la planta. */
+  plant: z.string().trim().min(1).max(120),
+  message: z.string().trim().max(500).optional(),
+})
+
+export const approveAccessRequestSchema = z.object({
+  roleCode: z.string().trim().min(1).max(60),
+  note: z.string().trim().max(500).optional(),
+})
+
+export const rejectAccessRequestSchema = z.object({
+  note: z.string().trim().max(500).optional(),
+})
+
+export type CreateAccessRequestDto = z.infer<typeof createAccessRequestSchema>
+export type ApproveAccessRequestDto = z.infer<typeof approveAccessRequestSchema>
+export type RejectAccessRequestDto = z.infer<typeof rejectAccessRequestSchema>
+export type CreatePlantDto =z.infer<typeof createPlantSchema>
 export type UpdatePlantDto = z.infer<typeof updatePlantSchema>
 export type EnableStageDto = z.infer<typeof enableStageSchema>
 export type UpdateStageDto = z.infer<typeof updateStageSchema>

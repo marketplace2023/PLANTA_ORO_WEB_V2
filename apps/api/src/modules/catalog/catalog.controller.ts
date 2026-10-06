@@ -7,6 +7,7 @@ import { ZodValidationPipe } from '../../common/zod-validation.pipe'
 import { DB, type Database } from '../../database/database.module'
 import { assetFamilies, assetModels, assetTypes, manufacturers } from '../../database/schema'
 import type { AuthUser } from '../../common/types'
+import { setImageHeaders } from '../documents/image-upload'
 import { StorageService } from '../documents/storage.service'
 import { CurrentUser, Public } from '../iam/decorators'
 
@@ -124,15 +125,7 @@ export class CatalogController {
     const stream = await this.storage.open(m.key).catch(() => {
       throw new NotFoundException('El modelo no tiene imagen')
     })
-    res.set({
-      'Content-Type': m.mime,
-      'X-Content-Type-Options': 'nosniff',
-      // La URL lleva ?v=<versión>: reemplazar la foto cambia la URL, así que puede cachearse sin riesgo.
-      'Cache-Control': 'public, max-age=86400',
-      'Content-Security-Policy': "sandbox; default-src 'none'; style-src 'unsafe-inline'",
-      // helmet pone same-origin por defecto; las webs del ecosistema viven en otro origen y deben poder mostrarla.
-      'Cross-Origin-Resource-Policy': 'cross-origin',
-    })
+    setImageHeaders(res, m.mime)
     return new StreamableFile(stream)
   }
 }

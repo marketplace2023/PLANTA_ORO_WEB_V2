@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { and, asc, desc, eq, gte, ilike, inArray, lte, or, sql, type SQL } from 'drizzle-orm'
 import { validationError } from '../../common/errors'
@@ -6,6 +7,8 @@ import type { AppRequest, AuthUser } from '../../common/types'
 import { DB, type Database } from '../../database/database.module'
 import { assetFamilies, assetModels, assetTypes, listings, listingStages, manufacturers, providers, stageMaster } from '../../database/schema'
 import { AuditService } from '../audit/audit.service'
+import { inspectImage } from '../documents/image-upload'
+import { StorageService } from '../documents/storage.service'
 import { OrgAccessService } from './org-access.service'
 import type { CreateListingDto, ListListingsQuery, ListProviderListingsQuery, UpdateListingDto } from './organizations.schemas'
 import { ProvidersService, ratingOf } from './providers.service'
@@ -19,6 +22,7 @@ export class MarketplaceService {
     private readonly access: OrgAccessService,
     private readonly providersSvc: ProvidersService,
     private readonly audit: AuditService,
+    private readonly storage: StorageService,
   ) {}
 
   private select() {
@@ -263,11 +267,14 @@ export class MarketplaceService {
     }
 
     const { stageCodes: _s, assetFamilyCode: _f, price, ...rest } = dto
+    // Una URL externa (o quitarla) reemplaza la foto subida: se descarta para no dejar un archivo huérfano.
+    const dropUploaded = dto.imageUrl !== undefined && !!before.imageKey
     await this.db.transaction(async (tx) => {
       await tx
         .update(listings)
         .set({
           ...rest,
+          ...(dropUploaded && { imageKey: null, imageMime: null }),
           ...(price !== undefined && { price: price === null ? null : String(price) }),
           ...(familyId && { assetFamilyId: familyId }),
           updatedAt: new Date(),
@@ -278,6 +285,7 @@ export class MarketplaceService {
         if (stageIds.length) await tx.insert(listingStages).values([...new Set(stageIds)].map((stageMasterId) => ({ listingId: id, stageMasterId })))
       }
     })
+    if (dropUploaded && before.imageKey) await this.storage.delete(before.imageKey).catch(() => undefined)
     await this.audit.record(req, {
       module: 'marketplace',
       entityType: 'listing',
@@ -287,5 +295,51 @@ export class MarketplaceService {
       newData: dto,
     })
     return this.getManaged(providerId, id)
+  }
+
+  // ---------- Foto del producto ----------
+
+  private async loadManaged(providerId: string, id: string, user: AuthUser) {
+    await this.providersSvc.loadVisible(providerId, user)
+    const role = await this.access.assertManage('provider', providerId, user)
+    const [row] = await this.db.select({ id: listings.id, imageKey: listings.imageKey }).from(listings).where(and(eq(listings.id, id), eq(listings.providerId, providerId)))
+    if (!row) throw new NotFoundException('Producto no encontrado')
+    if (role !== 'ADMIN') await this.assertProviderActive(providerId)
+    return row
+  }
+
+  /** Sube (o reemplaza) la foto del producto. La clave es nueva en cada subida: la anterior se borra solo cuando la nueva ya quedó registrada. */
+  async setImage(providerId: string, id: string, file: Express.Multer.File | undefined, user: AuthUser, req: AppRequest) {
+    const before = await this.loadManaged(providerId, id, user)
+    const image = inspectImage(file)
+    const key = `marketplace/listings/${id}/${randomUUID()}.${image.extension}`
+    await this.storage.put(key, image.data)
+    const now = new Date()
+    try {
+      await this.db.update(listings).set({ imageKey: key, imageMime: image.mimeType, imageUrl: `/marketplace/listings/${id}/image?v=${now.getTime()}`, updatedAt: now }).where(eq(listings.id, id))
+    } catch (e) {
+      await this.storage.delete(key).catch(() => undefined)
+      throw e
+    }
+    if (before.imageKey) await this.storage.delete(before.imageKey).catch(() => undefined)
+    await this.audit.record(req, { module: 'marketplace', entityType: 'listing', entityId: id, action: 'image.updated', oldData: { hadImage: !!before.imageKey }, newData: { mimeType: image.mimeType, sizeBytes: image.data.length } })
+    return this.getManaged(providerId, id)
+  }
+
+  async removeImage(providerId: string, id: string, user: AuthUser, req: AppRequest) {
+    const before = await this.loadManaged(providerId, id, user)
+    await this.db.update(listings).set({ imageKey: null, imageMime: null, imageUrl: null, updatedAt: new Date() }).where(eq(listings.id, id))
+    if (before.imageKey) await this.storage.delete(before.imageKey).catch(() => undefined)
+    await this.audit.record(req, { module: 'marketplace', entityType: 'listing', entityId: id, action: 'image.removed', oldData: { hadImage: !!before.imageKey } })
+  }
+
+  /** Foto pública del producto (el identificador no es adivinable y la foto no es información sensible). */
+  async openImage(id: string) {
+    const [row] = await this.db.select({ key: listings.imageKey, mime: listings.imageMime }).from(listings).where(eq(listings.id, id))
+    if (!row?.key || !row.mime) throw new NotFoundException('El producto no tiene foto subida')
+    const stream = await this.storage.open(row.key).catch(() => {
+      throw new NotFoundException('El producto no tiene foto subida')
+    })
+    return { stream, mime: row.mime }
   }
 }

@@ -14,7 +14,7 @@ import { useAuth } from '@/features/auth/auth-context'
 import { useCourse, useDrop, useEnroll, useLessonProgress, type CourseDetail } from '@/features/lms/use-lms'
 import { ApiError } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
-import { formatDuration, levelLabel } from '@/lib/lms'
+import { coursePriceText, formatDuration, levelLabel } from '@/lib/lms'
 
 const errorText = (err: unknown) => (err instanceof ApiError ? err.message : 'No se pudo completar la acción')
 
@@ -169,6 +169,9 @@ export function CoursePage() {
             </Badge>
           )}
           {course.status !== 'PUBLISHED' && <Badge variant="outline">{course.status === 'DRAFT' ? 'Borrador (no visible al público)' : 'Archivado'}</Badge>}
+          <Badge variant={course.price > 0 ? 'default' : 'outline'} aria-label={`Precio: ${coursePriceText(course.price, course.currency)}`}>
+            {coursePriceText(course.price, course.currency)}
+          </Badge>
           <span className="text-sm text-fur-gray-600">
             {formatDuration(course.durationMinutes)} · {course.lessons.length} {course.lessons.length === 1 ? 'lección' : 'lecciones'}
           </span>

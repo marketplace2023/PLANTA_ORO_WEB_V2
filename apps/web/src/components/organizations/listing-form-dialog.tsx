@@ -10,6 +10,7 @@ import { useCatalogFamilies } from '@/features/assets/use-assets'
 import { useStageCatalog } from '@/features/catalog/use-catalog'
 import { useCreateListing, useUpdateListing, type Availability, type Listing } from '@/features/organizations/use-organizations'
 import { ApiError } from '@/lib/api'
+import { externalUrlOnly } from '@/lib/media'
 import { AVAILABILITY_LABELS } from '@/lib/organizations'
 import { CheckGroup } from './check-group'
 
@@ -29,7 +30,9 @@ export function ListingFormDialog({ providerId, listing, onClose }: { providerId
   const [currency, setCurrency] = useState(listing?.currency ?? 'USD')
   const [availability, setAvailability] = useState<Availability>(listing?.availability ?? 'ON_REQUEST')
   const [stockText, setStockText] = useState(listing?.stockText ?? '')
-  const [imageUrl, setImageUrl] = useState(listing?.imageUrl ?? '')
+  // Solo se edita una URL externa; una foto subida se gestiona desde el portal de proveedores y no debe borrarse al guardar.
+  const initialImageUrl = externalUrlOnly(listing?.imageUrl)
+  const [imageUrl, setImageUrl] = useState(initialImageUrl)
   const [stageCodes, setStageCodes] = useState<string[]>(listing?.stages.map((s) => s.code) ?? [])
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
@@ -55,7 +58,7 @@ export function ListingFormDialog({ providerId, listing, onClose }: { providerId
           currency,
           availability,
           stockText: stockText.trim() || null,
-          imageUrl: imageUrl.trim() || null,
+          ...(imageUrl.trim() !== initialImageUrl && { imageUrl: imageUrl.trim() || null }),
           stageCodes,
         } as never)
       } else {

@@ -1,3 +1,5 @@
+import { formatMoney } from './format'
+
 export const LEVELS = ['BASIC', 'INTERMEDIATE', 'ADVANCED'] as const
 export const LEVEL_LABELS: Record<string, string> = { BASIC: 'Básico', INTERMEDIATE: 'Intermedio', ADVANCED: 'Avanzado' }
 export const COURSE_STATUS_LABELS: Record<string, string> = { DRAFT: 'Borrador', PUBLISHED: 'Publicado', ARCHIVED: 'Archivado' }
@@ -12,3 +14,6 @@ export function formatDuration(minutes: number): string {
   const m = minutes % 60
   return h === 0 ? `${m} min` : m === 0 ? `${h} h` : `${h} h ${m} min`
 }
+
+/** "Gratis" si el curso no tiene precio; si no, el precio con su moneda ("USD 120.00"). */
+export const coursePriceText = (price: number, currency: string) => (price > 0 ? formatMoney(price, currency) : 'Gratis')

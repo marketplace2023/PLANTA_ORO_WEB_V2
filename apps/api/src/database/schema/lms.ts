@@ -34,6 +34,9 @@ export const courses = lmsSchema.table(
     status: varchar('status', { length: 20 }).notNull().default('DRAFT'),
     /** Suma de la duración de sus lecciones: se recalcula al cambiarlas (no se edita a mano). */
     durationMinutes: integer('duration_minutes').notNull().default(0),
+    /** Precio que fija quien ofrece el curso. 0 = gratuito. Dinero siempre numeric (§46). */
+    price: numeric('price', { precision: 18, scale: 2 }).notNull().default('0'),
+    currency: varchar('currency', { length: 3 }).notNull().default('USD'),
     createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),

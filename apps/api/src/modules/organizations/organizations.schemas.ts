@@ -48,6 +48,11 @@ export const createProviderSchema = z.object({
   familyCodes: z.array(code).max(30).default([]),
   /** Solo el administrador: asigna a esta persona como responsable (OWNER) de la organización. */
   ownerEmail: email.optional(),
+  /**
+   * Registro hecho por la propia persona desde el portal: la empresa queda PENDIENTE de aprobación y quien la registra es su
+   * responsable, también si es administrador del ecosistema (que luego la aprueba desde el panel de administración).
+   */
+  selfRegistration: z.boolean().optional(),
 })
 
 export const updateProviderSchema = nonEmpty({
@@ -80,6 +85,11 @@ export const createContractorSchema = z.object({
   certifications: profile.certifications.default([]),
   availability: z.enum(AVAILABILITY_STATES).default('AVAILABLE'),
   ownerEmail: email.optional(),
+  /**
+   * Registro hecho por la propia persona desde el portal: la empresa queda PENDIENTE de aprobación y quien la registra es su
+   * responsable, también si es administrador del ecosistema (que luego la aprueba desde el panel de administración).
+   */
+  selfRegistration: z.boolean().optional(),
 })
 
 export const updateContractorSchema = nonEmpty({

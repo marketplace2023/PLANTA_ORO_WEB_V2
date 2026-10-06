@@ -21,7 +21,10 @@ export const contractors = professionalSchema.table(
     description: text('description'),
     website: text('website'),
     contactEmail: varchar('contact_email', { length: 255 }),
+    /** Lo que se muestra: URL externa o, si se subió un logo, la ruta de la API que lo sirve. */
     logoUrl: text('logo_url'),
+    logoKey: text('logo_key'),
+    logoMime: varchar('logo_mime', { length: 50 }),
     certifications: text('certifications').array().notNull().default(sql`'{}'::text[]`),
     /** Disponibilidad declarada por el contratista para tomar trabajos nuevos. */
     availability: varchar('availability', { length: 20 }).notNull().default('AVAILABLE'),

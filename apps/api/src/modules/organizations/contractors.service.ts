@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { and, asc, eq, gte, ilike, inArray, or, sql, type SQL } from 'drizzle-orm'
 import { isUniqueViolation } from '../../common/db-errors'
@@ -7,6 +8,8 @@ import type { AppRequest, AuthUser } from '../../common/types'
 import { DB, type Database } from '../../database/database.module'
 import { contractorMembers, contractors, serviceStages, services, stageMaster } from '../../database/schema'
 import { AuditService } from '../audit/audit.service'
+import { inspectImage } from '../documents/image-upload'
+import { StorageService } from '../documents/storage.service'
 import { OrgAccessService } from './org-access.service'
 import type { CreateContractorDto, CreateServiceDto, ListContractorsQuery, ListServicesQuery, UpdateContractorDto, UpdateServiceDto } from './organizations.schemas'
 import { ratingOf } from './providers.service'
@@ -23,6 +26,7 @@ export class ContractorsService {
     @Inject(DB) private readonly db: Database,
     private readonly access: OrgAccessService,
     private readonly audit: AuditService,
+    private readonly storage: StorageService,
   ) {}
 
   // ---------- Etiquetas ----------
@@ -158,7 +162,9 @@ export class ContractorsService {
   }
 
   async create(dto: CreateContractorDto, user: AuthUser, req: AppRequest) {
-    const isAdmin = user.isGlobalAdmin
+    // Un autorregistro es siempre una solicitud: pendiente y con quien la hace como responsable (administrador incluido).
+    if (dto.selfRegistration && dto.ownerEmail) throw validationError('ownerEmail', 'Un autorregistro no puede asignar a otra persona como responsable')
+    const isAdmin = user.isGlobalAdmin && !dto.selfRegistration
     if (dto.ownerEmail && !isAdmin) throw new ForbiddenException('Solo el administrador del ecosistema puede asignar un responsable')
     const ownerId = dto.ownerEmail ? await this.access.resolveOwner(dto.ownerEmail) : isAdmin ? null : user.id
 
@@ -201,14 +207,17 @@ export class ContractorsService {
       if (before.status === 'SUSPENDED') throw new ConflictException('La organización está suspendida; contacta al administrador')
     }
     const { rating, ...rest } = dto
+    // Una URL externa (o quitarla) reemplaza el logo subido: se descarta para no dejar un archivo huérfano.
+    const dropUploaded = rest.logoUrl !== undefined && !!before.logoKey
     await this.db
       .update(contractors)
-      .set({ ...rest, ...(rating !== undefined && { rating: rating === null ? null : String(rating) }), updatedAt: new Date() })
+      .set({ ...rest, ...(dropUploaded && { logoKey: null, logoMime: null }), ...(rating !== undefined && { rating: rating === null ? null : String(rating) }), updatedAt: new Date() })
       .where(eq(contractors.id, id))
       .catch((e) => {
         if (isUniqueViolation(e)) throw new ConflictException('Ya existe un contratista con esa identificación tributaria en ese país')
         throw e
       })
+    if (dropUploaded && before.logoKey) await this.storage.delete(before.logoKey).catch(() => undefined)
     await this.audit.record(req, {
       module: 'professional',
       entityType: 'contractor',
@@ -218,6 +227,50 @@ export class ContractorsService {
       newData: dto,
     })
     return this.get(id, user)
+  }
+
+  // ---------- Logo ----------
+
+  private async loadForLogo(id: string, user: AuthUser) {
+    const before = await this.loadVisible(id, user)
+    const role = await this.access.assertManage('contractor', id, user)
+    if (role !== 'ADMIN' && before.status === 'SUSPENDED') throw new ConflictException('La organización está suspendida; contacta al administrador')
+    return before
+  }
+
+  /** Sube (o reemplaza) el logo. La clave es nueva en cada subida: el anterior se borra solo cuando el nuevo ya quedó registrado. */
+  async setLogo(id: string, file: Express.Multer.File | undefined, user: AuthUser, req: AppRequest) {
+    const before = await this.loadForLogo(id, user)
+    const image = inspectImage(file)
+    const key = `contractors/${id}/logo-${randomUUID()}.${image.extension}`
+    await this.storage.put(key, image.data)
+    const now = new Date()
+    try {
+      await this.db.update(contractors).set({ logoKey: key, logoMime: image.mimeType, logoUrl: `/contractors/${id}/logo?v=${now.getTime()}`, updatedAt: now }).where(eq(contractors.id, id))
+    } catch (e) {
+      await this.storage.delete(key).catch(() => undefined)
+      throw e
+    }
+    if (before.logoKey) await this.storage.delete(before.logoKey).catch(() => undefined)
+    await this.audit.record(req, { module: 'professional', entityType: 'contractor', entityId: id, action: 'logo.updated', oldData: { hadLogo: !!before.logoKey }, newData: { mimeType: image.mimeType, sizeBytes: image.data.length } })
+    return this.get(id, user)
+  }
+
+  async removeLogo(id: string, user: AuthUser, req: AppRequest) {
+    const before = await this.loadForLogo(id, user)
+    await this.db.update(contractors).set({ logoKey: null, logoMime: null, logoUrl: null, updatedAt: new Date() }).where(eq(contractors.id, id))
+    if (before.logoKey) await this.storage.delete(before.logoKey).catch(() => undefined)
+    await this.audit.record(req, { module: 'professional', entityType: 'contractor', entityId: id, action: 'logo.removed', oldData: { hadLogo: !!before.logoKey } })
+  }
+
+  /** Logo público de un contratista (solo de los activos: una solicitud pendiente no es visible). */
+  async openLogo(id: string) {
+    const [row] = await this.db.select({ key: contractors.logoKey, mime: contractors.logoMime, status: contractors.status }).from(contractors).where(eq(contractors.id, id))
+    if (!row?.key || !row.mime || row.status !== 'ACTIVE') throw new NotFoundException('El contratista no tiene logo')
+    const stream = await this.storage.open(row.key).catch(() => {
+      throw new NotFoundException('El contratista no tiene logo')
+    })
+    return { stream, mime: row.mime }
   }
 
   // ---------- Servicios ----------

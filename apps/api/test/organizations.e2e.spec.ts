@@ -111,6 +111,22 @@ describe('Proveedores, marketplace y servicios profesionales (e2e)', () => {
       await mkProvider({ organizationName: 'E2E Mismo tax otro país', countryCode: 'AR', taxId: 'A-1' }) // otro país: sí
     })
 
+    it('un autorregistro (también de un administrador) queda PENDIENTE y quien lo hace es el responsable', async () => {
+      const mine = await send('post', '/api/v1/providers', admin, { organizationName: 'E2E Autorregistro Admin', taxId: 'AR-1', countryCode: 'PE', selfRegistration: true }).expect(201)
+      expect(mine.body.status).toBe('PENDING')
+      // no es pública hasta que se apruebe, pero el administrador la ve entre sus empresas
+      expect(names(await get('/api/v1/providers?search=Autorregistro').expect(200))).not.toContain('E2E Autorregistro Admin')
+      const own = (await get('/api/v1/providers/mine', admin).expect(200)).body as Array<{ organizationName: string; myRole: string }>
+      expect(own.find((o) => o.organizationName === 'E2E Autorregistro Admin')?.myRole).toBe('OWNER')
+      // y la aprueba desde el panel de administración
+      await send('patch', `/api/v1/providers/${mine.body.id}`, admin, { status: 'ACTIVE' }).expect(200)
+      expect(names(await get('/api/v1/providers?search=Autorregistro').expect(200))).toContain('E2E Autorregistro Admin')
+    })
+
+    it('un autorregistro no puede asignar a otra persona como responsable', async () => {
+      await send('post', '/api/v1/providers', admin, { organizationName: 'E2E Autorregistro Otro', countryCode: 'PE', selfRegistration: true, ownerEmail: 'owner@e2e.fur.local' }).expect(400)
+    })
+
     it('solo el administrador asigna el responsable y crea organizaciones ya activas', async () => {
       await send('post', '/api/v1/providers', stranger, { organizationName: 'E2E Y', countryCode: 'PE', ownerEmail: 'owner@e2e.fur.local' }).expect(403)
       await send('post', '/api/v1/providers', admin, { organizationName: 'E2E Y', countryCode: 'PE', ownerEmail: 'nadie@e2e.fur.local' }).expect(400)
@@ -460,6 +476,226 @@ describe('Proveedores, marketplace y servicios profesionales (e2e)', () => {
       await send('post', `/api/v1/contractors/${contr}/members`, cOwner, { email: 'stranger@e2e.fur.local' }).expect(201)
       await send('delete', `/api/v1/contractors/${contr}/members/${ids.cowner}`, cOwner).expect(409)
       expect((await get('/api/v1/contractors/mine', stranger).expect(200)).body.some((c: { id: string }) => c.id === contr)).toBe(true)
+    })
+  })
+
+  describe('fotos: producto y logo del proveedor', () => {
+    const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from('foto-png-de-prueba')])
+    const JPG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.from('foto-jpg-de-prueba')])
+    const attach = (url: string, s: Session | null, file: Buffer | null, filename = 'foto.png') => {
+      const r = http().post(url)
+      const authed = s ? r.set('Authorization', bearer(s)) : r
+      return file ? authed.attach('file', file, { filename }) : authed
+    }
+    const raw = (url: string) =>
+      http()
+        .get(url)
+        .buffer(true)
+        .parse((r, cb) => {
+          const chunks: Buffer[] = []
+          r.on('data', (c: Buffer) => chunks.push(c))
+          r.on('end', () => cb(null, Buffer.concat(chunks)))
+        })
+    let listingId: string
+    const photo = () => `/api/v1/providers/${provA}/listings/${listingId}/image`
+    const publicPhoto = () => `/api/v1/marketplace/listings/${listingId}/image`
+
+    beforeAll(async () => {
+      listingId = (await mkListing(provA, { title: 'E2E Producto con foto' })).id
+    })
+
+    it('un producto sin foto no tiene imageUrl y su foto pública responde 404', async () => {
+      const mine = await get(`/api/v1/providers/${provA}/listings?search=E2E%20Producto%20con%20foto`, owner).expect(200)
+      expect(mine.body.items[0].imageUrl).toBeNull()
+      await get(publicPhoto()).expect(404)
+    })
+
+    it('exige ser miembro de la organización: anónimo 401; ajenos 403', async () => {
+      await attach(photo(), null, PNG).expect(401)
+      await attach(photo(), stranger, PNG).expect(403)
+      await attach(photo(), owner2, PNG).expect(403) // responsable de OTRO proveedor
+      await send('delete', photo(), stranger).expect(403)
+    })
+
+    it('rechaza lo que no es una imagen válida: sin archivo, SVG, PDF, vacío, contenido falso, >5 MB y producto ajeno', async () => {
+      await attach(photo(), owner, null).expect(400)
+      await attach(photo(), owner, Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>1</script></svg>'), 'x.svg').expect(415)
+      await attach(photo(), owner, Buffer.from('%PDF-1.4 contenido'), 'x.pdf').expect(415)
+      await attach(photo(), owner, Buffer.alloc(0), 'vacia.png').expect(400)
+      await attach(photo(), owner, JPG, 'mentira.png').expect(415) // extensión png, contenido jpeg
+      await attach(photo(), owner, Buffer.concat([PNG, Buffer.alloc(5 * 1024 * 1024 + 1)])).expect(413)
+      await attach(`/api/v1/providers/${provB}/listings/${listingId}/image`, owner2, PNG).expect(404) // producto de otro proveedor
+      await get(publicPhoto()).expect(404)
+    })
+
+    it('un miembro sube la foto: queda en el producto, se sirve pública y con cabeceras seguras', async () => {
+      const res = await attach(photo(), member, PNG).expect(201)
+      expect(res.body.id).toBe(listingId)
+      expect(res.body.imageUrl).toMatch(new RegExp(`^/marketplace/listings/${listingId}/image\\?v=\\d+$`))
+
+      const img = await raw(publicPhoto()).expect(200) // sin sesión
+      expect(img.headers['content-type']).toBe('image/png')
+      expect(img.headers['x-content-type-options']).toBe('nosniff')
+      expect(img.headers['cross-origin-resource-policy']).toBe('cross-origin')
+      expect(img.headers['content-security-policy']).toContain('sandbox')
+      expect((img.body as Buffer).equals(PNG)).toBe(true)
+    })
+
+    it('reemplazar la foto cambia el tipo servido y la versión de la URL', async () => {
+      const before = (await get(`/api/v1/providers/${provA}/listings?search=E2E%20Producto%20con%20foto`, owner)).body.items[0].imageUrl
+      await new Promise((r) => setTimeout(r, 15))
+      await attach(photo(), owner, JPG, 'otra.jpeg').expect(201)
+      const after = (await get(`/api/v1/providers/${provA}/listings?search=E2E%20Producto%20con%20foto`, owner)).body.items[0].imageUrl
+      expect(after).not.toBe(before)
+      expect((await get(publicPhoto()).expect(200)).headers['content-type']).toBe('image/jpeg')
+    })
+
+    it('poner una URL externa descarta la foto subida', async () => {
+      const res = await send('patch', `/api/v1/providers/${provA}/listings/${listingId}`, owner, { imageUrl: 'https://cdn.example.com/producto.png' }).expect(200)
+      expect(res.body.imageUrl).toBe('https://cdn.example.com/producto.png')
+      await get(publicPhoto()).expect(404)
+    })
+
+    it('quitar la foto la elimina (204) y quitarla de nuevo es inocuo; todo queda auditado', async () => {
+      await attach(photo(), owner, PNG).expect(201)
+      await send('delete', photo(), owner).expect(204)
+      expect((await get(`/api/v1/providers/${provA}/listings?search=E2E%20Producto%20con%20foto`, owner)).body.items[0].imageUrl).toBeNull()
+      await get(publicPhoto()).expect(404)
+      await send('delete', photo(), owner).expect(204)
+
+      const events = await t.db.select().from(auditEvents).where(and(eq(auditEvents.module, 'marketplace'), eq(auditEvents.entityId, listingId)))
+      const actions = events.map((e) => e.action)
+      expect(actions.filter((a) => a === 'image.updated').length).toBeGreaterThanOrEqual(3)
+      expect(actions).toContain('image.removed')
+    })
+
+    describe('logo', () => {
+      const logo = (id = () => provA) => `/api/v1/providers/${id()}/logo`
+
+      it('un miembro sube el logo: queda en el perfil y se sirve público', async () => {
+        await attach(logo(), null, PNG).expect(401)
+        await attach(logo(), stranger, PNG).expect(403)
+        await attach(logo(), owner, Buffer.from('<svg/>'), 'logo.svg').expect(415)
+
+        const res = await attach(logo(), member, PNG, 'logo.png').expect(201)
+        expect(res.body.logoUrl).toMatch(new RegExp(`^/providers/${provA}/logo\\?v=\\d+$`))
+        const img = await raw(logo()).expect(200)
+        expect(img.headers['content-type']).toBe('image/png')
+        expect(img.headers['cross-origin-resource-policy']).toBe('cross-origin')
+        expect((img.body as Buffer).equals(PNG)).toBe(true)
+      })
+
+      it('poner una URL externa descarta el logo subido; quitarlo deja el perfil sin logo', async () => {
+        await send('patch', `/api/v1/providers/${provA}`, owner, { logoUrl: 'https://cdn.example.com/logo.png' }).expect(200)
+        await get(logo()).expect(404)
+
+        await attach(logo(), owner, JPG, 'logo.jpg').expect(201)
+        await send('delete', logo(), owner).expect(204)
+        expect((await get(`/api/v1/providers/${provA}`, owner).expect(200)).body.logoUrl).toBeNull()
+        await get(logo()).expect(404)
+        await send('delete', logo(), owner).expect(204)
+      })
+
+      it('una empresa pendiente puede subir su logo mientras espera, pero no es público hasta que se aprueba', async () => {
+        const pending = await mkProvider({ organizationName: 'E2E Pendiente Logo', taxId: 'P-LOGO' }, stranger)
+        expect(pending.status).toBe('PENDING')
+        await attach(logo(() => pending.id), stranger, PNG).expect(201)
+        await get(logo(() => pending.id)).expect(404) // aún no activa
+        await send('patch', `/api/v1/providers/${pending.id}`, admin, { status: 'ACTIVE' }).expect(200)
+        await get(logo(() => pending.id)).expect(200)
+      })
+
+      it('una empresa suspendida no puede cambiar su logo (salvo el administrador)', async () => {
+        const susp = await mkProvider({ organizationName: 'E2E Suspendida Logo', taxId: 'S-LOGO', ownerEmail: 'owner2@e2e.fur.local' })
+        await send('patch', `/api/v1/providers/${susp.id}`, admin, { status: 'SUSPENDED' }).expect(200)
+        await attach(logo(() => susp.id), owner2, PNG).expect(409)
+        await attach(logo(() => susp.id), admin, PNG).expect(201)
+      })
+    })
+  })
+
+  describe('contratistas: autorregistro y logo', () => {
+    const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from('logo-png-de-prueba')])
+    const JPG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.from('logo-jpg-de-prueba')])
+    const attach = (url: string, s: Session | null, file: Buffer | null, filename = 'logo.png') => {
+      const r = http().post(url)
+      const authed = s ? r.set('Authorization', bearer(s)) : r
+      return file ? authed.attach('file', file, { filename }) : authed
+    }
+    const raw = (url: string) =>
+      http()
+        .get(url)
+        .buffer(true)
+        .parse((r, cb) => {
+          const chunks: Buffer[] = []
+          r.on('data', (c: Buffer) => chunks.push(c))
+          r.on('end', () => cb(null, Buffer.concat(chunks)))
+        })
+    const logo = (id: () => string = () => contr) => `/api/v1/contractors/${id()}/logo`
+
+    it('un autorregistro (también de un administrador) queda PENDIENTE y quien lo hace es el responsable', async () => {
+      const mine = await send('post', '/api/v1/contractors', admin, { organizationName: 'E2E Contratista Autorregistro', taxId: 'CAR-1', countryCode: 'PE', selfRegistration: true }).expect(201)
+      expect(mine.body.status).toBe('PENDING')
+      expect(names(await get('/api/v1/contractors?search=Autorregistro').expect(200))).not.toContain('E2E Contratista Autorregistro')
+      const own = (await get('/api/v1/contractors/mine', admin).expect(200)).body as Array<{ organizationName: string; myRole: string }>
+      expect(own.find((o) => o.organizationName === 'E2E Contratista Autorregistro')?.myRole).toBe('OWNER')
+      await send('patch', `/api/v1/contractors/${mine.body.id}`, admin, { status: 'ACTIVE' }).expect(200)
+      expect(names(await get('/api/v1/contractors?search=Autorregistro').expect(200))).toContain('E2E Contratista Autorregistro')
+    })
+
+    it('un autorregistro no puede asignar a otra persona como responsable', async () => {
+      await send('post', '/api/v1/contractors', admin, { organizationName: 'E2E Contratista Otro', countryCode: 'PE', selfRegistration: true, ownerEmail: 'cowner@e2e.fur.local' }).expect(400)
+    })
+
+    it('el responsable sube el logo: queda en el perfil y se sirve público con cabeceras seguras', async () => {
+      await attach(logo(), null, PNG).expect(401)
+      await attach(logo(), owner2, PNG).expect(403) // responsable de OTRA organización, no miembro de este contratista
+      await attach(logo(), cOwner, Buffer.from('<svg/>'), 'logo.svg').expect(415)
+      await attach(logo(), cOwner, JPG, 'mentira.png').expect(415)
+      await attach(logo(), cOwner, null).expect(400)
+
+      const res = await attach(logo(), cOwner, PNG).expect(201)
+      expect(res.body.logoUrl).toMatch(new RegExp(`^/contractors/${contr}/logo\\?v=\\d+$`))
+      const img = await raw(logo()).expect(200) // sin sesión
+      expect(img.headers['content-type']).toBe('image/png')
+      expect(img.headers['x-content-type-options']).toBe('nosniff')
+      expect(img.headers['cross-origin-resource-policy']).toBe('cross-origin')
+      expect((img.body as Buffer).equals(PNG)).toBe(true)
+    })
+
+    it('reemplazar cambia el tipo; una URL externa descarta el logo subido; quitarlo deja el perfil sin logo', async () => {
+      await attach(logo(), cOwner, JPG, 'otro.jpg').expect(201)
+      expect((await get(logo()).expect(200)).headers['content-type']).toBe('image/jpeg')
+
+      await send('patch', `/api/v1/contractors/${contr}`, cOwner, { logoUrl: 'https://cdn.example.com/logo.png' }).expect(200)
+      await get(logo()).expect(404)
+
+      await attach(logo(), cOwner, PNG).expect(201)
+      await send('delete', logo(), cOwner).expect(204)
+      expect((await get(`/api/v1/contractors/${contr}`, cOwner).expect(200)).body.logoUrl).toBeNull()
+      await get(logo()).expect(404)
+      await send('delete', logo(), cOwner).expect(204)
+    })
+
+    it('una empresa pendiente puede subir su logo mientras espera, pero no es público hasta que se aprueba', async () => {
+      const pending = (await send('post', '/api/v1/contractors', stranger, { organizationName: 'E2E Contratista Pendiente Logo', taxId: 'CP-LOGO', countryCode: 'PE' }).expect(201)).body
+      expect(pending.status).toBe('PENDING')
+      await attach(logo(() => pending.id), stranger, PNG).expect(201)
+      await get(logo(() => pending.id)).expect(404)
+      await send('patch', `/api/v1/contractors/${pending.id}`, admin, { status: 'ACTIVE' }).expect(200)
+      await get(logo(() => pending.id)).expect(200)
+    })
+
+    it('una empresa suspendida no puede cambiar su logo (salvo el administrador); los cambios quedan auditados', async () => {
+      const susp = (await send('post', '/api/v1/contractors', admin, { organizationName: 'E2E Contratista Suspendido Logo', taxId: 'CS-LOGO', countryCode: 'PE', ownerEmail: 'cowner@e2e.fur.local' }).expect(201)).body
+      await send('patch', `/api/v1/contractors/${susp.id}`, admin, { status: 'SUSPENDED' }).expect(200)
+      await attach(logo(() => susp.id), cOwner, PNG).expect(409)
+      await attach(logo(() => susp.id), admin, PNG).expect(201)
+
+      const events = await t.db.select().from(auditEvents).where(and(eq(auditEvents.module, 'professional'), eq(auditEvents.entityId, contr)))
+      const actions = events.map((e) => e.action)
+      expect(actions).toContain('logo.updated')
+      expect(actions).toContain('logo.removed')
     })
   })
 

@@ -32,7 +32,11 @@ export const listings = marketplaceSchema.table(
     currency: varchar('currency', { length: 3 }).notNull().default('USD'),
     availability: varchar('availability', { length: 20 }).notNull().default('ON_REQUEST'),
     stockText: varchar('stock_text', { length: 120 }),
+    /** Lo que se muestra: URL externa o, si se subió una foto, la ruta de la API que la sirve. */
     imageUrl: text('image_url'),
+    /** Foto subida: `storage_key` del objeto y su tipo (el binario vive en el almacenamiento, no aquí). */
+    imageKey: text('image_key'),
+    imageMime: varchar('image_mime', { length: 50 }),
     status: varchar('status', { length: 20 }).notNull().default('DRAFT'),
     /** Destacado: solo lo decide el administrador del ecosistema. */
     isFeatured: boolean('is_featured').notNull().default(false),

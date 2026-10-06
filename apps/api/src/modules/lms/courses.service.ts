@@ -96,6 +96,9 @@ export class CoursesService {
           level: c.level,
           durationMinutes: c.durationMinutes,
           certificate: c.certificate,
+          /** Precio fijado por quien ofrece el curso; 0 = gratuito. */
+          price: Number(c.price),
+          currency: c.currency,
           instructorName: c.instructorName,
           status: c.status,
           owner: { type: owner.type, id: owner.id, name: owner.name, verified: owner.verified },
@@ -123,6 +126,7 @@ export class CoursesService {
       q.contractorId ? eq(courses.contractorId, q.contractorId) : undefined,
       q.maxMinutes !== undefined ? lte(courses.durationMinutes, q.maxMinutes) : undefined,
       q.certificate === '1' ? eq(courses.certificate, true) : undefined,
+      q.free === '1' ? sql`${courses.price} = 0` : q.free === '0' ? sql`${courses.price} > 0` : undefined,
       q.stage ? sql`exists (select 1 from ${courseStages} cs inner join ${stageMaster} sm on sm.id = cs.stage_master_id where cs.course_id = ${courses.id} and sm.code = ${q.stage})` : undefined,
     ]
     if (q.search) {
@@ -130,7 +134,12 @@ export class CoursesService {
       conditions.push(or(ilike(courses.title, like), ilike(courses.description, like), ilike(courses.instructorName, like)))
     }
     const where = and(...conditions)
-    const order = q.sort === 'newest' ? [desc(courses.createdAt)] : q.sort === 'duration' ? [asc(courses.durationMinutes), asc(courses.title)] : [asc(courses.title)]
+    const order =
+      q.sort === 'newest' ? [desc(courses.createdAt)]
+      : q.sort === 'duration' ? [asc(courses.durationMinutes), asc(courses.title)]
+      : q.sort === 'price_asc' ? [asc(courses.price), asc(courses.title)]
+      : q.sort === 'price_desc' ? [desc(courses.price), asc(courses.title)]
+      : [asc(courses.title)]
     const [rows, [{ total }]] = await Promise.all([
       this.db
         .select()
@@ -242,7 +251,7 @@ export class CoursesService {
     const created = await this.db.transaction(async (tx) => {
       const [row] = await tx
         .insert(courses)
-        .values({ title: dto.title, description: dto.description, providerType: dto.ownerType, providerId, contractorId, level: dto.level, instructorName: dto.instructorName, certificate: dto.certificate, createdBy: user.id })
+        .values({ title: dto.title, description: dto.description, providerType: dto.ownerType, providerId, contractorId, level: dto.level, instructorName: dto.instructorName, certificate: dto.certificate, price: String(dto.price), currency: dto.currency, createdBy: user.id })
         .returning({ id: courses.id })
       if (stageIds.length) await tx.insert(courseStages).values([...new Set(stageIds)].map((stageMasterId) => ({ courseId: row.id, stageMasterId })))
       return row
@@ -270,9 +279,9 @@ export class CoursesService {
       if (n > 0) throw new ConflictException('El curso tiene inscritos: archívalo en lugar de volverlo a borrador')
     }
 
-    const { stageCodes: _s, ...fields } = dto
+    const { stageCodes: _s, price, ...fields } = dto
     await this.db.transaction(async (tx) => {
-      await tx.update(courses).set({ ...fields, updatedAt: new Date() }).where(eq(courses.id, id))
+      await tx.update(courses).set({ ...fields, ...(price !== undefined && { price: String(price) }), updatedAt: new Date() }).where(eq(courses.id, id))
       if (stageIds) {
         await tx.delete(courseStages).where(eq(courseStages.courseId, id))
         if (stageIds.length) await tx.insert(courseStages).values([...new Set(stageIds)].map((stageMasterId) => ({ courseId: id, stageMasterId })))
@@ -283,7 +292,7 @@ export class CoursesService {
       entityType: 'course',
       entityId: id,
       action: dto.status && dto.status !== before.status ? 'status.changed' : 'updated',
-      oldData: { title: before.title, status: before.status, level: before.level, certificate: before.certificate },
+      oldData: { title: before.title, status: before.status, level: before.level, certificate: before.certificate, price: before.price, currency: before.currency },
       newData: dto,
     })
     return this.get(id, user)

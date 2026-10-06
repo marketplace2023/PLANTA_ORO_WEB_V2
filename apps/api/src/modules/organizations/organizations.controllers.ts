@@ -1,6 +1,9 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query, Req } from '@nestjs/common'
+import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query, Req, Res, StreamableFile, UploadedFile, UseInterceptors } from '@nestjs/common'
+import { FileInterceptor } from '@nestjs/platform-express'
+import type { Response } from 'express'
 import type { AppRequest, AuthUser } from '../../common/types'
 import { ZodValidationPipe } from '../../common/zod-validation.pipe'
+import { setImageHeaders } from '../documents/image-upload'
 import { CurrentUser, Public } from '../iam/decorators'
 import { ContractorsService } from './contractors.service'
 import { MarketplaceService } from './marketplace.service'
@@ -73,6 +76,28 @@ export class ProvidersController {
     return this.providers.get(id, user)
   }
 
+  /** Logo del proveedor (público). */
+  @Public()
+  @Get(':id/logo')
+  async logo(@Param('id', ParseUUIDPipe) id: string, @Res({ passthrough: true }) res: Response) {
+    const { stream, mime } = await this.providers.openLogo(id)
+    setImageHeaders(res, mime)
+    return new StreamableFile(stream)
+  }
+
+  /** multipart/form-data con el campo `file`. Los guards y la membresía se validan antes de procesar el archivo. */
+  @Post(':id/logo')
+  @UseInterceptors(FileInterceptor('file'))
+  setLogo(@Param('id', ParseUUIDPipe) id: string, @UploadedFile() file: Express.Multer.File | undefined, @CurrentUser() user: AuthUser, @Req() req: AppRequest) {
+    return this.providers.setLogo(id, file, user, req)
+  }
+
+  @Delete(':id/logo')
+  @HttpCode(204)
+  removeLogo(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser, @Req() req: AppRequest) {
+    return this.providers.removeLogo(id, user, req)
+  }
+
   @Patch(':id')
   update(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(updateProviderSchema)) dto: UpdateProviderDto, @CurrentUser() user: AuthUser, @Req() req: AppRequest) {
     return this.providers.update(id, dto, user, req)
@@ -123,6 +148,25 @@ export class ProvidersController {
   ) {
     return this.market.update(id, listingId, dto, user, req)
   }
+
+  /** multipart/form-data con el campo `file`: foto del producto (reemplaza la anterior). */
+  @Post(':id/listings/:listingId/image')
+  @UseInterceptors(FileInterceptor('file'))
+  setListingImage(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('listingId', ParseUUIDPipe) listingId: string,
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @CurrentUser() user: AuthUser,
+    @Req() req: AppRequest,
+  ) {
+    return this.market.setImage(id, listingId, file, user, req)
+  }
+
+  @Delete(':id/listings/:listingId/image')
+  @HttpCode(204)
+  removeListingImage(@Param('id', ParseUUIDPipe) id: string, @Param('listingId', ParseUUIDPipe) listingId: string, @CurrentUser() user: AuthUser, @Req() req: AppRequest) {
+    return this.market.removeImage(id, listingId, user, req)
+  }
 }
 
 @Public()
@@ -138,6 +182,14 @@ export class MarketplaceController {
   @Get('listings/:id')
   get(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user?: AuthUser) {
     return this.market.getPublic(id, user)
+  }
+
+  /** Foto del producto (pública). */
+  @Get('listings/:id/image')
+  async image(@Param('id', ParseUUIDPipe) id: string, @Res({ passthrough: true }) res: Response) {
+    const { stream, mime } = await this.market.openImage(id)
+    setImageHeaders(res, mime)
+    return new StreamableFile(stream)
   }
 }
 
@@ -168,6 +220,28 @@ export class ContractorsController {
   @Get(':id')
   get(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user?: AuthUser) {
     return this.contractors.get(id, user)
+  }
+
+  /** Logo del contratista (público). */
+  @Public()
+  @Get(':id/logo')
+  async logo(@Param('id', ParseUUIDPipe) id: string, @Res({ passthrough: true }) res: Response) {
+    const { stream, mime } = await this.contractors.openLogo(id)
+    setImageHeaders(res, mime)
+    return new StreamableFile(stream)
+  }
+
+  /** multipart/form-data con el campo `file`. La membresía se valida antes de procesar el archivo. */
+  @Post(':id/logo')
+  @UseInterceptors(FileInterceptor('file'))
+  setLogo(@Param('id', ParseUUIDPipe) id: string, @UploadedFile() file: Express.Multer.File | undefined, @CurrentUser() user: AuthUser, @Req() req: AppRequest) {
+    return this.contractors.setLogo(id, file, user, req)
+  }
+
+  @Delete(':id/logo')
+  @HttpCode(204)
+  removeLogo(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthUser, @Req() req: AppRequest) {
+    return this.contractors.removeLogo(id, user, req)
   }
 
   @Patch(':id')

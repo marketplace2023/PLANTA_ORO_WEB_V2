@@ -1,3 +1,4 @@
+import { imageSrc } from '@/lib/media'
 import { Building2, Package } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -27,7 +28,7 @@ export function ListingCard({ listing, onOpen }: { listing: Listing; onOpen: (id
     <Card className="flex h-full flex-col">
       <div className="grid h-36 place-items-center overflow-hidden rounded-t-xl bg-muted">
         {listing.imageUrl ? (
-          <img src={listing.imageUrl} alt="" referrerPolicy="no-referrer" loading="lazy" className="size-full object-cover" />
+          <img src={imageSrc(listing.imageUrl) ?? ''} alt="" referrerPolicy="no-referrer" loading="lazy" className="size-full object-cover" />
         ) : (
           <Package className="size-10 text-fur-gray-500" aria-hidden />
         )}

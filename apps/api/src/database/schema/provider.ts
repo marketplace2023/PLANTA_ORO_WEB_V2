@@ -27,7 +27,10 @@ export const providers = providerSchema.table(
     description: text('description'),
     website: text('website'),
     contactEmail: varchar('contact_email', { length: 255 }),
+    /** Lo que se muestra: URL externa o, si se subió un logo, la ruta de la API que lo sirve. */
     logoUrl: text('logo_url'),
+    logoKey: text('logo_key'),
+    logoMime: varchar('logo_mime', { length: 50 }),
     certifications: text('certifications').array().notNull().default(sql`'{}'::text[]`),
     status: varchar('status', { length: 20 }).notNull().default('PENDING'),
     /** Verificada por el administrador del ecosistema (no la puede marcar la propia organización). */

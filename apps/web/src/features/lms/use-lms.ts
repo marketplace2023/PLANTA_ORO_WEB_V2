@@ -14,6 +14,9 @@ export type CourseCard = {
   level: CourseLevel
   durationMinutes: number
   certificate: boolean
+  /** Precio que fija quien ofrece el curso; 0 = gratuito. */
+  price: number
+  currency: string
   instructorName: string | null
   status: CourseStatus
   owner: { type: OwnerType; id: string | null; name: string; verified: boolean }
@@ -68,7 +71,7 @@ export type Certificate = {
 
 export type Roster = { total: number; completed: number; items: Array<{ id: string; name: string; email: string; status: string; progressPercent: number; startedAt: string; completedAt: string | null }> }
 
-export type CourseFilters = { stage?: string; level?: string; ownerType?: string; maxMinutes?: string; certificate?: string; search?: string; sort?: string; page?: string }
+export type CourseFilters = { stage?: string; level?: string; ownerType?: string; maxMinutes?: string; certificate?: string; free?: string; search?: string; sort?: string; page?: string }
 
 const toQuery = (params: Record<string, string | number | undefined>) => {
   const q = new URLSearchParams()

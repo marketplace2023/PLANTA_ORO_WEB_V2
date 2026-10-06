@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatDuration, levelLabel } from './lms'
+import { coursePriceText, formatDuration, levelLabel } from './lms'
 
 describe('formatDuration', () => {
   it('minutos, horas exactas y mixto', () => {
@@ -17,5 +17,13 @@ describe('levelLabel', () => {
   it('traduce los niveles y conserva los desconocidos', () => {
     expect(levelLabel('ADVANCED')).toBe('Avanzado')
     expect(levelLabel('OTRO')).toBe('OTRO')
+  })
+})
+
+describe('coursePriceText', () => {
+  it('sin precio es "Gratis"; con precio, la cantidad con su moneda', () => {
+    expect(coursePriceText(0, 'USD')).toBe('Gratis')
+    expect(coursePriceText(120.5, 'USD')).toBe('USD 120.50')
+    expect(coursePriceText(85, 'PEN')).toBe('PEN 85.00')
   })
 })

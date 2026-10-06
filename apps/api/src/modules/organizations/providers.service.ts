@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { and, asc, desc, eq, gte, ilike, inArray, or, sql, type SQL } from 'drizzle-orm'
 import { isUniqueViolation } from '../../common/db-errors'
@@ -7,6 +8,8 @@ import type { AppRequest, AuthUser } from '../../common/types'
 import { DB, type Database } from '../../database/database.module'
 import { assetFamilies, listings, providerAssetFamilies, providerMembers, providers, providerStageCapabilities, stageMaster } from '../../database/schema'
 import { AuditService } from '../audit/audit.service'
+import { inspectImage } from '../documents/image-upload'
+import { StorageService } from '../documents/storage.service'
 import { OrgAccessService } from './org-access.service'
 import type { CreateProviderDto, ListProvidersQuery, UpdateProviderDto } from './organizations.schemas'
 
@@ -24,6 +27,7 @@ export class ProvidersService {
     @Inject(DB) private readonly db: Database,
     private readonly access: OrgAccessService,
     private readonly audit: AuditService,
+    private readonly storage: StorageService,
   ) {}
 
   // ---------- Lectura ----------
@@ -188,7 +192,9 @@ export class ProvidersService {
   }
 
   async create(dto: CreateProviderDto, user: AuthUser, req: AppRequest) {
-    const isAdmin = user.isGlobalAdmin
+    // Un autorregistro es siempre una solicitud: pendiente y con quien la hace como responsable (administrador incluido).
+    if (dto.selfRegistration && dto.ownerEmail) throw validationError('ownerEmail', 'Un autorregistro no puede asignar a otra persona como responsable')
+    const isAdmin = user.isGlobalAdmin && !dto.selfRegistration
     if (dto.ownerEmail && !isAdmin) throw new ForbiddenException('Solo el administrador del ecosistema puede asignar un responsable')
     const ownerId = dto.ownerEmail ? await this.access.resolveOwner(dto.ownerEmail) : isAdmin ? null : user.id
     const stageIds = await this.resolveStages(this.db, dto.stageCodes)
@@ -239,10 +245,12 @@ export class ProvidersService {
     const stageIds = dto.stageCodes ? await this.resolveStages(this.db, dto.stageCodes) : undefined
     const familyIds = dto.familyCodes ? await this.resolveFamilies(this.db, dto.familyCodes) : undefined
     const { stageCodes: _s, familyCodes: _f, ...fields } = dto
+    // Una URL externa (o quitarla) reemplaza el logo subido: se descarta para no dejar un archivo huérfano.
+    const dropUploaded = fields.logoUrl !== undefined && !!before.logoKey
 
     await this.db
       .transaction(async (tx) => {
-        if (Object.keys(fields).length) await tx.update(providers).set({ ...fields, rating: fields.rating === undefined ? undefined : fields.rating === null ? null : String(fields.rating) }).where(eq(providers.id, id))
+        if (Object.keys(fields).length) await tx.update(providers).set({ ...fields, ...(dropUploaded && { logoKey: null, logoMime: null }), rating: fields.rating === undefined ? undefined : fields.rating === null ? null : String(fields.rating) }).where(eq(providers.id, id))
         else await tx.update(providers).set({ updatedAt: new Date() }).where(eq(providers.id, id))
         await this.replaceTags(tx, id, stageIds, familyIds)
       })
@@ -251,6 +259,7 @@ export class ProvidersService {
         throw e
       })
 
+    if (dropUploaded && before.logoKey) await this.storage.delete(before.logoKey).catch(() => undefined)
     await this.audit.record(req, {
       module: 'provider',
       entityType: 'provider',
@@ -260,5 +269,49 @@ export class ProvidersService {
       newData: dto,
     })
     return this.get(id, user)
+  }
+
+  // ---------- Logo ----------
+
+  private async loadForLogo(id: string, user: AuthUser) {
+    const before = await this.loadVisible(id, user)
+    const role = await this.access.assertManage('provider', id, user)
+    if (role !== 'ADMIN' && before.status === 'SUSPENDED') throw new ConflictException('La organización está suspendida; contacta al administrador')
+    return before
+  }
+
+  /** Sube (o reemplaza) el logo. La clave es nueva en cada subida: el anterior se borra solo cuando el nuevo ya quedó registrado. */
+  async setLogo(id: string, file: Express.Multer.File | undefined, user: AuthUser, req: AppRequest) {
+    const before = await this.loadForLogo(id, user)
+    const image = inspectImage(file)
+    const key = `providers/${id}/logo-${randomUUID()}.${image.extension}`
+    await this.storage.put(key, image.data)
+    const now = new Date()
+    try {
+      await this.db.update(providers).set({ logoKey: key, logoMime: image.mimeType, logoUrl: `/providers/${id}/logo?v=${now.getTime()}`, updatedAt: now }).where(eq(providers.id, id))
+    } catch (e) {
+      await this.storage.delete(key).catch(() => undefined)
+      throw e
+    }
+    if (before.logoKey) await this.storage.delete(before.logoKey).catch(() => undefined)
+    await this.audit.record(req, { module: 'provider', entityType: 'provider', entityId: id, action: 'logo.updated', oldData: { hadLogo: !!before.logoKey }, newData: { mimeType: image.mimeType, sizeBytes: image.data.length } })
+    return this.get(id, user)
+  }
+
+  async removeLogo(id: string, user: AuthUser, req: AppRequest) {
+    const before = await this.loadForLogo(id, user)
+    await this.db.update(providers).set({ logoKey: null, logoMime: null, logoUrl: null, updatedAt: new Date() }).where(eq(providers.id, id))
+    if (before.logoKey) await this.storage.delete(before.logoKey).catch(() => undefined)
+    await this.audit.record(req, { module: 'provider', entityType: 'provider', entityId: id, action: 'logo.removed', oldData: { hadLogo: !!before.logoKey } })
+  }
+
+  /** Logo público de un proveedor (solo de los activos: una solicitud pendiente no es visible). */
+  async openLogo(id: string) {
+    const [row] = await this.db.select({ key: providers.logoKey, mime: providers.logoMime, status: providers.status }).from(providers).where(eq(providers.id, id))
+    if (!row?.key || !row.mime || row.status !== 'ACTIVE') throw new NotFoundException('El proveedor no tiene logo')
+    const stream = await this.storage.open(row.key).catch(() => {
+      throw new NotFoundException('El proveedor no tiene logo')
+    })
+    return { stream, mime: row.mime }
   }
 }

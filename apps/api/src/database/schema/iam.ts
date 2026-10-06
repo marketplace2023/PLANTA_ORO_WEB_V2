@@ -1,4 +1,5 @@
-import { boolean, pgSchema, primaryKey, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core'
+import { boolean, index, pgSchema, primaryKey, text, timestamp, unique, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
 import { createdAt, pk, updatedAt } from './common'
 import { plants } from './core'
 
@@ -107,3 +108,34 @@ export const refreshTokens = iamSchema.table('refresh_tokens', {
   ip: varchar('ip', { length: 64 }),
   createdAt: createdAt(),
 })
+
+/**
+ * Solicitudes de acceso a una planta: una persona con cuenta pide entrar y el administrador del ecosistema decide.
+ * Al aprobar se crea la asignación usuario ↔ planta ↔ rol; mientras tanto no concede ningún permiso.
+ */
+export const plantAccessRequests = iamSchema.table(
+  'plant_access_requests',
+  {
+    id: pk(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    plantId: uuid('plant_id')
+      .notNull()
+      .references(() => plants.id, { onDelete: 'cascade' }),
+    message: text('message'),
+    /** PENDING | APPROVED | REJECTED | CANCELLED */
+    status: varchar('status', { length: 20 }).notNull().default('PENDING'),
+    /** Rol concedido al aprobar. */
+    roleCode: varchar('role_code', { length: 60 }),
+    decidedBy: uuid('decided_by').references(() => users.id, { onDelete: 'set null' }),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
+    decisionNote: text('decision_note'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    // Una sola solicitud pendiente por persona y planta.
+    uniqueIndex('plant_access_requests_pending_uq').on(t.userId, t.plantId).where(sql`${t.status} = 'PENDING'`),
+    index('plant_access_requests_status_idx').on(t.status),
+  ],
+)

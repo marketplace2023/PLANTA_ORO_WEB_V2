@@ -8,6 +8,7 @@ import {
   type OrgStatus,
   type ProviderDetail,
 } from '@/features/organizations/use-organizations'
+import { externalUrlOnly } from '@/lib/media'
 import { CONTRACTOR_AVAILABILITY_LABELS, ORG_STATUS_LABELS, parseList } from '@/lib/organizations'
 
 type Org = ProviderDetail | ContractorDetail
@@ -45,7 +46,8 @@ export function EditProfileDialog({ kind, org, onClose }: { kind: 'provider' | '
       description: nullable(v.description),
       website: nullable(v.website),
       contactEmail: nullable(v.contactEmail),
-      logoUrl: nullable(v.logoUrl),
+      // Un logo subido no se toca desde aquí: solo se envía la URL si el usuario la cambió.
+      ...(String(v.logoUrl ?? '').trim() !== externalUrlOnly(org.logoUrl) && { logoUrl: nullable(v.logoUrl) }),
       certifications: parseList(String(v.certifications ?? '')),
     }
     if (kind === 'provider') await updateProvider.mutateAsync(common)
@@ -62,7 +64,7 @@ export function EditProfileDialog({ kind, org, onClose }: { kind: 'provider' | '
         description: org.description ?? '',
         website: org.website ?? '',
         contactEmail: org.contactEmail ?? '',
-        logoUrl: org.logoUrl ?? '',
+        logoUrl: externalUrlOnly(org.logoUrl),
         certifications: org.certifications.join(', '),
         ...('availability' in org ? { availability: org.availability } : {}),
       }}

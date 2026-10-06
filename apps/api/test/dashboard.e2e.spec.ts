@@ -47,6 +47,7 @@ describe('Dashboard del ecosistema (e2e)', () => {
       roles: await n(sql`select count(*)::int as n from iam.roles`),
       permissions: await n(sql`select count(*)::int as n from iam.permissions`),
       assignments: await n(sql`select count(*)::int as n from iam.user_plant_roles`),
+      pendingRequests: await n(sql`select count(*)::int as n from iam.plant_access_requests where status = 'PENDING'`),
     })
     expect(body.catalog).toEqual({
       families: await n(sql`select count(*)::int as n from catalog.asset_families`),

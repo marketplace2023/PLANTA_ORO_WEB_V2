@@ -31,6 +31,8 @@ const card = (over: Partial<CourseCard> = {}): CourseCard => ({
   level: 'BASIC',
   durationMinutes: 75,
   certificate: true,
+  price: 0,
+  currency: 'USD',
   instructorName: 'Ing. Quispe',
   status: 'PUBLISHED',
   owner: { type: 'ECOSYSTEM', id: null, name: 'Ecosistema FUR', verified: true },
@@ -106,6 +108,28 @@ describe('Catálogo de cursos', () => {
     await waitFor(() => expect(calls(m, '/courses').at(-1)!.query.get('level')).toBeNull())
   })
 
+  it('muestra el precio que fija el facilitador: "Gratis" o la cantidad con su moneda', async () => {
+    setup({ 'GET /courses': { body: page([card(), card({ id: 'c2', title: 'Alineación láser', price: 120.5, currency: 'PEN' })]) } })
+    at(<CoursesPage />, '/courses', '/courses')
+    const free = (await screen.findByRole('link', { name: 'Seguridad operativa en molienda' })).closest('[data-slot="card"]') as HTMLElement
+    expect(within(free).getByLabelText('Precio: Gratis')).toBeInTheDocument()
+    const paid = screen.getByRole('link', { name: 'Alineación láser' }).closest('[data-slot="card"]') as HTMLElement
+    expect(within(paid).getByLabelText('Precio: PEN 120.50')).toHaveTextContent('PEN 120.50')
+  })
+
+  it('filtra por precio (gratis / de pago) y ordena por precio: llega al servidor y se quita como chip', async () => {
+    const m = setup()
+    at(<CoursesPage />, '/courses', '/courses?free=0')
+    await screen.findByText('Alineación láser')
+    expect(calls(m, '/courses').at(-1)!.query.get('free')).toBe('0')
+    expect(screen.getByRole('button', { name: 'Quitar filtro Precio: De pago' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('combobox', { name: 'Ordenar' }))
+    await userEvent.click(await screen.findByRole('option', { name: 'Menor precio' }))
+    await waitFor(() => expect(calls(m, '/courses').at(-1)!.query.get('sort')).toBe('price_asc'))
+    await userEvent.click(screen.getByRole('button', { name: 'Quitar filtro Precio: De pago' }))
+    await waitFor(() => expect(calls(m, '/courses').at(-1)!.query.get('free')).toBeNull())
+  })
+
   it('búsqueda y orden se envían al servidor', async () => {
     const m = setup()
     at(<CoursesPage />, '/courses', '/courses')
@@ -167,6 +191,16 @@ describe('Curso: temario, inscripción y estudio', () => {
     expect(screen.getByText(/disponible al inscribirte/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Inicia sesión' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Inscribirme' })).not.toBeInTheDocument()
+  })
+
+  it('el detalle muestra el precio del curso', async () => {
+    open(detail({ price: 300, currency: 'USD' }))
+    expect(await screen.findByLabelText('Precio: USD 300.00')).toBeInTheDocument()
+  })
+
+  it('un curso sin precio se muestra como gratuito', async () => {
+    open(detail())
+    expect(await screen.findByLabelText('Precio: Gratis')).toBeInTheDocument()
   })
 
   it('con sesión: se inscribe', async () => {

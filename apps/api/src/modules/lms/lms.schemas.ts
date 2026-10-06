@@ -6,6 +6,12 @@ const text = (max: number) => z.string().trim().min(1).max(max)
 const code = z.string().trim().toUpperCase().regex(/^[A-Z0-9_]{1,60}$/, 'Código inválido')
 /** Solo http(s): un enlace `javascript:` en una lección sería XSS contra quien la abra. */
 const url = z.url({ protocol: /^https?$/ })
+/** Hasta 2 decimales: la columna es numeric(…,2). */
+const money = z
+  .number()
+  .refine((v) => Math.abs(v * 100 - Math.round(v * 100)) < 1e-6, 'Máximo 2 decimales')
+  .pipe(z.number().min(0, 'El precio no puede ser negativo').max(1e9))
+const currency = z.string().trim().length(3, 'Código de moneda de 3 letras').transform((c) => c.toUpperCase())
 const nonEmpty = <T extends z.ZodRawShape>(shape: T) => z.object(shape).partial().refine((v) => Object.keys(v).length > 0, 'Indique al menos un campo')
 
 export const createCourseSchema = z
@@ -17,6 +23,9 @@ export const createCourseSchema = z
     level: z.enum(COURSE_LEVELS).default('BASIC'),
     instructorName: text(160).optional(),
     certificate: z.boolean().default(false),
+    /** 0 = gratuito. */
+    price: money.default(0),
+    currency: currency.default('USD'),
     stageCodes: z.array(code).max(20).default([]),
   })
   .refine((v) => (v.ownerType === 'ECOSYSTEM' ? v.ownerId === undefined : v.ownerId !== undefined), {
@@ -30,6 +39,8 @@ export const updateCourseSchema = nonEmpty({
   level: z.enum(COURSE_LEVELS),
   instructorName: text(160).nullable(),
   certificate: z.boolean(),
+  price: money,
+  currency,
   stageCodes: z.array(code).max(20),
   status: z.enum(COURSE_STATUSES),
 })
@@ -58,8 +69,10 @@ export const listCoursesQuerySchema = z.object({
   contractorId: z.uuid().optional(),
   maxMinutes: z.coerce.number().int().min(1).max(100_000).optional(),
   certificate: z.enum(['0', '1']).optional(),
+  /** '1' = solo gratuitos; '0' = solo de pago. */
+  free: z.enum(['0', '1']).optional(),
   search: z.string().trim().min(1).max(100).optional(),
-  sort: z.enum(['title', 'newest', 'duration']).default('title'),
+  sort: z.enum(['title', 'newest', 'duration', 'price_asc', 'price_desc']).default('title'),
 })
 
 export const manageQuerySchema = z.object({

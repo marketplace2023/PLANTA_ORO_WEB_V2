@@ -1,9 +1,10 @@
-import { ArrowDown, ArrowUp, ArrowUpDown, Package, Plus, Search } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { ArrowDown, ArrowUp, ArrowUpDown, List, Map, Package, Plus, Search } from 'lucide-react'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { EmptyState } from '@/components/base/empty-state'
 import { ErrorState } from '@/components/base/error-state'
 import { PermissionGate } from '@/components/base/permission-gate'
+import { AssetsGeoportal } from '@/components/geoportal/assets-geoportal'
 import { AssetFormDialog } from '@/components/assets/asset-form-dialog'
 import { FilterChips, type Chip } from '@/components/data/filter-chips'
 import { FilterSelect } from '@/components/data/filter-select'
@@ -15,7 +16,7 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useAssets, useCatalogFamilies, type AssetFilters } from '@/features/assets/use-assets'
-import { usePlantNetworks, usePlantStages } from '@/features/plant/use-plant-data'
+import { usePlantNetworks, usePlantStages, type PlantDetail } from '@/features/plant/use-plant-data'
 import { ASSET_CRITICALITIES, ASSET_STATUSES, criticalityLabel, statusLabel } from '@/lib/assets'
 import { useDebouncedValue } from '@/lib/use-debounced-value'
 import { usePlantOutlet } from './plant-route'
@@ -28,14 +29,13 @@ const SORTABLE = [
   ['name', 'Activo'],
 ] as const
 
-export function AssetsPage() {
-  const plant = usePlantOutlet()
+/** Vista de tabla: todos los activos de la planta con filtros, orden y paginación. */
+function AssetsListView({ plant, actions }: { plant: PlantDetail; actions: ReactNode }) {
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
-  const [creating, setCreating] = useState(false)
 
   // Los filtros viven en la URL (design.md §13): se pueden compartir y sobreviven a recargar.
-  const filters: AssetFilters = Object.fromEntries([...params.entries()].filter(([, v]) => v !== ''))
+  const filters: AssetFilters = Object.fromEntries([...params.entries()].filter(([k, v]) => v !== '' && k !== 'view'))
   const page = Math.max(1, Number(filters.page) || 1)
   const sort = filters.sort ?? 'tag'
   const dir = filters.dir === 'desc' ? 'desc' : 'asc'
@@ -94,17 +94,7 @@ export function AssetsPage() {
 
   return (
     <>
-      <PageHeader
-        title="Activos Físicos"
-        description="Equipos que esta planta realmente utiliza. Cada activo tiene su Ficha Única de Registro (FUR)."
-        actions={
-          <PermissionGate permission="asset.create">
-            <Button onClick={() => setCreating(true)}>
-              <Plus /> Nuevo activo
-            </Button>
-          </PermissionGate>
-        }
-      />
+      <PageHeader title="Activos Físicos" description="Equipos que esta planta realmente utiliza. Cada activo tiene su Ficha Única de Registro (FUR)." actions={actions} />
 
       <div className="mb-4 space-y-3 rounded-lg border border-border bg-card p-4">
         <div className="flex flex-wrap items-end gap-3">
@@ -186,13 +176,7 @@ export function AssetsPage() {
             icon={Package}
             title="No hay activos registrados en esta planta"
             description="Cuando se registren activos (o se publiquen para visitantes) aparecerán aquí."
-            action={
-              <PermissionGate permission="asset.create">
-                <Button onClick={() => setCreating(true)}>
-                  <Plus /> Registrar el primer activo
-                </Button>
-              </PermissionGate>
-            }
+            action={<CreateAssetButton label="Registrar el primer activo" />}
           />
         )
       ) : (
@@ -277,10 +261,77 @@ export function AssetsPage() {
           </>
         )
       )}
-
-      {creating && (
-        <AssetFormDialog open onOpenChange={setCreating} plantSlug={plant.slug} onSaved={(a) => navigate(`/plants/${plant.slug}/assets/${a.id}`)} />
-      )}
     </>
+  )
+}
+
+const CreateAssetContext = createContext<() => void>(() => undefined)
+
+/** Botón «Nuevo activo»: abre el formulario que vive en `AssetsPage`. Solo para quien puede crear activos. */
+function CreateAssetButton({ label = 'Nuevo activo' }: { label?: string }) {
+  const open = useContext(CreateAssetContext)
+  return (
+    <PermissionGate permission="asset.create">
+      <Button onClick={open}>
+        <Plus /> {label}
+      </Button>
+    </PermissionGate>
+  )
+}
+
+/** Alterna entre el geoportal (por etapas, con mapa) y la tabla completa. */
+function ViewToggle({ view, onChange }: { view: 'geoportal' | 'lista'; onChange: (v: 'geoportal' | 'lista') => void }) {
+  const options = [
+    { value: 'geoportal', label: 'Geoportal', icon: Map },
+    { value: 'lista', label: 'Lista', icon: List },
+  ] as const
+  return (
+    <div role="group" aria-label="Vista" className="inline-flex rounded-lg border border-border bg-card p-0.5">
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          aria-pressed={view === o.value}
+          onClick={() => onChange(o.value)}
+          className={`inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-sm font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${view === o.value ? 'bg-fur-navy-900 text-white' : 'text-fur-gray-800 hover:bg-muted'}`}
+        >
+          <o.icon className="size-4" aria-hidden /> {o.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+export function AssetsPage() {
+  const plant = usePlantOutlet()
+  const navigate = useNavigate()
+  const [params, setParams] = useSearchParams()
+  const [creating, setCreating] = useState(false)
+  const view = params.get('view') === 'lista' ? 'lista' : 'geoportal'
+
+  const changeView = (next: 'geoportal' | 'lista') =>
+    setParams(
+      (prev) => {
+        const p = new URLSearchParams(prev)
+        if (next === 'lista') p.set('view', 'lista')
+        else p.delete('view')
+        p.delete('page')
+        return p
+      },
+      { replace: true },
+    )
+
+  const actions = (
+    <div className="flex flex-wrap items-center gap-2">
+      <ViewToggle view={view} onChange={changeView} />
+      <CreateAssetButton />
+    </div>
+  )
+
+  return (
+    <CreateAssetContext.Provider value={() => setCreating(true)}>
+      {view === 'lista' ? <AssetsListView plant={plant} actions={actions} /> : <AssetsGeoportal plant={plant} actions={actions} />}
+      {creating && <AssetFormDialog open onOpenChange={setCreating} plantSlug={plant.slug} onSaved={(a) => navigate(`/plants/${plant.slug}/assets/${a.id}`)} />}
+    </CreateAssetContext.Provider>
   )
 }

@@ -26,6 +26,9 @@ function setup(listReply: unknown | (() => unknown) = page([asset(), asset({ id:
   return mock
 }
 
+/** Estas pruebas son de la vista de tabla («Lista»); el geoportal tiene las suyas en assets-geoportal.test.tsx. */
+const asList = (route: string) => `${route}${route.includes('?') ? '&' : '?'}view=lista`
+
 const renderAssets = (route = BASE) =>
   renderWithProviders(
     <Routes>
@@ -34,7 +37,7 @@ const renderAssets = (route = BASE) =>
         <Route path="assets/:assetId" element={<p>Ficha del activo</p>} />
       </Route>
     </Routes>,
-    { route },
+    { route: asList(route) },
   )
 
 const listCalls = (mock: ReturnType<typeof setup>) => mock.calls.filter((c) => c.path === '/plants/revemin-ii/assets')

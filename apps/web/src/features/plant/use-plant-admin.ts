@@ -41,7 +41,7 @@ export function useRemoveMember(slug: string) {
   })
 }
 
-export type StageChange = { sequence?: number; nameOverride?: string | null; isEnabled?: boolean; isPublic?: boolean }
+export type StageChange = { sequence?: number; nameOverride?: string | null; isEnabled?: boolean; isPublic?: boolean; mapPosition?: { x: number; y: number } | null }
 
 /** Habilitar una etapa del catálogo en la planta (o volver a habilitarla). */
 export function useEnableStage(slug: string) {

@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { and, asc, desc, eq, ilike, inArray, ne, or, sql, type SQL } from 'drizzle-orm'
 import { isUniqueViolation } from '../../common/db-errors'
+import { readMapPosition, withMapPosition } from '../../common/map-position'
 import { escapeLike, pageOf } from '../../common/pagination'
 import type { AppRequest, AuthUser, PlantRow } from '../../common/types'
 import { DB, type Database } from '../../database/database.module'
@@ -88,6 +89,8 @@ export class AssetsService {
         updatedAt: assets.updatedAt,
         modelId: assetModels.id,
         modelName: assetModels.modelName,
+        /** Ruta (relativa a la API) de la foto del modelo; null si no tiene. */
+        modelImageUrl: sql<string | null>`case when ${assetModels.imageKey} is null then null else '/catalog/models/' || ${assetModels.id}::text || '/image?v=' || (extract(epoch from ${assetModels.imageUpdatedAt}) * 1000)::bigint::text end`,
         specifications: assetModels.specifications,
         technicalData: assetModels.technicalData,
         typeCode: assetTypes.code,
@@ -135,7 +138,8 @@ export class AssetsService {
       isPublic: r.isPublic,
       updatedAt: r.updatedAt,
       stage: r.stageCode ? { code: r.stageCode, name: r.stageOverride ?? r.stageName!, group: r.stageGroup! } : null,
-      model: { id: r.modelId, name: r.modelName },
+      mapPosition: readMapPosition(r.metadata),
+      model: { id: r.modelId, name: r.modelName, imageUrl: r.modelImageUrl },
       type: { code: r.typeCode, name: r.typeName },
       family: { code: r.familyCode, name: r.familyName },
       manufacturer: r.manufacturerName,
@@ -215,6 +219,47 @@ export class AssetsService {
       q.page,
       q.pageSize,
     )
+  }
+
+  /**
+   * Conteos de la planta para el geoportal: totales por estado, criticidad, etapa y red. Mismo alcance que el listado
+   * (quien no tiene asset.read solo cuenta lo público) y sin los dados de baja.
+   */
+  async summary(ref: string, user: AuthUser | undefined) {
+    const plant = await this.plants.getVisible(ref, user)
+    const { internal, publicAssets } = await this.scope(plant, user)
+    const empty = { total: 0, byStatus: {} as Record<string, number>, byCriticality: {} as Record<string, number>, byStage: {} as Record<string, number>, byNetwork: {} as Record<string, number> }
+    if (!internal && !publicAssets) return empty
+
+    const where = and(eq(assets.plantId, plant.id), ne(assets.status, 'DECOMMISSIONED'), internal ? undefined : eq(assets.isPublic, true))
+    const toRecord = (rows: Array<{ key: string | null; n: number }>) => Object.fromEntries(rows.filter((r) => r.key).map((r) => [r.key as string, r.n]))
+
+    const [byStatus, byCriticality, byStage, byNetwork] = await Promise.all([
+      this.db.select({ key: assets.status, n: sql<number>`count(*)::int` }).from(assets).where(where).groupBy(assets.status),
+      this.db.select({ key: assets.criticality, n: sql<number>`count(*)::int` }).from(assets).where(where).groupBy(assets.criticality),
+      this.db
+        .select({ key: stageMaster.code, n: sql<number>`count(*)::int` })
+        .from(assets)
+        .leftJoin(plantStages, eq(plantStages.id, assets.plantStageId))
+        .leftJoin(stageMaster, eq(stageMaster.id, plantStages.stageMasterId))
+        .where(where)
+        .groupBy(stageMaster.code),
+      this.db
+        .select({ key: networkMaster.code, n: sql<number>`count(distinct ${assets.id})::int` })
+        .from(assets)
+        .innerJoin(assetNetworks, eq(assetNetworks.assetId, assets.id))
+        .innerJoin(plantNetworks, eq(plantNetworks.id, assetNetworks.plantNetworkId))
+        .innerJoin(networkMaster, eq(networkMaster.id, plantNetworks.networkMasterId))
+        .where(where)
+        .groupBy(networkMaster.code),
+    ])
+    return {
+      total: byStatus.reduce((sum, r) => sum + r.n, 0),
+      byStatus: toRecord(byStatus),
+      byCriticality: toRecord(byCriticality),
+      byStage: toRecord(byStage),
+      byNetwork: toRecord(byNetwork),
+    }
   }
 
   private async findVisible(ref: string, assetId: string, user: AuthUser | undefined) {
@@ -420,7 +465,12 @@ export class AssetsService {
     if (dto.criticality !== undefined) patch.criticality = dto.criticality
     if (dto.location !== undefined) patch.location = dto.location
     if (dto.isPublic !== undefined) patch.isPublic = dto.isPublic
-    if (dto.metadata !== undefined) patch.metadata = dto.metadata
+    if (dto.metadata !== undefined || dto.mapPosition !== undefined) {
+      // La posición en el mapa vive dentro de `metadata`: reemplazar los metadatos no debe borrarla, y moverla no debe tocar el resto.
+      const current = (before.metadata ?? {}) as Record<string, unknown>
+      const base = dto.metadata !== undefined ? { ...dto.metadata, ...(current.map !== undefined && { map: current.map }) } : current
+      patch.metadata = withMapPosition(base, dto.mapPosition)
+    }
     if (dto.assetModelId !== undefined) {
       await this.assertModel(dto.assetModelId)
       patch.assetModelId = dto.assetModelId

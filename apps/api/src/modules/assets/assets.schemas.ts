@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { mapPositionSchema } from '../../common/map-position'
 import { paginationShape } from '../../common/pagination'
 import { ASSET_CRITICALITIES, ASSET_STATUSES } from '../../database/schema'
 
@@ -67,6 +68,8 @@ export const updateAssetSchema = z
     parentAssetId: z.uuid().nullable(),
     isPublic: z.boolean(),
     metadata: z.record(z.string(), z.unknown()),
+    /** Posición del activo sobre el mapa de la planta; null la quita. */
+    mapPosition: mapPositionSchema.nullable(),
     networkCodes: z.array(networkCode).max(20),
   })
   .partial()

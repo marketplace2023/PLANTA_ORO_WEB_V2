@@ -26,6 +26,13 @@ export class AssetsController {
     return this.assets.list(plantId, query, user)
   }
 
+  /** Conteos por estado, criticidad, etapa y red (geoportal). Declarada antes de `:assetId`. */
+  @Public()
+  @Get('summary')
+  summary(@Param('plantId') plantId: string, @CurrentUser() user?: AuthUser) {
+    return this.assets.summary(plantId, user)
+  }
+
   @RequirePermission('asset.create')
   @Post()
   create(@CurrentPlant() plant: PlantRow, @Body(new ZodValidationPipe(createAssetSchema)) dto: CreateAssetDto, @Req() req: AppRequest) {

@@ -2,6 +2,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, jsonBody } from '@/lib/api'
 import type { PlantSummary } from './plant-context'
 
+/** Posición en porcentaje (0–100) sobre la imagen del mapa. */
+export type MapPosition = { x: number; y: number }
+
 export type PlantDetail = PlantSummary & {
   settings: { publicDashboard: boolean; publicProcesses: boolean; publicAssets: boolean; publicDocuments: boolean } | null
   /** Rol y permisos de quien consulta en esta planta. */
@@ -18,6 +21,8 @@ export type PlantStage = {
   sequence: number
   isEnabled: boolean
   isPublic: boolean
+  /** Posición de la etapa sobre el mapa de la planta (% del ancho y del alto de la imagen); null = sin ubicar. */
+  mapPosition: MapPosition | null
 }
 
 export type PlantNetwork = {

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { mapPositionSchema } from '../../common/map-position'
 
 const slug = z
   .string()
@@ -67,6 +68,8 @@ export const updateStageSchema = z
     nameOverride: z.string().trim().min(1).max(200).nullable(),
     isEnabled: z.boolean(),
     isPublic: z.boolean(),
+    /** Posición de la etapa sobre el mapa de la planta; null la quita. */
+    mapPosition: mapPositionSchema.nullable(),
   })
   .partial()
   .refine((v) => Object.keys(v).length > 0, 'Indique al menos un campo')

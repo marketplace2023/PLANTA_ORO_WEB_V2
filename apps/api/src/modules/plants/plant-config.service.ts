@@ -3,6 +3,7 @@ import { and, asc, eq, ne, sql } from 'drizzle-orm'
 import type { AppRequest, AuthUser, PlantRow } from '../../common/types'
 import { DB, type Database } from '../../database/database.module'
 import { assetNetworks, assets, networkMaster, plantNetworks, plantSettings, plantStages, stageMaster } from '../../database/schema'
+import { readMapPosition, withMapPosition } from '../../common/map-position'
 import { AuditService } from '../audit/audit.service'
 import { AuthzService } from '../iam/authz.service'
 import type { EnableNetworkDto, EnableStageDto, UpdateNetworkDto, UpdateStageDto } from './plants.schemas'
@@ -60,7 +61,7 @@ export class PlantConfigService {
           : and(eq(plantStages.plantId, plant.id), eq(plantStages.isEnabled, true), eq(plantStages.isPublic, true)),
       )
       .orderBy(asc(plantStages.sequence))
-    return rows.map((r) => ({ ...r, displayName: r.nameOverride ?? r.name }))
+    return rows.map(({ configuration, ...r }) => ({ ...r, displayName: r.nameOverride ?? r.name, mapPosition: readMapPosition(configuration) }))
   }
 
   async enableStage(plant: PlantRow, dto: EnableStageDto, req: AppRequest) {
@@ -95,7 +96,13 @@ export class PlantConfigService {
       oldData: existing ?? null,
       newData: row,
     })
-    return (await this.stageView().where(eq(plantStages.id, row.id)))[0]
+    return this.stageOne(row.id)
+  }
+
+  /** Una etapa de la planta con el mismo formato que el listado. */
+  private async stageOne(id: string) {
+    const { configuration, ...r } = (await this.stageView().where(eq(plantStages.id, id)))[0]
+    return { ...r, displayName: r.nameOverride ?? r.name, mapPosition: readMapPosition(configuration) }
   }
 
   async updateStage(plant: PlantRow, stageId: string, dto: UpdateStageDto, req: AppRequest) {
@@ -114,7 +121,9 @@ export class PlantConfigService {
         .where(and(eq(assets.plantStageId, stageId), ne(assets.status, 'DECOMMISSIONED')))
       if (n > 0) throw new ConflictException(`No se puede deshabilitar la etapa: tiene ${n} activo(s) asignado(s)`)
     }
-    const [after] = await this.db.update(plantStages).set(dto).where(eq(plantStages.id, stageId)).returning()
+    const { mapPosition, ...fields } = dto
+    const patch = { ...fields, ...(mapPosition !== undefined && { configuration: withMapPosition(before.configuration, mapPosition) }) }
+    const [after] = await this.db.update(plantStages).set(patch).where(eq(plantStages.id, stageId)).returning()
     await this.audit.record(req, {
       module: 'plants',
       entityType: 'plant_stage',
@@ -124,7 +133,7 @@ export class PlantConfigService {
       oldData: before,
       newData: after,
     })
-    return (await this.stageView().where(eq(plantStages.id, stageId)))[0]
+    return this.stageOne(stageId)
   }
 
   // ---------- Redes transversales ----------

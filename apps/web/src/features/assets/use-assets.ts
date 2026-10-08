@@ -16,12 +16,25 @@ export type AssetItem = {
   location: string | null
   isPublic: boolean
   updatedAt: string
+  /** Posición del activo sobre el mapa de la planta; null = sin ubicar. */
+  mapPosition: { x: number; y: number } | null
   stage: { code: string; name: string; group: string } | null
-  model: { id: string; name: string }
+  /** `imageUrl`: ruta (relativa a la API) de la foto del modelo; usar con `apiUrl`. null = sin foto. */
+  model: { id: string; name: string; imageUrl: string | null }
   type: { code: string; name: string }
   family: { code: string; name: string }
   manufacturer: string | null
   networks: NetworkRef[]
+}
+
+/** Conteos de la planta (sin los dados de baja) para el geoportal. */
+export type AssetsSummary = {
+  total: number
+  byStatus: Record<string, number>
+  byCriticality: Record<string, number>
+  /** Por código de etapa; los activos sin etapa solo cuentan en `total`. */
+  byStage: Record<string, number>
+  byNetwork: Record<string, number>
 }
 
 /** Detalle: los campos internos solo llegan a quien tiene asset.read. */
@@ -106,7 +119,14 @@ export const useAssets = (slug: string | undefined, filters: AssetFilters, pageS
     placeholderData: keepPreviousData,
   })
 
-export const useAssetFur = (slug: string | undefined, assetId: string | undefined) =>
+export const useAssetsSummary = (slug: string | undefined) =>
+  useQuery({
+    queryKey: ['plant', slug, 'assets', 'summary'],
+    queryFn: () => api<AssetsSummary>(`/plants/${slug}/assets/summary`),
+    enabled: !!slug,
+  })
+
+export const useAssetFur =(slug: string | undefined, assetId: string | undefined) =>
   useQuery({
     queryKey: ['plant', slug, 'asset', assetId],
     queryFn: () => api<AssetFur>(`/plants/${slug}/assets/${assetId}/fur`),
@@ -126,6 +146,8 @@ export type AssetInput = {
   location?: string | null
   isPublic?: boolean
   networkCodes?: string[]
+  /** null quita la posición del mapa. */
+  mapPosition?: { x: number; y: number } | null
 }
 
 export function useCreateAsset(slug: string) {
@@ -144,6 +166,16 @@ export function useUpdateAsset(slug: string, assetId: string) {
       void queryClient.invalidateQueries({ queryKey: ['plant', slug, 'assets'] })
       void queryClient.invalidateQueries({ queryKey: ['plant', slug, 'asset', assetId] })
     },
+  })
+}
+
+/** Coloca (o quita, con null) un activo en el mapa de la planta. El id va en cada llamada: se elige un activo distinto cada vez. */
+export function useSetAssetMapPosition(slug: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, position }: { id: string; position: { x: number; y: number } | null }) =>
+      api<AssetDetail>(`/plants/${slug}/assets/${id}`, { method: 'PATCH', ...jsonBody({ mapPosition: position }) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['plant', slug] }),
   })
 }
 

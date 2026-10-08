@@ -4,7 +4,9 @@ import { Pool } from 'pg'
 import { PERMISSIONS, ROLE_PERMISSIONS } from '../modules/iam/permissions.catalog'
 import {
   assetFamilies,
+  assetTypeNetworks,
   assetTypes,
+  assetTypeStages,
   ecosystems,
   networkMaster,
   permissions,
@@ -76,6 +78,55 @@ const STAGES: Array<[code: string, name: string, group: string, color: string]> 
   ['D20', 'Disposición de Relaves / Colas', 'RELAVES', 'cyan'],
 ]
 
+const ALL_STAGES = STAGES.map(([code]) => code)
+
+// Etapas en las que se usa cada tipo base (punto de partida: el administrador lo ajusta desde el catálogo).
+// Motores, tableros y transformadores alimentan toda la planta, por eso cubren todas las etapas.
+const TYPE_STAGES: Record<string, string[]> = {
+  CHANCADORA_MANDIBULAS: ['D02'],
+  CHANCADORA_CONICA: ['D04'],
+  MOLINO_SAG: ['D06'],
+  MOLINO_BOLAS: ['D06', 'D07'],
+  ZARANDA_VIBRATORIA: ['D03', 'D08'],
+  HIDROCICLON: ['D07', 'D08'],
+  CORREA_TRANSPORTADORA: ['D01', 'D05', 'D12'],
+  BOMBA_CENTRIFUGA_PULPA: ['D07', 'D08', 'D10', 'D19', 'D20'],
+  BOMBA_CENTRIFUGA_AGUA: ['D09', 'D11', 'D13', 'D14'],
+  ESPESADOR_ALTA_CAPACIDAD: ['D10', 'D19'],
+  TANQUE_AGITADO_CIL: ['D09', 'D11', 'D13', 'D18'],
+  HORNO_FUNDICION: ['D16', 'D17'],
+  MOTOR_ELECTRICO: ['D02', 'D04', 'D06', 'D07', 'D09', 'D11'],
+  VALVULA_CUCHILLA: ['D09', 'D10', 'D11', 'D19', 'D20'],
+  VALVULA_MARIPOSA: ['D09', 'D11', 'D13', 'D14', 'D15'],
+  CCM: ALL_STAGES,
+  TRANSFORMADOR_POTENCIA: ALL_STAGES,
+  TRANSMISOR_NIVEL: ['D09', 'D10', 'D11', 'D19'],
+  TRANSMISOR_FLUJO: ['D07', 'D09', 'D10', 'D11', 'D14', 'D19'],
+}
+
+// Redes transversales de cada tipo base.
+const TYPE_NETWORKS: Record<string, string[]> = {
+  CHANCADORA_MANDIBULAS: ['FUR-PROC', 'FUR-MNT'],
+  CHANCADORA_CONICA: ['FUR-PROC', 'FUR-MNT'],
+  MOLINO_SAG: ['FUR-PROC', 'FUR-PTE', 'FUR-MNT'],
+  MOLINO_BOLAS: ['FUR-PROC', 'FUR-PTE', 'FUR-MNT'],
+  ZARANDA_VIBRATORIA: ['FUR-PROC', 'FUR-MNT'],
+  HIDROCICLON: ['FUR-PROC'],
+  CORREA_TRANSPORTADORA: ['FUR-PROC', 'FUR-MNT'],
+  BOMBA_CENTRIFUGA_PULPA: ['FUR-PROC', 'FUR-MNT'],
+  BOMBA_CENTRIFUGA_AGUA: ['FUR-PROC', 'FUR-MNT'],
+  ESPESADOR_ALTA_CAPACIDAD: ['FUR-PROC'],
+  TANQUE_AGITADO_CIL: ['FUR-PROC', 'FUR-LAB'],
+  HORNO_FUNDICION: ['FUR-PROC', 'FUR-PTE'],
+  MOTOR_ELECTRICO: ['FUR-PTE', 'FUR-MNT'],
+  VALVULA_CUCHILLA: ['FUR-PROC'],
+  VALVULA_MARIPOSA: ['FUR-PROC'],
+  CCM: ['FUR-PTE', 'FUR-IOT'],
+  TRANSFORMADOR_POTENCIA: ['FUR-PTE'],
+  TRANSMISOR_NIVEL: ['FUR-IOT', 'FUR-PROC'],
+  TRANSMISOR_FLUJO: ['FUR-IOT', 'FUR-PROC'],
+}
+
 // Arquitectura §12.1. Íconos = nombres de Lucide.
 const NETWORKS: Array<[code: string, name: string, icon: string, color: string]> = [
   ['FUR-PROC', 'Procesos', 'cog', 'network-proc'],
@@ -127,13 +178,12 @@ export async function runSeed(url: string) {
         },
       })
 
+    // Las redes se administran desde el panel (crear, editar, eliminar): el seed solo crea las que faltan y no pisa
+    // lo que el administrador haya cambiado.
     await db
       .insert(networkMaster)
       .values(NETWORKS.map(([code, name, icon, colorToken]) => ({ code, name, icon, colorToken })))
-      .onConflictDoUpdate({
-        target: networkMaster.code,
-        set: { name: sql`excluded.name`, icon: sql`excluded.icon`, colorToken: sql`excluded.color_token` },
-      })
+      .onConflictDoNothing({ target: networkMaster.code })
 
     await db
       .insert(roles)
@@ -184,6 +234,22 @@ export async function runSeed(url: string) {
       .insert(assetTypes)
       .values(TYPES.map(([code, family, name]) => ({ code, name, familyId: familyId.get(family)! })))
       .onConflictDoUpdate({ target: assetTypes.code, set: { name: sql`excluded.name`, familyId: sql`excluded.family_id` } })
+
+    // Etapas y redes por defecto de cada tipo. Solo se siembran los tipos que aún no tienen ninguna: lo que el
+    // administrador cambie después no se pisa al volver a ejecutar el seed.
+    const typeId = new Map((await db.select({ id: assetTypes.id, code: assetTypes.code }).from(assetTypes)).map((t) => [t.code, t.id]))
+    const stageId = new Map((await db.select({ id: stageMaster.id, code: stageMaster.code }).from(stageMaster)).map((s) => [s.code, s.id]))
+    const networkId = new Map((await db.select({ id: networkMaster.id, code: networkMaster.code }).from(networkMaster)).map((n) => [n.code, n.id]))
+    const stagedTypes = new Set((await db.select({ id: assetTypeStages.assetTypeId }).from(assetTypeStages)).map((r) => r.id))
+    const networkedTypes = new Set((await db.select({ id: assetTypeNetworks.assetTypeId }).from(assetTypeNetworks)).map((r) => r.id))
+    for (const [code, id] of typeId) {
+      if (!stagedTypes.has(id) && TYPE_STAGES[code]) {
+        await db.insert(assetTypeStages).values(TYPE_STAGES[code].map((s) => ({ assetTypeId: id, stageMasterId: stageId.get(s)! }))).onConflictDoNothing()
+      }
+      if (!networkedTypes.has(id) && TYPE_NETWORKS[code]) {
+        await db.insert(assetTypeNetworks).values(TYPE_NETWORKS[code].map((n) => ({ assetTypeId: id, networkMasterId: networkId.get(n)! }))).onConflictDoNothing()
+      }
+    }
 
     console.log(
       `Seed OK: ${STAGES.length} etapas, ${NETWORKS.length} redes, ${ROLES.length} roles, ${PERMISSIONS.length} permisos`,

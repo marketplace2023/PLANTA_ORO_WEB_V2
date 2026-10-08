@@ -169,7 +169,8 @@ export type CatalogModel = {
   technicalData: Record<string, unknown>
   /** Ruta (relativa a la API) de la foto del modelo; usar con `apiUrl`. null = sin foto. */
   imageUrl: string | null
-  type: { id: string; code: string; name: string }
+  /** `stageCodes` / `networkCodes`: etapas (D01…) y redes (FUR-PTE…) donde se usa el tipo; vacío = sin asignar. */
+  type: { id: string; code: string; name: string; stageCodes: string[]; networkCodes: string[] }
   family: { id: string; code: string; name: string; icon: string | null }
   manufacturer: { id: string; name: string; countryCode: string | null } | null
 }
@@ -181,7 +182,7 @@ export const useCatalogFamilies = () =>
 export const useCatalogManufacturers = () =>
   useQuery({ queryKey: ['catalog', 'manufacturers'], queryFn: () => api<CatalogManufacturer[]>('/catalog/manufacturers'), staleTime: 5 * 60_000 })
 
-export type CatalogFilters = { family?: string; manufacturerId?: string; search?: string; page?: string; status?: 'ACTIVE' | 'INACTIVE' | 'ALL' }
+export type CatalogFilters = { stage?: string; network?: string; family?: string; manufacturerId?: string; search?: string; page?: string; status?: 'ACTIVE' | 'INACTIVE' | 'ALL' }
 
 export const useCatalogModels = (filters: CatalogFilters, pageSize = 24) =>
   useQuery({

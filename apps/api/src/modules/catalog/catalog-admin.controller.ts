@@ -1,13 +1,13 @@
 import { randomUUID } from 'node:crypto'
 import { Body, ConflictException, Controller, Delete, HttpCode, Inject, NotFoundException, Param, ParseUUIDPipe, Patch, Post, Req, UploadedFile, UseInterceptors } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import { validationError } from '../../common/errors'
 import { isUniqueViolation } from '../../common/db-errors'
 import type { AppRequest } from '../../common/types'
 import { ZodValidationPipe } from '../../common/zod-validation.pipe'
 import { DB, type Database } from '../../database/database.module'
-import { assetFamilies, assetModels, assetTypes, manufacturers } from '../../database/schema'
+import { assetFamilies, assetModels, assetTypeNetworks, assetTypes, assetTypeStages, manufacturers, networkMaster, stageMaster } from '../../database/schema'
 import { AuditService } from '../audit/audit.service'
 import { StorageService } from '../documents/storage.service'
 import { GlobalAdminOnly } from '../iam/decorators'
@@ -75,28 +75,59 @@ export class CatalogAdminController {
     return f.id
   }
 
+  /** Resuelve códigos de un maestro (etapas o redes) a ids; un código que no existe es un error de validación del campo. */
+  private async masterIds(field: 'stageCodes' | 'networkCodes', codes: string[]): Promise<string[]> {
+    if (codes.length === 0) return []
+    const table = field === 'stageCodes' ? stageMaster : networkMaster
+    const rows = await this.db.select({ id: table.id, code: table.code }).from(table).where(inArray(table.code, codes))
+    const missing = codes.filter((c) => !rows.some((r) => r.code === c))
+    if (missing.length > 0) throw validationError(field, `${field === 'stageCodes' ? 'La etapa' : 'La red'} ${missing.join(', ')} no existe`)
+    return rows.map((r) => r.id)
+  }
+
+  /** Reemplaza las etapas y/o redes del tipo (lo que no viene en el cuerpo no se toca). */
+  private async replaceLinks(typeId: string, dto: { stageCodes?: string[]; networkCodes?: string[] }) {
+    const stageIds = dto.stageCodes ? await this.masterIds('stageCodes', dto.stageCodes) : undefined
+    const networkIds = dto.networkCodes ? await this.masterIds('networkCodes', dto.networkCodes) : undefined
+    await this.db.transaction(async (tx) => {
+      if (stageIds) {
+        await tx.delete(assetTypeStages).where(eq(assetTypeStages.assetTypeId, typeId))
+        if (stageIds.length > 0) await tx.insert(assetTypeStages).values(stageIds.map((stageMasterId) => ({ assetTypeId: typeId, stageMasterId })))
+      }
+      if (networkIds) {
+        await tx.delete(assetTypeNetworks).where(eq(assetTypeNetworks.assetTypeId, typeId))
+        if (networkIds.length > 0) await tx.insert(assetTypeNetworks).values(networkIds.map((networkMasterId) => ({ assetTypeId: typeId, networkMasterId })))
+      }
+    })
+  }
+
   @Post('types')
   async createType(@Body(new ZodValidationPipe(createTypeSchema)) dto: CreateTypeDto, @Req() req: AppRequest) {
     const familyId = await this.familyId(dto.familyCode)
+    // Valida los códigos antes de crear nada: un tipo no debe quedar a medias si una etapa o red no existe.
+    await this.masterIds('stageCodes', dto.stageCodes ?? [])
+    await this.masterIds('networkCodes', dto.networkCodes ?? [])
     const [row] = await this.db
       .insert(assetTypes)
       .values({ familyId, code: dto.code, name: dto.name, description: dto.description })
       .returning()
       .catch((e) => (isUniqueViolation(e) ? this.conflict(`un tipo con el código ${dto.code}`) : Promise.reject(e)))
+    await this.replaceLinks(row.id, dto)
     await this.record(req, 'asset_type', row.id, 'created', { new: dto })
-    return row
+    return { ...row, stageCodes: dto.stageCodes ?? [], networkCodes: dto.networkCodes ?? [] }
   }
 
   @Patch('types/:id')
   async updateType(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(updateTypeSchema)) dto: UpdateTypeDto, @Req() req: AppRequest) {
     const [before] = await this.db.select().from(assetTypes).where(eq(assetTypes.id, id))
     if (!before) throw new NotFoundException('Tipo no encontrado')
-    const { familyCode, ...rest } = dto
-    const [row] = await this.db
-      .update(assetTypes)
-      .set({ ...rest, ...(familyCode && { familyId: await this.familyId(familyCode) }) })
-      .where(eq(assetTypes.id, id))
-      .returning()
+    const { familyCode, stageCodes, networkCodes, ...rest } = dto
+    const familyId = familyCode ? await this.familyId(familyCode) : undefined
+    await this.masterIds('stageCodes', stageCodes ?? [])
+    await this.masterIds('networkCodes', networkCodes ?? [])
+    const fields = { ...rest, ...(familyId && { familyId }) }
+    const [row] = Object.keys(fields).length > 0 ? await this.db.update(assetTypes).set(fields).where(eq(assetTypes.id, id)).returning() : [before]
+    await this.replaceLinks(id, { stageCodes, networkCodes })
     await this.record(req, 'asset_type', id, 'updated', { old: before, new: dto })
     return row
   }

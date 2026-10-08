@@ -16,6 +16,7 @@ import { OrganizationsModule } from './modules/organizations/organizations.modul
 import { ProcessModule } from './modules/process/process.module'
 import { ProcurementModule } from './modules/procurement/procurement.module'
 import { MaintenanceModule } from './modules/maintenance/maintenance.module'
+import { NetworksAdminController } from './modules/networks/networks-admin.controller'
 import { NetworksController } from './modules/networks/networks.controller'
 import { PlantsModule } from './modules/plants/plants.module'
 import { StagesController } from './modules/processes/stages.controller'
@@ -43,6 +44,6 @@ import { StagesController } from './modules/processes/stages.controller'
     BudgetModule,
     DashboardModule,
   ],
-  controllers: [HealthController, StagesController, NetworksController],
+  controllers: [HealthController, StagesController, NetworksController, NetworksAdminController],
 })
 export class AppModule {}

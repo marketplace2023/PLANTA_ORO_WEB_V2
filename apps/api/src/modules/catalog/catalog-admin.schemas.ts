@@ -21,9 +21,12 @@ export const updateFamilySchema = z
   .partial()
   .refine((v) => Object.keys(v).length > 0, 'Indique al menos un campo')
 
-export const createTypeSchema = z.object({ familyCode: code, code, name, description: text.optional() })
+/** Códigos de etapas (D01…) o de redes (FUR-PTE…); se validan contra los maestros al guardar. */
+const masterCodes = z.array(z.string().trim().toUpperCase().min(2).max(20)).max(40).transform((c) => [...new Set(c)])
+
+export const createTypeSchema = z.object({ familyCode: code, code, name, description: text.optional(), stageCodes: masterCodes.optional(), networkCodes: masterCodes.optional() })
 export const updateTypeSchema = z
-  .object({ name, description: text.nullable(), familyCode: code })
+  .object({ name, description: text.nullable(), familyCode: code, stageCodes: masterCodes, networkCodes: masterCodes })
   .partial()
   .refine((v) => Object.keys(v).length > 0, 'Indique al menos un campo')
 

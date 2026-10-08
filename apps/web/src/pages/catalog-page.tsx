@@ -15,9 +15,12 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { apiUrl } from '@/lib/api'
 import { useCatalogFamilies, useCatalogManufacturers, useCatalogModels, type CatalogFilters } from '@/features/assets/use-assets'
+import { useNetworkCatalog, useStageCatalog } from '@/features/catalog/use-catalog'
 import { useDebouncedValue } from '@/lib/use-debounced-value'
 
 const PAGE_SIZE = 24
+/** Etapas visibles en la tarjeta antes de resumir el resto con «+N etapas». */
+const MAX_STAGE_BADGES = 6
 
 /** Catálogo maestro GLOBAL: qué tipos/modelos existen. No implica posesión; los activos de una planta viven en Activos Físicos. */
 export function CatalogPage() {
@@ -50,7 +53,14 @@ export function CatalogPage() {
   const families = useCatalogFamilies()
   const manufacturers = useCatalogManufacturers()
 
+  const stages = useStageCatalog()
+  const networks = useNetworkCatalog()
+  const stageName = (code: string) => stages.data?.find((s) => s.code === code)?.name
+  const networkName = (code: string) => networks.data?.find((n) => n.code === code)?.name ?? code
+
   const chips: Chip[] = [
+    filters.stage && { key: 'stage', label: 'Etapa', value: `${filters.stage} · ${stageName(filters.stage) ?? '…'}` },
+    filters.network && { key: 'network', label: 'Red transversal', value: networkName(filters.network) },
     filters.family && { key: 'family', label: 'Familia', value: families.data?.find((f) => f.code === filters.family)?.name ?? filters.family },
     filters.manufacturerId && { key: 'manufacturerId', label: 'Fabricante', value: manufacturers.data?.find((m) => m.id === filters.manufacturerId)?.name ?? '…' },
     filters.search && { key: 'search', label: 'Búsqueda', value: filters.search },
@@ -58,7 +68,7 @@ export function CatalogPage() {
 
   const clearAll = () => {
     setSearchText('')
-    setParam({ family: undefined, manufacturerId: undefined, search: undefined })
+    setParam({ stage: undefined, network: undefined, family: undefined, manufacturerId: undefined, search: undefined })
   }
 
   const data = models.data
@@ -80,6 +90,20 @@ export function CatalogPage() {
               <Input id="catalog-search" type="search" className="h-10 pl-9" placeholder="Modelo, tipo o fabricante…" value={searchText} onChange={(e) => setSearchText(e.target.value)} />
             </div>
           </div>
+          <FilterSelect
+            label="Etapa"
+            value={filters.stage ?? ''}
+            onChange={(v) => setParam({ stage: v || undefined })}
+            options={(stages.data ?? []).map((s) => ({ value: s.code, label: `${s.code} · ${s.name}` }))}
+            allLabel="Todas las etapas"
+          />
+          <FilterSelect
+            label="Red transversal"
+            value={filters.network ?? ''}
+            onChange={(v) => setParam({ network: v || undefined })}
+            options={(networks.data ?? []).map((n) => ({ value: n.code, label: n.name }))}
+            allLabel="Todas las redes"
+          />
           <FilterSelect
             label="Familia"
             value={filters.family ?? ''}
@@ -136,6 +160,29 @@ export function CatalogPage() {
                       </div>
                       <h3 className="text-lg font-semibold text-fur-navy-900">{m.modelName}</h3>
                       <p className="text-sm text-fur-gray-600">{m.manufacturer ? `${m.manufacturer.name}${m.manufacturer.countryCode ? ` · ${m.manufacturer.countryCode}` : ''}` : 'Genérico'}</p>
+                      {(m.type.stageCodes.length > 0 || m.type.networkCodes.length > 0) && (
+                        <ul className="flex flex-wrap gap-1 pt-1" aria-label="Etapas y redes del tipo">
+                          {stages.data && m.type.stageCodes.length === stages.data.length ? (
+                            <li><Badge variant="outline" className="font-normal">Todas las etapas</Badge></li>
+                          ) : (
+                            <>
+                              {m.type.stageCodes.slice(0, MAX_STAGE_BADGES).map((code) => (
+                                <li key={code}>
+                                  <Badge variant="outline" className="fur-code font-normal" title={stageName(code)}>{code}</Badge>
+                                </li>
+                              ))}
+                              {m.type.stageCodes.length > MAX_STAGE_BADGES && (
+                                <li><Badge variant="outline" className="font-normal" title={m.type.stageCodes.slice(MAX_STAGE_BADGES).join(', ')}>+{m.type.stageCodes.length - MAX_STAGE_BADGES} etapas</Badge></li>
+                              )}
+                            </>
+                          )}
+                          {m.type.networkCodes.map((code) => (
+                            <li key={code}>
+                              <Badge variant="secondary" className="font-normal">{networkName(code)}</Badge>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                       {Object.keys(m.specifications).length > 0 && (
                         <dl className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-xs">
                           {Object.entries(m.specifications).slice(0, 4).map(([k, v]) => (

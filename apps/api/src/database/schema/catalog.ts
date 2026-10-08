@@ -1,5 +1,7 @@
-import { jsonb, pgSchema, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core'
+import { jsonb, pgSchema, primaryKey, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core'
 import { pk } from './common'
+import { networkMaster } from './plant'
+import { stageMaster } from './process'
 
 // Arquitectura §10. El catálogo es global y NO representa posesión física:
 // describe qué tipos/modelos existen; el activo de planta (asset.assets) es la unidad física real.
@@ -32,6 +34,34 @@ export const assetTypes = catalogSchema.table('asset_types', {
   description: text('description'),
   defaultSpecs: jsonb('default_specs').notNull().default({}),
 })
+
+/** Etapas del proceso (D01–D20) en las que se usa un tipo de activo: el catálogo se filtra por etapa con esto. */
+export const assetTypeStages = catalogSchema.table(
+  'asset_type_stages',
+  {
+    assetTypeId: uuid('asset_type_id')
+      .notNull()
+      .references(() => assetTypes.id, { onDelete: 'cascade' }),
+    stageMasterId: uuid('stage_master_id')
+      .notNull()
+      .references(() => stageMaster.id, { onDelete: 'cascade' }),
+  },
+  (t) => [primaryKey({ columns: [t.assetTypeId, t.stageMasterId] })],
+)
+
+/** Redes transversales (potencia, IoT, procesos…) a las que pertenece un tipo de activo. */
+export const assetTypeNetworks = catalogSchema.table(
+  'asset_type_networks',
+  {
+    assetTypeId: uuid('asset_type_id')
+      .notNull()
+      .references(() => assetTypes.id, { onDelete: 'cascade' }),
+    networkMasterId: uuid('network_master_id')
+      .notNull()
+      .references(() => networkMaster.id, { onDelete: 'cascade' }),
+  },
+  (t) => [primaryKey({ columns: [t.assetTypeId, t.networkMasterId] })],
+)
 
 export const assetModels = catalogSchema.table(
   'asset_models',

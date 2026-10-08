@@ -19,12 +19,23 @@ vi.mock('@/features/plant/plant-context', () => ({
 }))
 
 const MAKERS = [{ id: 'mf1', name: 'Metso', countryCode: 'FI' }]
+const STAGES = [
+  { id: 's6', code: 'D06', name: 'Molienda Primaria', sequenceDefault: 6, description: null, stageGroup: 'MOLIENDA', colorToken: 'blue' },
+  { id: 's7', code: 'D07', name: 'Molienda Secundaria', sequenceDefault: 7, description: null, stageGroup: 'MOLIENDA', colorToken: 'blue' },
+  { id: 's8', code: 'D08', name: 'Clasificación', sequenceDefault: 8, description: null, stageGroup: 'MOLIENDA', colorToken: 'blue' },
+]
+const NETWORKS = [
+  { id: 'n1', code: 'FUR-PTE', name: 'Potencia Eléctrica', description: null, icon: 'zap', colorToken: 'network-pte' },
+  { id: 'n2', code: 'FUR-IOT', name: 'IoT / Instrumentación', description: null, icon: 'radio', colorToken: 'network-iot' },
+]
 
 function setup(models: unknown = page(MODELS, 2, 1, 24)) {
   return mockApi({
     'GET /catalog/assets': { body: models },
     'GET /catalog/families': { body: FAMILIES },
     'GET /catalog/manufacturers': { body: MAKERS },
+    'GET /stages/catalog': { body: STAGES },
+    'GET /networks/catalog': { body: NETWORKS },
   })
 }
 const modelCalls = (mock: ReturnType<typeof setup>) => mock.calls.filter((c) => c.path === '/catalog/assets')
@@ -59,6 +70,89 @@ describe('Catálogo global', () => {
     expect(await within(chips).findByRole('button', { name: /Quitar filtro Fabricante: Metso/ })).toBeInTheDocument()
   })
 
+  describe('Filtros por etapa y red transversal', () => {
+    it('Etapa va primero y Red transversal después; ambas llegan a la API y se ven como chips', async () => {
+      const mock = setup()
+      renderWithProviders(<CatalogPage />, { route: '/catalog?stage=D06&network=FUR-PTE' })
+      await screen.findByRole('heading', { name: 'Bolas 16.5x24 ft' })
+
+      expect(Object.fromEntries(modelCalls(mock).at(-1)!.query)).toMatchObject({ stage: 'D06', network: 'FUR-PTE' })
+      const chips = screen.getByRole('list', { name: 'Filtros activos' })
+      expect(await within(chips).findByRole('button', { name: /Quitar filtro Etapa: D06 · Molienda Primaria/ })).toBeInTheDocument()
+      expect(await within(chips).findByRole('button', { name: /Quitar filtro Red transversal: Potencia Eléctrica/ })).toBeInTheDocument()
+
+      const order = screen.getAllByRole('combobox').map((c) => c.getAttribute('aria-label'))
+      expect(order.indexOf('Etapa')).toBeLessThan(order.indexOf('Red transversal'))
+      expect(order.indexOf('Red transversal')).toBeLessThan(order.indexOf('Familia'))
+    })
+
+    it('elegir una etapa y luego una red consulta con ambas', async () => {
+      const mock = setup()
+      renderWithProviders(<CatalogPage />, { route: '/catalog' })
+      await screen.findByRole('heading', { name: 'Bolas 16.5x24 ft' })
+
+      await userEvent.click(screen.getByRole('combobox', { name: 'Etapa' }))
+      await userEvent.click(await screen.findByRole('option', { name: 'D07 · Molienda Secundaria' }))
+      await waitFor(() => expect(modelCalls(mock).at(-1)!.query.get('stage')).toBe('D07'))
+
+      await userEvent.click(screen.getByRole('combobox', { name: 'Red transversal' }))
+      await userEvent.click(await screen.findByRole('option', { name: 'IoT / Instrumentación' }))
+      await waitFor(() => expect(Object.fromEntries(modelCalls(mock).at(-1)!.query)).toMatchObject({ stage: 'D07', network: 'FUR-IOT' }))
+    })
+
+    it('quitar el chip de etapa conserva la red', async () => {
+      const mock = setup()
+      renderWithProviders(<CatalogPage />, { route: '/catalog?stage=D06&network=FUR-PTE' })
+      await userEvent.click(await screen.findByRole('button', { name: /Quitar filtro Etapa/ }))
+      await waitFor(() => expect(modelCalls(mock).at(-1)!.query.has('stage')).toBe(false))
+      expect(modelCalls(mock).at(-1)!.query.get('network')).toBe('FUR-PTE')
+    })
+
+    it('cada tarjeta muestra las etapas y redes de su tipo; sin asignar no muestra nada', async () => {
+      setup()
+      renderWithProviders(<CatalogPage />, { route: '/catalog' })
+      const card = (await screen.findByRole('heading', { name: 'Bolas 16.5x24 ft' })).closest('li')!
+      const tags = within(card).getByRole('list', { name: 'Etapas y redes del tipo' })
+      expect(within(tags).getByText('D06')).toBeInTheDocument()
+      expect(within(tags).getByText('D07')).toBeInTheDocument()
+      expect(await within(tags).findByText('Potencia Eléctrica')).toBeInTheDocument()
+      const other = screen.getByText('Motor 4.0 MW 6 polos').closest('li')!
+      expect(within(other).queryByRole('list', { name: 'Etapas y redes del tipo' })).not.toBeInTheDocument()
+    })
+
+    it('resume las etapas cuando son muchas: «Todas las etapas» o «+N etapas»', async () => {
+      const codes = (n: number) => Array.from({ length: n }, (_, i) => `D${String(i + 1).padStart(2, '0')}`)
+      const stages = codes(20).map((code, i) => ({ id: `s${i}`, code, name: `Etapa ${code}`, sequenceDefault: i + 1, description: null, stageGroup: 'X', colorToken: null }))
+      const all = { ...MODELS[0], id: 'mall', modelName: 'Modelo en todas', type: { ...MODELS[0].type, stageCodes: codes(20) } }
+      const many = { ...MODELS[1], id: 'mmany', modelName: 'Modelo en varias', type: { ...MODELS[1].type, stageCodes: codes(9), networkCodes: [] } }
+      mockApi({
+        'GET /catalog/assets': { body: page([all, many], 2, 1, 24) },
+        'GET /catalog/families': { body: FAMILIES },
+        'GET /catalog/manufacturers': { body: MAKERS },
+        'GET /stages/catalog': { body: stages },
+        'GET /networks/catalog': { body: NETWORKS },
+      })
+      renderWithProviders(<CatalogPage />, { route: '/catalog' })
+      const allCard = (await screen.findByRole('heading', { name: 'Modelo en todas' })).closest('li')!
+      expect(await within(allCard).findByText('Todas las etapas')).toBeInTheDocument()
+      expect(within(allCard).queryByText('D20')).not.toBeInTheDocument()
+      const manyCard = screen.getByRole('heading', { name: 'Modelo en varias' }).closest('li')!
+      expect(within(manyCard).getByText('D06')).toBeInTheDocument()
+      expect(within(manyCard).queryByText('D07')).not.toBeInTheDocument()
+      expect(within(manyCard).getByText('+3 etapas')).toBeInTheDocument()
+    })
+
+    it('limpiar filtros quita también etapa y red', async () => {
+      const mock = setup(page([], 0, 1, 24))
+      renderWithProviders(<CatalogPage />, { route: '/catalog?stage=D06&network=FUR-PTE' })
+      await userEvent.click(await screen.findByRole('button', { name: 'Limpiar filtros' }))
+      await waitFor(() => {
+        const q = modelCalls(mock).at(-1)!.query
+        expect(q.has('stage') || q.has('network')).toBe(false)
+      })
+    })
+  })
+
   it('quitar un chip vuelve a consultar sin ese filtro', async () => {
     const mock = setup()
     renderWithProviders(<CatalogPage />, { route: '/catalog?family=MOLINOS' })
@@ -84,6 +178,8 @@ describe('Catálogo global', () => {
       'GET /catalog/assets': () => (fail ? { status: 500, body: {} } : { body: page(MODELS, 2, 1, 24) }),
       'GET /catalog/families': { body: FAMILIES },
       'GET /catalog/manufacturers': { body: MAKERS },
+      'GET /stages/catalog': { body: STAGES },
+      'GET /networks/catalog': { body: NETWORKS },
     })
     renderWithProviders(<CatalogPage />, { route: '/catalog' })
     expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo cargar')

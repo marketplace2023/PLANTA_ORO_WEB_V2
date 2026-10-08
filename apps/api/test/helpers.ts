@@ -154,6 +154,8 @@ export class TestDb {
     await this.db.delete(schema.providers).where(like(schema.providers.organizationName, 'E2E %'))
     await this.db.delete(schema.contractors).where(like(schema.contractors.organizationName, 'E2E %'))
     await this.db.delete(schema.plants).where(like(schema.plants.slug, `${SLUG_PREFIX}%`))
+    // Redes maestras creadas por las pruebas de administración (después de las plantas, que son las que las habilitan).
+    await this.db.delete(schema.networkMaster).where(like(schema.networkMaster.code, 'FUR-TST%'))
     await this.db.delete(schema.users).where(like(schema.users.email, `%${EMAIL_DOMAIN}`))
     // Los activos ya cayeron en cascada con sus plantas; ahora se pueden borrar los modelos de prueba.
     await this.db.delete(schema.assetModels).where(like(schema.assetModels.modelName, 'E2E %'))

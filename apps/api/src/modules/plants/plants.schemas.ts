@@ -56,7 +56,7 @@ export const updatePlantSchema = z
   .refine((v) => Object.keys(v).length > 0, 'Indique al menos un campo')
 
 export const enableStageSchema = z.object({
-  stageCode: z.string().regex(/^D\d{2}$/, 'Código de etapa inválido (D01…D20)'),
+  stageCode: z.string().regex(/^D\d{2}$/, 'Código de etapa inválido (D01…D19)'),
   sequence: z.number().int().min(1).optional(),
   nameOverride: z.string().trim().min(1).max(200).nullable().optional(),
   isPublic: z.boolean().optional(),

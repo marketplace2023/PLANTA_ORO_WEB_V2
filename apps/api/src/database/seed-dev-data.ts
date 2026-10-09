@@ -51,17 +51,17 @@ export const DEMO_ASSETS: Array<{
   isPublic: boolean
 }> = [
   { tag: 'CH-201', name: 'Chancadora primaria de mandíbulas', model: 'Mandíbulas 42x30 in', stage: 'D02', networks: ['FUR-PROC', 'FUR-MNT'], status: 'REPAIR', criticality: 'HIGH', location: 'Chancado primario', isPublic: true },
-  { tag: 'CC-205', name: 'Chancadora cónica secundaria', model: 'Cónica secundaria 4.25 ft', stage: 'D04', networks: ['FUR-PROC'], status: 'OPERATIVE', criticality: 'HIGH', location: 'Chancado secundario', isPublic: true },
-  { tag: 'ZV-301', name: 'Zaranda vibratoria primaria', model: 'Zaranda doble piso 8x20 ft', stage: 'D03', networks: ['FUR-PROC'], status: 'OPERATIVE', criticality: 'MEDIUM', location: 'Chancado primario', isPublic: false },
-  { tag: 'SAG-601', name: 'Molino SAG', model: 'SAG 28x14 ft', stage: 'D06', networks: ['FUR-PROC', 'FUR-IOT', 'FUR-MNT'], status: 'OPERATIVE', criticality: 'CRITICAL', location: 'Nave de molienda', isPublic: true },
-  { tag: 'MB-301', name: 'Molino de bolas', model: 'Bolas 16.5x24 ft', stage: 'D07', networks: ['FUR-PROC', 'FUR-IOT', 'FUR-MNT'], status: 'OPERATIVE', criticality: 'CRITICAL', location: 'Nave de molienda', isPublic: true },
-  { tag: 'MT-301', name: 'Motor del molino de bolas', model: 'Motor 4.0 MW 6 polos', stage: 'D07', networks: ['FUR-PTE', 'FUR-MNT'], status: 'OPERATIVE', criticality: 'CRITICAL', location: 'Nave de molienda', isPublic: false },
-  { tag: 'HC-801', name: 'Batería de hidrociclones', model: 'Hidrociclón 26 in', stage: 'D08', networks: ['FUR-PROC'], status: 'OPERATIVE', criticality: 'MEDIUM', location: 'Nave de molienda', isPublic: true },
-  { tag: 'BP-501', name: 'Bomba de alimentación a ciclones', model: 'Bomba de pulpa 10x8', stage: 'D08', networks: ['FUR-PROC', 'FUR-MNT'], status: 'STANDBY', criticality: 'HIGH', location: 'Nave de molienda', isPublic: false },
-  { tag: 'ESP-1001', name: 'Espesador pre-lixiviación', model: 'Espesador alta capacidad 30 m', stage: 'D10', networks: ['FUR-PROC'], status: 'OPERATIVE', criticality: 'HIGH', location: 'Planta de lixiviación', isPublic: true },
-  { tag: 'TK-1101', name: 'Tanque CIL 1', model: 'Tanque CIL 12x12 m', stage: 'D11', networks: ['FUR-PROC', 'FUR-MNT'], status: 'MAINTENANCE', criticality: 'HIGH', location: 'Planta de lixiviación', isPublic: true },
-  { tag: 'LT-1101', name: 'Transmisor de nivel del tanque CIL 1', model: 'Transmisor de nivel por radar', stage: 'D11', networks: ['FUR-IOT'], status: 'OPERATIVE', criticality: 'MEDIUM', location: 'Planta de lixiviación', isPublic: false },
-  { tag: 'HF-1701', name: 'Horno de fundición', model: 'Horno basculante 250 kg', stage: 'D17', networks: ['FUR-PROC', 'FUR-PTE'], status: 'COMMISSIONING', criticality: 'HIGH', location: 'Sala de fundición', isPublic: false },
+  { tag: 'CC-205', name: 'Chancadora cónica secundaria', model: 'Cónica secundaria 4.25 ft', stage: 'D03', networks: ['FUR-PROC'], status: 'OPERATIVE', criticality: 'HIGH', location: 'Chancado secundario', isPublic: true },
+  { tag: 'ZV-301', name: 'Zaranda vibratoria primaria', model: 'Zaranda doble piso 8x20 ft', stage: 'D01', networks: ['FUR-PROC'], status: 'OPERATIVE', criticality: 'MEDIUM', location: 'Chancado primario', isPublic: false },
+  { tag: 'SAG-601', name: 'Molino SAG', model: 'SAG 28x14 ft', stage: 'D05', networks: ['FUR-PROC', 'FUR-IOT', 'FUR-MNT'], status: 'OPERATIVE', criticality: 'CRITICAL', location: 'Nave de molienda', isPublic: true },
+  { tag: 'MB-301', name: 'Molino de bolas', model: 'Bolas 16.5x24 ft', stage: 'D06', networks: ['FUR-PROC', 'FUR-IOT', 'FUR-MNT'], status: 'OPERATIVE', criticality: 'CRITICAL', location: 'Nave de molienda', isPublic: true },
+  { tag: 'MT-301', name: 'Motor del molino de bolas', model: 'Motor 4.0 MW 6 polos', stage: 'D06', networks: ['FUR-PTE', 'FUR-MNT'], status: 'OPERATIVE', criticality: 'CRITICAL', location: 'Nave de molienda', isPublic: false },
+  { tag: 'HC-801', name: 'Batería de hidrociclones', model: 'Hidrociclón 26 in', stage: 'D07', networks: ['FUR-PROC'], status: 'OPERATIVE', criticality: 'MEDIUM', location: 'Nave de molienda', isPublic: true },
+  { tag: 'BP-501', name: 'Bomba de alimentación a ciclones', model: 'Bomba de pulpa 10x8', stage: 'D07', networks: ['FUR-PROC', 'FUR-MNT'], status: 'STANDBY', criticality: 'HIGH', location: 'Nave de molienda', isPublic: false },
+  { tag: 'ESP-1001', name: 'Espesador pre-lixiviación', model: 'Espesador alta capacidad 30 m', stage: 'D09', networks: ['FUR-PROC'], status: 'OPERATIVE', criticality: 'HIGH', location: 'Planta de lixiviación', isPublic: true },
+  { tag: 'TK-1101', name: 'Tanque CIL 1', model: 'Tanque CIL 12x12 m', stage: 'D10', networks: ['FUR-PROC', 'FUR-MNT'], status: 'MAINTENANCE', criticality: 'HIGH', location: 'Planta de lixiviación', isPublic: true },
+  { tag: 'LT-1101', name: 'Transmisor de nivel del tanque CIL 1', model: 'Transmisor de nivel por radar', stage: 'D10', networks: ['FUR-IOT'], status: 'OPERATIVE', criticality: 'MEDIUM', location: 'Planta de lixiviación', isPublic: false },
+  { tag: 'HF-1701', name: 'Horno de fundición', model: 'Horno basculante 250 kg', stage: 'D16', networks: ['FUR-PROC', 'FUR-PTE'], status: 'COMMISSIONING', criticality: 'HIGH', location: 'Sala de fundición', isPublic: false },
   { tag: 'TX-001', name: 'Transformador principal', model: 'Transformador 10 MVA 33/4.16 kV', stage: null, networks: ['FUR-PTE'], status: 'OPERATIVE', criticality: 'CRITICAL', location: 'Subestación', isPublic: false },
   { tag: 'CCM-01', name: 'Centro de control de motores principal', model: 'CCM 4160 V 12 celdas', stage: null, networks: ['FUR-PTE'], status: 'OPERATIVE', criticality: 'HIGH', location: 'Sala eléctrica', isPublic: false },
   { tag: 'BA-020', name: 'Bomba de agua de proceso (repuesto)', model: 'Bomba de agua 6x4', stage: null, networks: [], status: 'STOCK', criticality: 'LOW', location: 'Almacén central', isPublic: false },
@@ -94,11 +94,11 @@ export function makePdf(lines: string[]): Buffer {
 
 // [título, tipo, visibilidad, tag de activo | null, etapa | null, líneas del PDF]
 export const DEMO_DOCS: Array<{ title: string; type: string; visibility: 'PUBLIC' | 'INTERNAL'; assetTag: string | null; stage: string | null; fileName: string; lines: string[] }> = [
-  { title: 'Manual de operación del molino de bolas', type: 'MANUAL', visibility: 'PUBLIC', assetTag: 'MB-301', stage: 'D07', fileName: 'Manual MB-301.pdf', lines: ['Manual de operacion', 'Molino de bolas MB-301', 'Documento de demostracion'] },
-  { title: 'SOP de arranque y parada de molienda', type: 'SOP', visibility: 'INTERNAL', assetTag: 'SAG-601', stage: 'D06', fileName: 'SOP arranque molienda.pdf', lines: ['SOP - Arranque y parada', 'Circuito de molienda', 'Uso interno'] },
+  { title: 'Manual de operación del molino de bolas', type: 'MANUAL', visibility: 'PUBLIC', assetTag: 'MB-301', stage: 'D06', fileName: 'Manual MB-301.pdf', lines: ['Manual de operacion', 'Molino de bolas MB-301', 'Documento de demostracion'] },
+  { title: 'SOP de arranque y parada de molienda', type: 'SOP', visibility: 'INTERNAL', assetTag: 'SAG-601', stage: 'D05', fileName: 'SOP arranque molienda.pdf', lines: ['SOP - Arranque y parada', 'Circuito de molienda', 'Uso interno'] },
   { title: 'Plano unifilar de la subestación', type: 'PLANO', visibility: 'INTERNAL', assetTag: 'TX-001', stage: null, fileName: 'Unifilar subestacion.pdf', lines: ['Plano unifilar', 'Subestacion principal', 'Transformador TX-001'] },
-  { title: 'Certificado de calibración LT-1101', type: 'CERTIFICADO', visibility: 'PUBLIC', assetTag: 'LT-1101', stage: 'D11', fileName: 'Calibracion LT-1101.pdf', lines: ['Certificado de calibracion', 'Transmisor de nivel LT-1101', 'Vigente'] },
-  { title: 'Procedimiento de lixiviación y adsorción CIL', type: 'PROCEDIMIENTO', visibility: 'INTERNAL', assetTag: null, stage: 'D11', fileName: 'Procedimiento CIL.pdf', lines: ['Procedimiento CIL', 'Lixiviacion y adsorcion', 'Uso interno'] },
+  { title: 'Certificado de calibración LT-1101', type: 'CERTIFICADO', visibility: 'PUBLIC', assetTag: 'LT-1101', stage: 'D10', fileName: 'Calibracion LT-1101.pdf', lines: ['Certificado de calibracion', 'Transmisor de nivel LT-1101', 'Vigente'] },
+  { title: 'Procedimiento de lixiviación y adsorción CIL', type: 'PROCEDIMIENTO', visibility: 'INTERNAL', assetTag: null, stage: 'D10', fileName: 'Procedimiento CIL.pdf', lines: ['Procedimiento CIL', 'Lixiviacion y adsorcion', 'Uso interno'] },
 ]
 
 const DAY = 86_400_000
@@ -202,15 +202,15 @@ export const DEMO_PROVIDERS: Array<{
     certifications: ['ISO 9001'],
     verified: true,
     rating: 4.7,
-    stages: ['D06', 'D07', 'D08'],
+    stages: ['D05', 'D06', 'D07'],
     families: ['MOLINOS', 'BOMBAS'],
     owner: 'proveedor@fur.local',
     listings: [
-      { title: 'Placa de revestimiento para molino SAG', description: 'Aleación Cr-Mo, juego de 12 placas.', family: 'MOLINOS', type: 'MOLINO_SAG', price: 15360, currency: 'USD', availability: 'IN_STOCK', stockText: '3 juegos', stages: ['D06'], featured: true },
-      { title: 'Sello mecánico 60 mm para bomba de pulpa', description: 'Cartucho de carburo de silicio, doble cara.', family: 'BOMBAS', type: 'BOMBA_CENTRIFUGA_PULPA', price: 640, currency: 'USD', availability: 'IN_STOCK', stockText: '14 unidades', stages: ['D08', 'D11'] },
-      { title: 'Bolas de molienda forjadas 3"', description: 'Acero forjado, dureza 62 HRC. Venta por tonelada.', family: 'MOLINOS', price: 1150, currency: 'USD', availability: 'ON_REQUEST', stages: ['D07'] },
-      { title: 'Rotor para bomba de pulpa 10x8', description: 'Pedido bajo especificación; plazo de fabricación 6 semanas.', family: 'BOMBAS', price: null, currency: 'USD', availability: 'ON_REQUEST', stages: ['D08'] },
-      { title: 'Kit de reparación de chancadora (borrador)', description: 'Aún sin publicar.', family: 'TRITURADORAS', price: 4200, currency: 'USD', availability: 'ON_REQUEST', stages: ['D04'], status: 'DRAFT' },
+      { title: 'Placa de revestimiento para molino SAG', description: 'Aleación Cr-Mo, juego de 12 placas.', family: 'MOLINOS', type: 'MOLINO_SAG', price: 15360, currency: 'USD', availability: 'IN_STOCK', stockText: '3 juegos', stages: ['D05'], featured: true },
+      { title: 'Sello mecánico 60 mm para bomba de pulpa', description: 'Cartucho de carburo de silicio, doble cara.', family: 'BOMBAS', type: 'BOMBA_CENTRIFUGA_PULPA', price: 640, currency: 'USD', availability: 'IN_STOCK', stockText: '14 unidades', stages: ['D07', 'D10'] },
+      { title: 'Bolas de molienda forjadas 3"', description: 'Acero forjado, dureza 62 HRC. Venta por tonelada.', family: 'MOLINOS', price: 1150, currency: 'USD', availability: 'ON_REQUEST', stages: ['D06'] },
+      { title: 'Rotor para bomba de pulpa 10x8', description: 'Pedido bajo especificación; plazo de fabricación 6 semanas.', family: 'BOMBAS', price: null, currency: 'USD', availability: 'ON_REQUEST', stages: ['D07'] },
+      { title: 'Kit de reparación de chancadora (borrador)', description: 'Aún sin publicar.', family: 'TRITURADORAS', price: 4200, currency: 'USD', availability: 'ON_REQUEST', stages: ['D03'], status: 'DRAFT' },
     ],
   },
   {
@@ -222,12 +222,12 @@ export const DEMO_PROVIDERS: Array<{
     certifications: ['ISO 9001', 'ISO 14001'],
     verified: true,
     rating: 4.2,
-    stages: ['D11', 'D12'],
+    stages: ['D10', 'D12'],
     families: ['INSTRUMENTOS', 'VALVULAS'],
     owner: null,
     listings: [
-      { title: 'Transmisor de nivel por radar 80 GHz', description: 'Rango 30 m, salida 4-20 mA HART.', family: 'INSTRUMENTOS', type: 'TRANSMISOR_NIVEL', price: 2890, currency: 'USD', availability: 'IN_STOCK', stockText: '6 unidades', stages: ['D11'] },
-      { title: 'Válvula de cuchilla 8 in', description: 'Cuerpo en acero inoxidable, accionamiento neumático.', family: 'VALVULAS', type: 'VALVULA_CUCHILLA', price: 1720.5, currency: 'USD', availability: 'ON_REQUEST', stages: ['D11', 'D12'] },
+      { title: 'Transmisor de nivel por radar 80 GHz', description: 'Rango 30 m, salida 4-20 mA HART.', family: 'INSTRUMENTOS', type: 'TRANSMISOR_NIVEL', price: 2890, currency: 'USD', availability: 'IN_STOCK', stockText: '6 unidades', stages: ['D10'] },
+      { title: 'Válvula de cuchilla 8 in', description: 'Cuerpo en acero inoxidable, accionamiento neumático.', family: 'VALVULAS', type: 'VALVULA_CUCHILLA', price: 1720.5, currency: 'USD', availability: 'ON_REQUEST', stages: ['D10', 'D12'] },
     ],
   },
   {
@@ -239,10 +239,10 @@ export const DEMO_PROVIDERS: Array<{
     certifications: [],
     verified: false,
     rating: null,
-    stages: ['D06'],
+    stages: ['D05'],
     families: ['MOTORES'],
     owner: null,
-    listings: [{ title: 'Motor 250 kW 4 polos 460 V', description: 'Nuevo, con certificado de fábrica.', family: 'MOTORES', type: 'MOTOR_ELECTRICO', price: 18900, currency: 'USD', availability: 'OUT_OF_STOCK', stages: ['D06'] }],
+    listings: [{ title: 'Motor 250 kW 4 polos 460 V', description: 'Nuevo, con certificado de fábrica.', family: 'MOTORES', type: 'MOTOR_ELECTRICO', price: 18900, currency: 'USD', availability: 'OUT_OF_STOCK', stages: ['D05'] }],
   },
 ]
 
@@ -271,8 +271,8 @@ export const DEMO_CONTRACTORS: Array<{
     rating: 4.6,
     owner: 'contratista@fur.local',
     services: [
-      { name: 'Alineación láser de equipos rotativos', description: 'Alineación de motor-reductor-molino con equipo láser.', type: 'MECANICA', stages: ['D06', 'D07', 'D08'] },
-      { name: 'Cambio de revestimientos de molino', description: 'Desmontaje y montaje de placas, con grúa y personal certificado.', type: 'MECANICA', stages: ['D06', 'D07'] },
+      { name: 'Alineación láser de equipos rotativos', description: 'Alineación de motor-reductor-molino con equipo láser.', type: 'MECANICA', stages: ['D05', 'D06', 'D07'] },
+      { name: 'Cambio de revestimientos de molino', description: 'Desmontaje y montaje de placas, con grúa y personal certificado.', type: 'MECANICA', stages: ['D05', 'D06'] },
     ],
   },
   {
@@ -287,8 +287,8 @@ export const DEMO_CONTRACTORS: Array<{
     rating: 4.0,
     owner: null,
     services: [
-      { name: 'Calibración de instrumentos de campo', description: 'Transmisores de nivel, flujo y presión con certificado trazable.', type: 'INSTRUMENTACION', stages: ['D11', 'D12'] },
-      { name: 'Programación y puesta en marcha de PLC', description: 'Lazos de control del circuito de molienda y CIL.', type: 'AUTOMATIZACION', stages: ['D06', 'D11'] },
+      { name: 'Calibración de instrumentos de campo', description: 'Transmisores de nivel, flujo y presión con certificado trazable.', type: 'INSTRUMENTACION', stages: ['D10', 'D12'] },
+      { name: 'Programación y puesta en marcha de PLC', description: 'Lazos de control del circuito de molienda y CIL.', type: 'AUTOMATIZACION', stages: ['D05', 'D10'] },
     ],
   },
 ]
@@ -332,7 +332,7 @@ export const DEMO_COURSES: Array<{
     certificate: true,
     instructor: 'Ing. Rosa Quispe',
     owner: { type: 'ECOSYSTEM' },
-    stages: ['D06', 'D07', 'D08'],
+    stages: ['D05', 'D06', 'D07'],
     status: 'PUBLISHED',
     lessons: [
       { title: 'Riesgos del circuito de molienda', content: 'Identificación de energías peligrosas: mecánica, eléctrica, hidráulica y cargas suspendidas.', minutes: 20 },
@@ -347,7 +347,7 @@ export const DEMO_COURSES: Array<{
     certificate: true,
     instructor: 'M.Sc. Daniel Ríos',
     owner: { type: 'ECOSYSTEM' },
-    stages: ['D09', 'D10', 'D11', 'D12'],
+    stages: ['D08', 'D09', 'D10', 'D12'],
     status: 'PUBLISHED',
     lessons: [
       { title: 'Química de la disolución del oro', content: 'Reacción con cianuro, rol del oxígeno y factores que limitan la cinética.', minutes: 35 },
@@ -362,7 +362,7 @@ export const DEMO_COURSES: Array<{
     certificate: false,
     instructor: 'Equipo técnico de Repuestos Andinos',
     owner: { type: 'PROVIDER', name: 'Repuestos Andinos S.A.C.' },
-    stages: ['D06', 'D08'],
+    stages: ['D05', 'D07'],
     status: 'PUBLISHED',
     lessons: [
       { title: 'Espectros de vibración', content: 'Lectura de espectros, armónicos y fallas típicas de rodamientos y desalineación.', minutes: 50, videoUrl: 'https://example.com/video/vibraciones' },
@@ -376,7 +376,7 @@ export const DEMO_COURSES: Array<{
     certificate: true,
     instructor: 'Téc. Mario Cáceres',
     owner: { type: 'CONTRACTOR', name: 'Mecánica Industrial Minera' },
-    stages: ['D06', 'D07'],
+    stages: ['D05', 'D06'],
     status: 'PUBLISHED',
     lessons: [
       { title: 'Pie cojo y tolerancias', content: 'Detección y corrección de pie cojo; tolerancias por velocidad de giro.', minutes: 30 },
@@ -390,7 +390,7 @@ export const DEMO_COURSES: Array<{
     certificate: false,
     instructor: 'Por definir',
     owner: { type: 'ECOSYSTEM' },
-    stages: ['D17'],
+    stages: ['D16'],
     status: 'DRAFT',
     lessons: [{ title: 'Introducción', content: 'Contenido en elaboración.', minutes: 10 }],
   },

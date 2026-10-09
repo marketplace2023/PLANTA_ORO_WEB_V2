@@ -23,14 +23,14 @@ describe('API pública (e2e)', () => {
     expect(res.body).toMatchObject({ status: 'ok', service: 'fur-api', database: 'up' })
   })
 
-  it('GET /api/v1/stages/catalog → 20 etapas D01…D20 en orden', async () => {
+  it('GET /api/v1/stages/catalog → 19 etapas D01…D19 en orden', async () => {
     const res = await request(app.getHttpServer()).get('/api/v1/stages/catalog').expect(200)
     const codes = res.body.map((s: { code: string }) => s.code)
-    expect(codes).toHaveLength(20)
+    expect(codes).toHaveLength(19)
     expect(codes[0]).toBe('D01')
-    expect(codes[19]).toBe('D20')
+    expect(codes[18]).toBe('D19')
     expect(codes).toEqual([...codes].sort())
-    expect(res.body[5]).toMatchObject({ code: 'D06', name: 'Molienda Primaria', stageGroup: 'MOLIENDA' })
+    expect(res.body[5]).toMatchObject({ code: 'D06', name: 'Molienda secundaria', stageGroup: 'MOLIENDA' })
   })
 
   it('GET /api/v1/networks/catalog → las 10 redes FUR-*', async () => {

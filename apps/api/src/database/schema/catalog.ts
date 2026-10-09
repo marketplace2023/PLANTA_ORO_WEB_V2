@@ -35,7 +35,7 @@ export const assetTypes = catalogSchema.table('asset_types', {
   defaultSpecs: jsonb('default_specs').notNull().default({}),
 })
 
-/** Etapas del proceso (D01–D20) en las que se usa un tipo de activo: el catálogo se filtra por etapa con esto. */
+/** Etapas del proceso (D01–D19) en las que se usa un tipo de activo: el catálogo se filtra por etapa con esto. */
 export const assetTypeStages = catalogSchema.table(
   'asset_type_stages',
   {

@@ -255,7 +255,7 @@ describe('Geoportal de Activos Físicos', () => {
       setup()
       renderGeo()
 
-      expect(await screen.findByAltText('Mapa de REVEMIN II')).toHaveAttribute('src', '/MAPA%20REVERMIN.png')
+      expect(await screen.findByAltText('Mapa de REVEMIN II')).toHaveAttribute('src', '/MAPA%20REVEMIN_NUEVO.jpg')
       const stageChip = await screen.findByRole('button', { name: 'Etapa 07 Molienda Secundaria' })
       expect(stageChip).toHaveStyle({ left: '30%', top: '20%' })
       expect(stageChip).toHaveAttribute('aria-pressed', 'true') // es la etapa elegida

@@ -122,8 +122,8 @@ describe('Catálogo global', () => {
 
     it('resume las etapas cuando son muchas: «Todas las etapas» o «+N etapas»', async () => {
       const codes = (n: number) => Array.from({ length: n }, (_, i) => `D${String(i + 1).padStart(2, '0')}`)
-      const stages = codes(20).map((code, i) => ({ id: `s${i}`, code, name: `Etapa ${code}`, sequenceDefault: i + 1, description: null, stageGroup: 'X', colorToken: null }))
-      const all = { ...MODELS[0], id: 'mall', modelName: 'Modelo en todas', type: { ...MODELS[0].type, stageCodes: codes(20) } }
+      const stages = codes(19).map((code, i) => ({ id: `s${i}`, code, name: `Etapa ${code}`, sequenceDefault: i + 1, description: null, stageGroup: 'X', colorToken: null }))
+      const all = { ...MODELS[0], id: 'mall', modelName: 'Modelo en todas', type: { ...MODELS[0].type, stageCodes: codes(19) } }
       const many = { ...MODELS[1], id: 'mmany', modelName: 'Modelo en varias', type: { ...MODELS[1].type, stageCodes: codes(9), networkCodes: [] } }
       mockApi({
         'GET /catalog/assets': { body: page([all, many], 2, 1, 24) },
@@ -135,7 +135,7 @@ describe('Catálogo global', () => {
       renderWithProviders(<CatalogPage />, { route: '/catalog' })
       const allCard = (await screen.findByRole('heading', { name: 'Modelo en todas' })).closest('li')!
       expect(await within(allCard).findByText('Todas las etapas')).toBeInTheDocument()
-      expect(within(allCard).queryByText('D20')).not.toBeInTheDocument()
+      expect(within(allCard).queryByText('D19')).not.toBeInTheDocument()
       const manyCard = screen.getByRole('heading', { name: 'Modelo en varias' }).closest('li')!
       expect(within(manyCard).getByText('D06')).toBeInTheDocument()
       expect(within(manyCard).queryByText('D07')).not.toBeInTheDocument()
@@ -207,7 +207,7 @@ describe('Catálogo global', () => {
       setup()
       renderWithProviders(<CatalogPage />, { route: '/catalog' })
       expect(await screen.findByRole('heading', { name: 'Mapas de las plantas' })).toBeInTheDocument()
-      expect(screen.getByAltText('Mapa de REVEMIN II')).toHaveAttribute('src', '/MAPA%20REVERMIN.png')
+      expect(screen.getByAltText('Mapa de REVEMIN II')).toHaveAttribute('src', '/MAPA%20REVEMIN_NUEVO.jpg')
       expect(screen.getByAltText('Mapa de Mina Colombia')).toHaveAttribute('src', '/MAPA%20MINERVEN.jpeg')
       expect(screen.queryByAltText('Mapa de Planta Nueva')).not.toBeInTheDocument() // sin mapa: no se muestra
     })

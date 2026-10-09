@@ -494,30 +494,31 @@ stage_group          varchar
 color_token         varchar
 ```
 
-Etapas maestras recomendadas:
+Etapas maestras (las 19 oficiales del proceso; migración `0023_stages_19`):
 
 ```text
-D01 Recepción y Alimentación
-D02 Trituración Primaria
-D03 Cribado Primario
-D04 Trituración Secundaria
-D05 Transporte y Almacenamiento Intermedio
-D06 Molienda Primaria
-D07 Molienda Secundaria
-D08 Clasificación
-D09 Acondicionamiento / Pre-lixiviación
-D10 Espesamiento Pre-lixiviación
-D11 Lixiviación y Adsorción CIL
-D12 Recuperación y Manejo de Carbón Cargado
-D13 Lavado Ácido de Carbón
-D14 Elución / Desorción
-D15 Electrowinning
-D16 Secado / Calcinación
-D17 Fundición y Producto Doré
-D18 Reactivación y Retorno de Carbón
-D19 Espesamiento y Manejo de Relaves
-D20 Disposición de Relaves / Colas
+D01 Recepción, chancado y cribado
+D02 Trituración primaria
+D03 Trituración secundaria
+D04 Almacenamiento (silos)
+D05 Molienda primaria
+D06 Molienda secundaria
+D07 Clasificación (hidrociclones)
+D08 Pre-lixiviación
+D09 Espesamiento (clarificador)
+D10 Tanques CIL (adsorción)
+D11 Tanques CIP (recuperación)
+D12 Carbón cargado
+D13 Zadra / elución a presión controlada
+D14 Filtración del eluato
+D15 Electrodeposición (EW)
+D16 Secado y fundición
+D17 Regeneración de carbón
+D18 Manejo de soluciones
+D19 Relaves y agua / manejo ambiental
 ```
+
+> La lista anterior tenía 20 etapas (D01–D20). Al migrar, D03 (Cribado primario) se fusionó en D01, D13 (Lavado ácido de carbón) en D13 (elución), D17 (Fundición) en D16 y D20 (Disposición de relaves) en D19; el resto conservó su registro con el código nuevo (D04→D03, D05→D04, D06→D05, D07→D06, D08→D07, D09→D08, D10→D09, D11→D10, D14→D13, D18→D17). D11, D14 y D18 son nuevas.
 
 ## 11.2 `process.plant_stages`
 

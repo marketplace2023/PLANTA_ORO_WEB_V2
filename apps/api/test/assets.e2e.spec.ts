@@ -92,7 +92,7 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
         criticality: 'CRITICAL',
         isPublic: false, // privado por defecto
         serialNumber: 'SN-0001',
-        stage: { code: 'D06', name: 'Molienda Primaria' },
+        stage: { code: 'D06', name: 'Molienda secundaria' },
         type: { code: 'MOLINO_BOLAS' },
         family: { code: 'MOLINOS' },
         manufacturer: 'E2E Metso', // fabricante heredado del modelo

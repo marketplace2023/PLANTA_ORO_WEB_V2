@@ -227,7 +227,7 @@ describe('Plantas y autorización por planta (e2e)', () => {
         http().post('/api/v1/plants/e2e-pub/stages').set('Authorization', bearer(admin)).send({ stageCode, ...extra })
 
       const d06 = await post('D06').expect(201)
-      expect(d06.body).toMatchObject({ code: 'D06', name: 'Molienda Primaria', sequence: 6, isEnabled: true, isPublic: false })
+      expect(d06.body).toMatchObject({ code: 'D06', name: 'Molienda secundaria', sequence: 6, isEnabled: true, isPublic: false })
       const again = await post('D06', { nameOverride: 'Molino SAG' }).expect(201)
       expect(again.body.id).toBe(d06.body.id)
       expect(again.body.nameOverride).toBe('Molino SAG')

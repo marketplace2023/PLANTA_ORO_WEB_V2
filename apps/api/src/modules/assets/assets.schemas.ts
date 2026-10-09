@@ -10,7 +10,7 @@ const csv = <const T extends readonly [string, ...string[]]>(values: T) =>
     .transform((s) => s.split(',').map((x) => x.trim()).filter(Boolean))
     .pipe(z.array(z.enum(values)).min(1))
 
-const stageCode = z.string().regex(/^D\d{2}$/, 'Código de etapa inválido (D01…D20)')
+const stageCode = z.string().regex(/^D\d{2}$/, 'Código de etapa inválido (D01…D19)')
 const networkCode = z.string().regex(/^FUR-[A-Z]+$/, 'Código de red inválido (p. ej. FUR-IOT)')
 
 export const ASSET_SORTS = ['tag', 'name', 'status', 'criticality', 'updatedAt'] as const

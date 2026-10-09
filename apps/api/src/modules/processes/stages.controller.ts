@@ -9,7 +9,7 @@ import { stageMaster } from '../../database/schema'
 export class StagesController {
   constructor(@Inject(DB) private readonly db: Database) {}
 
-  /** Catálogo maestro global de etapas (D01…D20). Lectura pública. */
+  /** Catálogo maestro global de etapas (D01…D19). Lectura pública. */
   @Get('catalog')
   catalog() {
     return this.db.select().from(stageMaster).orderBy(asc(stageMaster.sequenceDefault))

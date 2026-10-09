@@ -3,7 +3,8 @@
  * (el nombre y el slug pueden editarse). Una planta nueva sin mapa simplemente no lo muestra.
  */
 const MAPS: Record<string, string> = {
-  'REV-II': 'MAPA REVERMIN.png',
+  // Mapa de REVEMIN II con las etapas y activos señalados.
+  'REV-II': 'MAPA REVEMIN_NUEVO.jpg',
   'CAR-01': 'MAPA CARATAL.jpeg',
   'MSM-01': 'MAPA MINA SOSA.jpeg',
   // El diagrama de Mina Colombia se titula "Mina Colombia / MINERVEN" (red eléctrica SW-5 y Nivel 1).

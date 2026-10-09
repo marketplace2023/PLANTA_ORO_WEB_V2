@@ -81,7 +81,7 @@ function EditDialog({ slug, stage, onClose }: { slug: string; stage: PlantStage;
   )
 }
 
-/** Etapas del proceso: el catálogo maestro (D01…D20) y cuáles usa esta planta. */
+/** Etapas del proceso: el catálogo maestro (D01…D19) y cuáles usa esta planta. */
 export function StagesTab({ slug }: { slug: string }) {
   const catalog = useStageCatalog()
   const stages = usePlantStages(slug)

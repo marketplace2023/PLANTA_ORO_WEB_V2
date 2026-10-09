@@ -55,7 +55,7 @@ describe('Dashboard del ecosistema (e2e)', () => {
       manufacturers: await n(sql`select count(*)::int as n from catalog.manufacturers`),
       models: await n(sql`select count(*)::int as n from catalog.asset_models`),
     })
-    expect(body.masters).toEqual({ stages: 20, networks: 10 })
+    expect(body.masters).toEqual({ stages: 19, networks: 10 })
   })
 
   it('las organizaciones pendientes de aprobar se cuentan aparte del total', async () => {

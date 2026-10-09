@@ -70,7 +70,7 @@ describe('Integridad del esquema (e2e)', () => {
   it('el seed es idempotente: re-ejecutarlo no duplica el catálogo', async () => {
     const { runSeed } = await import('../src/database/seed')
     await runSeed(TEST_DATABASE_URL)
-    expect(await db.select().from(stageMaster)).toHaveLength(20)
+    expect(await db.select().from(stageMaster)).toHaveLength(19)
     expect(await db.select().from(networkMaster)).toHaveLength(10)
   })
 })

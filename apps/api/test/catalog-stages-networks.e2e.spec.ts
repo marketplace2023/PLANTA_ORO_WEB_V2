@@ -61,7 +61,7 @@ describe('Catálogo filtrado por etapa y red transversal (e2e)', () => {
     expect(names(await models('&stage=D06'))).toEqual(['E2E Modelo A', 'E2E Modelo B'])
     expect(names(await models('&stage=D10'))).toEqual(['E2E Modelo B'])
     expect(names(await models('&stage=d10'))).toEqual(['E2E Modelo B'])
-    expect(names(await models('&stage=D20'))).toEqual([])
+    expect(names(await models('&stage=D19'))).toEqual([])
   })
 
   it('filtra por red transversal (segundo filtro) y se combina con la etapa', async () => {
@@ -84,10 +84,10 @@ describe('Catálogo filtrado por etapa y red transversal (e2e)', () => {
   it('los tipos base ya vienen asignados por el seed: molino de bolas en molienda y potencia; el CCM en todas las etapas', async () => {
     const types = (await http().get('/api/v1/catalog/types').expect(200)).body as Array<{ code: string; stageCodes: string[]; networkCodes: string[] }>
     const byCode = new Map(types.map((x) => [x.code, x]))
-    expect(byCode.get('MOLINO_BOLAS')?.stageCodes).toEqual(expect.arrayContaining(['D06', 'D07']))
+    expect(byCode.get('MOLINO_BOLAS')?.stageCodes).toEqual(expect.arrayContaining(['D05', 'D06']))
     expect(byCode.get('MOLINO_BOLAS')?.networkCodes).toEqual(expect.arrayContaining(['FUR-PTE']))
-    expect(byCode.get('HORNO_FUNDICION')?.stageCodes).toEqual(['D16', 'D17'])
-    expect(byCode.get('CCM')?.stageCodes).toHaveLength(20)
+    expect(byCode.get('HORNO_FUNDICION')?.stageCodes).toEqual(['D16'])
+    expect(byCode.get('CCM')?.stageCodes).toHaveLength(19)
     // ningún tipo base queda sin etapa ni red
     const base = types.filter((x) => !x.code.startsWith('E2E_'))
     expect(base.filter((x) => x.stageCodes.length === 0).map((x) => x.code)).toEqual([])

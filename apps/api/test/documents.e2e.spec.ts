@@ -120,7 +120,7 @@ describe('Documentos (e2e)', () => {
         currentVersion: 1,
         file: { originalName: 'Manual MB-301.pdf', mimeType: 'application/pdf', sizeBytes: buf.length },
         assets: [{ id: pubAssetId, tag: 'PUB-1' }],
-        stages: [{ code: 'D06', name: 'Molienda Primaria' }],
+        stages: [{ code: 'D06', name: 'Molienda secundaria' }],
         createdBy: expect.stringContaining('maint'),
       })
       expect(res.body.versions).toHaveLength(1)

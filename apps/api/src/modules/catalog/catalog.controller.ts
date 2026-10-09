@@ -16,7 +16,7 @@ const modelsQuery = z.object({
   family: z.string().trim().min(1).optional(),
   type: z.string().trim().min(1).optional(),
   manufacturerId: z.uuid().optional(),
-  /** Código de etapa del proceso (D01–D20): tipos que se usan en esa etapa. */
+  /** Código de etapa del proceso (D01–D19): tipos que se usan en esa etapa. */
   stage: z.string().trim().min(1).max(20).optional(),
   /** Código de red transversal (FUR-PTE…): tipos que pertenecen a esa red. */
   network: z.string().trim().min(1).max(20).optional(),

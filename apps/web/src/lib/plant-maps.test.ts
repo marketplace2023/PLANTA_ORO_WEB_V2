@@ -3,7 +3,7 @@ import { plantMapUrl } from './plant-maps'
 
 describe('plantMapUrl', () => {
   it('devuelve el mapa de cada planta por su código, con los espacios codificados', () => {
-    expect(plantMapUrl('REV-II')).toBe('/MAPA%20REVERMIN.png')
+    expect(plantMapUrl('REV-II')).toBe('/MAPA%20REVEMIN_NUEVO.jpg')
     expect(plantMapUrl('CAR-01')).toBe('/MAPA%20CARATAL.jpeg')
     expect(plantMapUrl('MSM-01')).toBe('/MAPA%20MINA%20SOSA.jpeg')
     expect(plantMapUrl('MCO-01')).toBe('/MAPA%20MINERVEN.jpeg')

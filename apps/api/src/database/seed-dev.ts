@@ -156,10 +156,10 @@ export async function runSeedDev(url: string, password = DEV_PASSWORD) {
         .onConflictDoNothing()
     }
 
-    // REVEMIN II: circuito completo y redes principales; las etapas D06-D11 y las redes de procesos/IoT son públicas.
+    // REVEMIN II: circuito completo y redes principales; las etapas D05-D10 y las redes de procesos/IoT son públicas.
     const revemin = plantBySlug.get('revemin-ii')!
     const stages = await db.select().from(s.stageMaster)
-    const publicStageCodes = new Set(['D06', 'D07', 'D08', 'D09', 'D10', 'D11'])
+    const publicStageCodes = new Set(['D05', 'D06', 'D07', 'D08', 'D09', 'D10'])
     for (const st of stages) {
       await db
         .insert(s.plantStages)
@@ -574,21 +574,20 @@ export async function runSeedDev(url: string, password = DEV_PASSWORD) {
       ['D04', 'D05', 'MATERIAL', false],
       ['D05', 'D06', 'MATERIAL', false],
       ['D06', 'D07', 'MATERIAL', false],
+      ['D07', 'D06', 'MATERIAL', true], // sobretamaño de los hidrociclones vuelve a molienda secundaria
       ['D07', 'D08', 'MATERIAL', false],
-      ['D08', 'D07', 'MATERIAL', true], // sobretamaño del clasificador vuelve a molienda secundaria
       ['D08', 'D09', 'MATERIAL', false],
       ['D09', 'D10', 'MATERIAL', false],
       ['D10', 'D11', 'MATERIAL', false],
-      ['D11', 'D12', 'SOLUTION', false],
+      ['D11', 'D12', 'MATERIAL', false],
       ['D12', 'D13', 'MATERIAL', false],
-      ['D13', 'D14', 'MATERIAL', false],
+      ['D13', 'D14', 'SOLUTION', false],
       ['D14', 'D15', 'SOLUTION', false],
       ['D15', 'D16', 'MATERIAL', false],
-      ['D16', 'D17', 'MATERIAL', false],
-      ['D14', 'D18', 'MATERIAL', false],
-      ['D18', 'D11', 'MATERIAL', true], // carbón reactivado regresa al CIL
+      ['D13', 'D17', 'MATERIAL', false],
+      ['D17', 'D10', 'MATERIAL', true], // carbón regenerado regresa al CIL
+      ['D15', 'D18', 'SOLUTION', false],
       ['D11', 'D19', 'MATERIAL', false],
-      ['D19', 'D20', 'MATERIAL', false],
       ['D19', 'D09', 'WATER', true], // agua recuperada de relaves
     ]
     const connectionsHere = await db.select({ id: s.stageConnections.id }).from(s.stageConnections).where(eq(s.stageConnections.plantId, revemin.id))

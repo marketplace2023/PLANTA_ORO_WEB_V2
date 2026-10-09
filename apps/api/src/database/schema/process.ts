@@ -6,7 +6,7 @@ import { plants } from './core'
 // Arquitectura §11
 export const processSchema = pgSchema('process')
 
-/** Catálogo global de etapas (D01…D20). */
+/** Catálogo global de etapas (D01…D19). */
 export const stageMaster = processSchema.table('stage_master', {
   id: pk(),
   code: varchar('code', { length: 10 }).notNull().unique(),

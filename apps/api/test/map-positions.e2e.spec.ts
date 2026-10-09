@@ -106,7 +106,7 @@ describe('Posición de etapas y activos en el mapa de la planta (e2e)', () => {
     it('guarda y devuelve la posición de la etapa, también para visitantes', async () => {
       const res = await patchStage(pa, { mapPosition: { x: 33.333, y: 70 } }).expect(200)
       expect(res.body.mapPosition).toEqual({ x: 33.33, y: 70 })
-      expect(res.body.displayName).toBe('Molienda Primaria')
+      expect(res.body.displayName).toBe('Molienda secundaria')
       expect((await stage(pa)).mapPosition).toEqual({ x: 33.33, y: 70 })
       expect((await stage()).mapPosition).toEqual({ x: 33.33, y: 70 })
     })

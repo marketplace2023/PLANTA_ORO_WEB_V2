@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { paginationShape } from '../../common/pagination'
 import { DOCUMENT_TYPES, DOCUMENT_VISIBILITIES } from '../../database/schema'
 
-const stageCode = z.string().regex(/^D\d{2}$/, 'Código de etapa inválido (D01…D20)')
+const stageCode = z.string().regex(/^D\d{2}$/, 'Código de etapa inválido (D01…D19)')
 
 /** En multipart los valores llegan como texto: "id1,id2" → ['id1','id2']. */
 const csv = (item: z.ZodType<string, string>) =>

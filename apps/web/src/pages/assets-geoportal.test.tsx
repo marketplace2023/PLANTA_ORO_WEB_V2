@@ -29,6 +29,17 @@ const ASSETS = [
   asset({ id: 'a2', tag: 'MT-301', name: 'Motor del molino', status: 'MAINTENANCE', criticality: 'HIGH', stage: D07, family: { code: 'MOTORES', name: 'Motores' } }),
   asset({ id: 'a3', tag: 'HC-801', name: 'Hidrociclón', status: 'REPAIR', criticality: 'LOW', stage: D07, family: { code: 'CRIBAS', name: 'Cribas y clasificadores' } }),
 ]
+const def = (over: object) => ({ id: 'v?', code: 'X', label: 'X', unit: null, valueType: 'TEXT', group: null, isKey: false, sortOrder: 0, networkCode: null, networkName: null, stageCode: null, assetTypeCode: null, value: null, ...over })
+// Datos del fabricante del modelo m1: de la etapa 07 y la red IoT, de la red de potencia (el activo no la tiene) y de otra etapa.
+const VARIABLES = [
+  def({ id: 'v1', code: 'CAP', label: 'Capacidad nominal', unit: 't/h', valueType: 'RANGE', group: 'Variables críticas del proceso', isKey: true, sortOrder: 1, networkCode: 'FUR-IOT', networkName: 'IoT / Instrumentación', stageCode: 'D07', value: { min: 600, max: 800 } }),
+  def({ id: 'v2', code: 'ROM', label: 'Tamaño de roca (ROM)', unit: 'mm', valueType: 'RANGE', group: 'Variables críticas del proceso', sortOrder: 2, networkCode: 'FUR-IOT', networkName: 'IoT / Instrumentación', stageCode: 'D07', value: { max: 700 } }),
+  def({ id: 'v3', code: 'INS', label: 'Instrumentación clave', valueType: 'LIST', group: 'Variables críticas del proceso', sortOrder: 3, networkCode: 'FUR-IOT', networkName: 'IoT / Instrumentación', stageCode: 'D07', value: ['vibración', 'monitoreo de desgaste'] }),
+  def({ id: 'v4', code: 'REV', label: 'Revestimiento', valueType: 'TEXT', group: 'Variables críticas del proceso', sortOrder: 4, networkCode: 'FUR-IOT', networkName: 'IoT / Instrumentación', stageCode: 'D07', value: null }), // aplica pero sin valor: dice «Sin registrar»
+  def({ id: 'v5', code: 'PWR', label: 'Potencia nominal', unit: 'kW', valueType: 'RANGE', group: 'Variables eléctricas', isKey: true, networkCode: 'FUR-PTE', networkName: 'Potencia Eléctrica', value: { min: 600, max: 1250 } }),
+  def({ id: 'v6', code: 'OTRA', label: 'Dato de otra etapa', valueType: 'TEXT', networkCode: 'FUR-IOT', networkName: 'IoT / Instrumentación', stageCode: 'D01', value: 'no debe verse' }),
+]
+
 // D07 ya está ubicada en el mapa; D06 no.
 const MAPPED_STAGES = STAGES.map((s) => ({ ...s, mapPosition: s.code === 'D07' ? { x: 30, y: 20 } : null }))
 
@@ -40,6 +51,7 @@ function setup(assets: unknown = page(ASSETS, 3, 1, 100), summary: unknown = SUM
     'GET /plants/revemin-ii/assets/summary': { body: summary },
     'GET /catalog/families': { body: FAMILIES },
     'GET /plants/revemin-ii/assets': { body: assets },
+    'GET /catalog/models/m1/variables': { body: VARIABLES },
     'GET /plants/revemin-ii/assets/a1/fur': { body: fur({}, { id: 'a1', specifications: { powerKw: 3000, voltageV: 4160 } }) },
     'GET /plants/revemin-ii/assets/a2/fur': { body: fur({}, { id: 'a2', tag: 'MT-301', name: 'Motor del molino', status: 'MAINTENANCE', specifications: { poles: 6 } }) },
     'GET /plants/revemin-ii/assets/a3/fur': { body: fur({}, { id: 'a3', tag: 'HC-801', name: 'Hidrociclón', specifications: {} }) },
@@ -144,15 +156,25 @@ describe('Geoportal de Activos Físicos', () => {
       setup()
       renderGeo()
 
-      const ficha = (await screen.findByRole('heading', { name: 'Ficha técnica general' })).closest('section')!
+      const ficha = (await screen.findByRole('heading', { name: /^Ficha técnica general/ })).closest('section')!
       const data = await within(ficha).findByRole('list', { name: 'Datos del activo' }).catch(() => within(ficha).findByLabelText('Datos del activo'))
       expect(within(ficha).getByText('Operativo')).toBeInTheDocument()
+      // Los códigos y datos de la ficha, en el orden de la ficha de referencia
+      const labels = within(data).getAllByRole('term').map((t) => t.textContent)
+      expect(labels.slice(0, 5)).toEqual(['Código de activo', 'FUR-EQP', 'Asset tag', 'Nombre', 'Tipo'])
+      expect(within(data).getByText('Código de activo').nextElementSibling).toHaveTextContent('MB-301')
+      expect(within(data).getByText('FUR-EQP').nextElementSibling).toHaveTextContent('MB-301-EQP-001')
+      expect(within(data).getByText('Asset tag').nextElementSibling).toHaveTextContent('MB-301')
       expect(within(data).getByText('Código FUR').nextElementSibling).toHaveTextContent('FUR-REV-II-00001')
-      expect(within(data).getByText('Tag').nextElementSibling).toHaveTextContent('MB-301')
-      expect(within(data).getByText('Etapa').nextElementSibling).toHaveTextContent('07 · Molienda Secundaria')
+      expect(within(data).getByText('Etapa').nextElementSibling).toHaveTextContent('07 - Molienda Secundaria')
       expect(within(data).getByText('Redes activas').nextElementSibling).toHaveTextContent('FUR-IOT')
-      expect(await within(data).findByText('Potencia (kW)')).toBeInTheDocument()
-      expect(within(data).getByText('Tensión (V)').nextElementSibling).toHaveTextContent('4160')
+      expect(within(data).getByText('Sección').nextElementSibling).toHaveTextContent('Molienda')
+      expect(within(data).getByText('Ubicación').nextElementSibling).toHaveTextContent('REVEMIN II - Nave de molienda')
+      expect(within(data).getByText('Última actualización').nextElementSibling).toHaveTextContent('2026-10-01')
+      await waitFor(() => expect(within(data).getByText('Estado documental').nextElementSibling).toHaveTextContent('Sin documentos'))
+      const specs = await within(ficha).findByRole('region', { name: 'Especificaciones del modelo' })
+      expect(await within(specs).findByText('Potencia (kW)')).toBeInTheDocument()
+      expect(within(specs).getByText('Tensión (V)').nextElementSibling).toHaveTextContent('4160')
       expect(within(ficha).getByRole('link', { name: /Abrir la ficha completa/ })).toHaveAttribute('href', '/plants/revemin-ii/assets/a1')
     })
 
@@ -164,9 +186,58 @@ describe('Geoportal de Activos Físicos', () => {
       await userEvent.click(card)
 
       expect(card).toHaveAttribute('aria-pressed', 'true')
-      const ficha = screen.getByRole('heading', { name: 'Ficha técnica general' }).closest('section')!
+      const ficha = screen.getByRole('heading', { name: /^Ficha técnica general/ }).closest('section')!
       await waitFor(() => expect(within(ficha).getByRole('link', { name: /Abrir la ficha completa/ })).toHaveAttribute('href', '/plants/revemin-ii/assets/a2'))
       expect(await within(ficha).findByText('Polos')).toBeInTheDocument()
+    })
+
+    it('muestra los datos del fabricante agrupados por sección, con el formato de cada tipo, «Sin registrar» donde falta el valor y solo lo que aplica al activo', async () => {
+      setup()
+      renderGeo()
+
+      const ficha = (await screen.findByRole('heading', { name: /^Ficha técnica general/ })).closest('section')!
+      const proceso = await within(ficha).findByRole('region', { name: 'Variables críticas del proceso (Etapa 07)' })
+      expect(within(proceso).getByText('Capacidad nominal').nextElementSibling).toHaveTextContent('600 – 800 t/h')
+      expect(within(proceso).getByText('Tamaño de roca (ROM)').nextElementSibling).toHaveTextContent('≤ 700 mm')
+      expect(within(proceso).getByText('Instrumentación clave').nextElementSibling).toHaveTextContent('vibración, monitoreo de desgaste')
+      expect(within(proceso).getByText(/Faltan datos del fabricante/)).toBeInTheDocument() // y dice dónde registrarlos
+      expect(within(proceso).getByText('Revestimiento').nextElementSibling).toHaveTextContent('Sin registrar') // aplica pero aún no tiene valor
+      expect(within(ficha).queryByText('Potencia nominal')).not.toBeInTheDocument() // red que el activo no tiene
+      expect(within(ficha).queryByText('Dato de otra etapa')).not.toBeInTheDocument() // otra etapa
+      // «Variables clave»: las marcadas como clave que aplican a este activo
+      const data = within(ficha).getByLabelText('Datos del activo')
+      expect(within(data).getByText('Variables clave').nextElementSibling).toHaveTextContent('capacidad nominal')
+    })
+
+    it('con una red elegida muestra solo las variables de esa red', async () => {
+      setup()
+      renderGeo(`${BASE}?stage=D07&network=FUR-PTE`)
+      const ficha = (await screen.findByRole('heading', { name: 'Ficha técnica general / Potencia Eléctrica – MB-301' })).closest('section')!
+      const electricas = await within(ficha).findByRole('region', { name: 'Variables eléctricas (Red PTE)' })
+      expect(within(electricas).getByText('Potencia nominal').nextElementSibling).toHaveTextContent('600 – 1250 kW')
+      const data = within(ficha).getByLabelText('Datos del activo')
+      expect(within(data).getByText('FUR-PTE', { selector: 'dt' }).nextElementSibling).toHaveTextContent('MB-301-PTE-001') // código de registro de la red elegida
+      expect(within(data).getByText('Red activa').nextElementSibling).toHaveTextContent('FUR-PTE · Potencia Eléctrica')
+      expect(within(data).queryByText('Redes activas')).not.toBeInTheDocument()
+      expect(within(ficha).queryByText('Capacidad nominal')).not.toBeInTheDocument()
+    })
+
+    it('si el modelo no tiene variables registradas no muestra secciones vacías', async () => {
+      mockApi({
+        'GET /plants/revemin-ii': { body: plantDetail() },
+        'GET /plants/revemin-ii/stages': { body: MAPPED_STAGES },
+        'GET /plants/revemin-ii/networks': { body: NETWORKS },
+        'GET /plants/revemin-ii/assets/summary': { body: SUMMARY },
+        'GET /plants/revemin-ii/assets': { body: page(ASSETS, 3, 1, 100) },
+        'GET /catalog/models/m1/variables': { body: [] },
+        'GET /plants/revemin-ii/assets/a1/fur': { body: fur({}, { id: 'a1', specifications: {} }) },
+      })
+      renderGeo()
+      const ficha = (await screen.findByRole('heading', { name: /^Ficha técnica general/ })).closest('section')!
+      await within(ficha).findByText('Código FUR')
+      await waitFor(() => expect(within(ficha).queryByLabelText('Cargando especificaciones')).not.toBeInTheDocument())
+      expect(within(ficha).queryAllByRole('region')).toHaveLength(0)
+      expect(within(ficha).queryByText('Variables clave')).not.toBeInTheDocument()
     })
 
     it('si no hay activos lo dice', async () => {
@@ -198,7 +269,7 @@ describe('Geoportal de Activos Físicos', () => {
 
       expect(await screen.findByText('REVEMIN II · Mapa integral de activos físicos · Etapa 07 – Molienda Secundaria · Red transversal – Potencia Eléctrica')).toBeInTheDocument()
       expect(screen.getByRole('heading', { name: 'Activos asociados a la red Potencia Eléctrica (Etapa 07)' })).toBeInTheDocument()
-      expect(screen.getByRole('heading', { name: 'Ficha técnica general / Potencia Eléctrica' })).toBeInTheDocument()
+      expect(await screen.findByRole('heading', { name: 'Ficha técnica general / Potencia Eléctrica – MB-301' })).toBeInTheDocument()
     })
   })
 
@@ -271,7 +342,7 @@ describe('Geoportal de Activos Físicos', () => {
     it('elegir un activo desde el mapa actualiza la ficha técnica', async () => {
       setup()
       renderGeo(`${BASE}?stage=D07&asset=a2`)
-      const ficha = (await screen.findByRole('heading', { name: 'Ficha técnica general' })).closest('section')!
+      const ficha = (await screen.findByRole('heading', { name: /^Ficha técnica general/ })).closest('section')!
       await waitFor(() => expect(within(ficha).getByRole('link', { name: /Abrir la ficha completa/ })).toHaveAttribute('href', '/plants/revemin-ii/assets/a2'))
 
       await userEvent.click(await screen.findByRole('button', { name: /^Activo MB-301/ }))

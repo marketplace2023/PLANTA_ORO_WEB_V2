@@ -59,6 +59,7 @@ export class CatalogController {
         name: assetTypes.name,
         familyCode: assetFamilies.code,
         familyName: assetFamilies.name,
+        description: assetTypes.description,
         stageCodes: typeStageCodes,
         networkCodes: typeNetworkCodes,
       })

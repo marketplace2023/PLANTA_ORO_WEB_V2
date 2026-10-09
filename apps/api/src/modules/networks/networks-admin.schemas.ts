@@ -12,10 +12,10 @@ const icon = z.string().trim().min(1).max(40)
 /** Token CSS del frontend (`--network-proc`…): el color lo definen las hojas de estilo, aquí solo se valida el formato. */
 const colorToken = z.string().trim().regex(/^network-[a-z]{2,16}$/, 'Token de color inválido (p. ej. network-iot)')
 
-export const createNetworkSchema = z.object({ code, name, description: description.optional(), icon: icon.optional(), colorToken: colorToken.optional() })
+export const createNetworkSchema = z.object({ code, name, description: description.optional(), icon: icon.optional(), colorToken: colorToken.optional(), sequence: z.number().int().min(0).max(9999).optional() })
 
 export const updateNetworkSchema = z
-  .object({ name, description: description.nullable(), icon: icon.nullable(), colorToken: colorToken.nullable() })
+  .object({ name, description: description.nullable(), icon: icon.nullable(), colorToken: colorToken.nullable(), sequence: z.number().int().min(0).max(9999) })
   .partial()
   .refine((v) => Object.keys(v).length > 0, 'Indique al menos un campo')
 

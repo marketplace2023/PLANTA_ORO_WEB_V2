@@ -70,7 +70,7 @@ export const asset = (over: Partial<AssetItem> = {}): AssetItem => ({
   mapPosition: null,
   stage: { code: 'D06', name: 'Molienda Primaria', group: 'MOLIENDA' },
   model: { id: 'm1', name: 'Bolas 16.5x24 ft', imageUrl: null },
-  type: { code: 'MOLINO_BOLAS', name: 'Molino de bolas' },
+  type: { code: 'MOLINO_BOLAS', name: 'Molino de bolas', description: null },
   family: { code: 'MOLINOS', name: 'Molinos' },
   manufacturer: 'Metso',
   networks: [{ code: 'FUR-IOT', name: 'IoT / Instrumentación', colorToken: 'network-iot' }],

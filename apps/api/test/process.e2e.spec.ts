@@ -236,7 +236,7 @@ describe('Procesos y redes transversales (e2e)', () => {
   describe('redes transversales', () => {
     it('solo redes habilitadas; el visitante, además, solo las públicas', async () => {
       const internal = (await get(`${B}/network-overview`).expect(200)).body
-      expect(internal.map((n: { code: string }) => n.code)).toEqual(['FUR-IOT', 'FUR-PTE']) // FUR-MNT está deshabilitada
+      expect(internal.map((n: { code: string }) => n.code)).toEqual(['FUR-PTE', 'FUR-IOT']) // FUR-MNT está deshabilitada
       const anon = (await get(`${B}/network-overview`, null).expect(200)).body
       expect(anon.map((n: { code: string }) => n.code)).toEqual(['FUR-IOT'])
     })

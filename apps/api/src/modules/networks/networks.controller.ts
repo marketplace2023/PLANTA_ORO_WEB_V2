@@ -12,6 +12,6 @@ export class NetworksController {
   /** Catálogo maestro global de redes transversales. Lectura pública. */
   @Get('catalog')
   catalog() {
-    return this.db.select().from(networkMaster).orderBy(asc(networkMaster.code))
+    return this.db.select().from(networkMaster).orderBy(asc(networkMaster.sequence), asc(networkMaster.code))
   }
 }

@@ -12,7 +12,7 @@
   section{background:#fff;border:1px solid #d9e0ea;border-radius:10px;padding:14px 16px;overflow:auto}
   h2{margin:0 0 4px;font-size:16px} small{color:#5b6b80}
 </style></head><body>
-<header><h1>Diagrama entidad-relación · nombres de Odoo</h1><p>Generado el 2026-10-08 · 146 relaciones entre 74 tablas</p></header>
+<header><h1>Diagrama entidad-relación · nombres de Odoo</h1><p>Generado el 2026-10-09 · 151 relaciones entre 76 tablas</p></header>
 <nav><a href="#general">Vista general</a><a href="#g0">Productos</a><a href="#g1">Empresas, usuarios y permisos</a><a href="#g2">Proveedores y contratistas</a><a href="#g3">Inventario</a><a href="#g4">Mantenimiento</a><a href="#g5">Compras</a><a href="#g6">Procesos de planta y redes</a><a href="#g7">Presupuestos y valorizaciones</a><a href="#g8">Documentos</a><a href="#g9">Capacitación</a></nav>
 <main>
 <section id="general"><h2>Vista general</h2><small>Todas las relaciones; los nombres de columna están en cada grupo.</small><pre class="mermaid">erDiagram
@@ -55,6 +55,11 @@
   x_product_type ||--o{ x_product_type_stage : "asset_type_id"
   mrp_workcenter ||--o{ x_product_type_stage : "stage_master_id"
   product_category ||--o{ x_product_type : "family_id"
+  product_template ||--o{ product_template_attribute_value : "asset_model_id"
+  product_attribute ||--o{ product_template_attribute_value : "variable_id"
+  x_product_type |o--o{ product_attribute : "asset_type_id"
+  x_network |o--o{ product_attribute : "network_master_id"
+  mrp_workcenter |o--o{ product_attribute : "stage_master_id"
   res_company ||--o{ ir_sequence : "plant_id"
   res_company ||--o{ res_config_settings : "plant_id"
   x_ecosystem ||--o{ res_company : "ecosystem_id"
@@ -162,11 +167,18 @@
   mrp_workcenter ||--o{ x_res_partner_stage : "stage_master_id"
   res_partner ||--o{ x_res_partner_stage : "provider_id"
   res_users |o--o{ res_partner : "created_by"</pre></section>
-<section id="g0"><h2>Productos (catálogo, activos físicos y marketplace)</h2><small>11 tablas · 26 relaciones. Las entidades sin columnas pertenecen a otro grupo.</small><pre class="mermaid">erDiagram
+<section id="g0"><h2>Productos (catálogo, activos físicos y marketplace)</h2><small>13 tablas · 31 relaciones. Las entidades sin columnas pertenecen a otro grupo.</small><pre class="mermaid">erDiagram
   mail_tracking_value {
     uuid id PK
     uuid asset_id FK
     uuid changed_by FK
+  }
+  product_attribute {
+    uuid id PK
+    varchar code
+    uuid network_master_id FK
+    uuid stage_master_id FK
+    uuid asset_type_id FK
   }
   product_category {
     uuid id PK
@@ -196,6 +208,10 @@
     uuid asset_type_id FK
     uuid manufacturer_id FK
     varchar status
+  }
+  product_template_attribute_value {
+    uuid asset_model_id PK
+    uuid variable_id PK
   }
   x_product_manufacturer {
     uuid id PK
@@ -238,6 +254,11 @@
   x_product_type ||--o{ x_product_type_stage : "asset_type_id"
   mrp_workcenter ||--o{ x_product_type_stage : "stage_master_id"
   product_category ||--o{ x_product_type : "family_id"
+  product_template ||--o{ product_template_attribute_value : "asset_model_id"
+  product_attribute ||--o{ product_template_attribute_value : "variable_id"
+  x_product_type |o--o{ product_attribute : "asset_type_id"
+  x_network |o--o{ product_attribute : "network_master_id"
+  mrp_workcenter |o--o{ product_attribute : "stage_master_id"
   product_product ||--o{ x_product_document : "asset_id"
   product_template |o--o{ x_stock_item : "catalog_item_id"
   product_product ||--o{ maintenance_plan : "asset_id"
@@ -601,7 +622,7 @@
   res_users |o--o{ purchase_order_line : "submitted_by"
   purchase_order ||--o{ purchase_order_line : "rfq_id"
   res_partner ||--o{ purchase_order_line : "provider_id"</pre></section>
-<section id="g6"><h2>Procesos de planta y redes</h2><small>5 tablas · 17 relaciones. Las entidades sin columnas pertenecen a otro grupo.</small><pre class="mermaid">erDiagram
+<section id="g6"><h2>Procesos de planta y redes</h2><small>5 tablas · 19 relaciones. Las entidades sin columnas pertenecen a otro grupo.</small><pre class="mermaid">erDiagram
   mrp_routing_workcenter {
     uuid id PK
     uuid plant_id FK
@@ -632,6 +653,8 @@
   mrp_routing_workcenter |o--o{ product_product : "plant_stage_id"
   x_network ||--o{ x_product_type_network : "network_master_id"
   mrp_workcenter ||--o{ x_product_type_stage : "stage_master_id"
+  x_network |o--o{ product_attribute : "network_master_id"
+  mrp_workcenter |o--o{ product_attribute : "stage_master_id"
   mrp_routing_workcenter ||--o{ x_stage_document : "plant_stage_id"
   mrp_workcenter ||--o{ x_slide_channel_stage : "stage_master_id"
   mrp_workcenter ||--o{ x_product_supplierinfo_stage : "stage_master_id"

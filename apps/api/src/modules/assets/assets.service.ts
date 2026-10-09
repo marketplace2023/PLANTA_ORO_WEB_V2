@@ -95,6 +95,7 @@ export class AssetsService {
         technicalData: assetModels.technicalData,
         typeCode: assetTypes.code,
         typeName: assetTypes.name,
+        typeDescription: assetTypes.description,
         familyCode: assetFamilies.code,
         familyName: assetFamilies.name,
         manufacturerName: manufacturers.name,
@@ -121,7 +122,7 @@ export class AssetsService {
       .innerJoin(plantNetworks, eq(plantNetworks.id, assetNetworks.plantNetworkId))
       .innerJoin(networkMaster, eq(networkMaster.id, plantNetworks.networkMasterId))
       .where(inArray(assetNetworks.assetId, assetIds))
-      .orderBy(asc(networkMaster.code))
+      .orderBy(asc(networkMaster.sequence), asc(networkMaster.code))
     for (const r of rows) map.set(r.assetId, [...(map.get(r.assetId) ?? []), { code: r.code, name: r.name, colorToken: r.colorToken }])
     return map
   }
@@ -140,7 +141,7 @@ export class AssetsService {
       stage: r.stageCode ? { code: r.stageCode, name: r.stageOverride ?? r.stageName!, group: r.stageGroup! } : null,
       mapPosition: readMapPosition(r.metadata),
       model: { id: r.modelId, name: r.modelName, imageUrl: r.modelImageUrl },
-      type: { code: r.typeCode, name: r.typeName },
+      type: { code: r.typeCode, name: r.typeName, description: r.typeDescription },
       family: { code: r.familyCode, name: r.familyName },
       manufacturer: r.manufacturerName,
       networks,

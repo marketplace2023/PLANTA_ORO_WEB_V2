@@ -4,21 +4,13 @@ import type { AssetItem } from '@/features/assets/use-assets'
 import type { PlantStage } from '@/features/plant/use-plant-data'
 import { apiUrl } from '@/lib/api'
 import { STATUS_META, type AssetStatus } from '@/lib/assets'
+import { stageGroupLabel } from '@/lib/stage-groups'
 import { cn } from '@/lib/utils'
 import { GeoPanel } from './geo-panel'
 import { stageNumber } from './stage-number'
 
 /** Activos que se muestran de entrada; el resto se abre con «Ver los N activos». */
 export const VISIBLE_ASSETS = 8
-
-const STAGE_GROUPS: Record<string, string> = {
-  TRITURACION: 'Trituración',
-  MOLIENDA: 'Molienda',
-  LIXIVIACION: 'Lixiviación',
-  CARBON: 'Carbón',
-  ELUCION: 'Elución y fundición',
-  RELAVES: 'Relaves',
-}
 
 function Stat({ icon: Icon, value, label, color }: { icon: typeof Cog; value: number; label: string; color?: string }) {
   return (
@@ -106,7 +98,7 @@ export function StageDetail({
               <h3 className="text-lg leading-tight font-bold text-fur-navy-900">
                 Etapa {stageNumber(stage.code)} · {stage.displayName}
               </h3>
-              <p className="mt-0.5 text-sm text-fur-gray-600">Grupo: {STAGE_GROUPS[stage.stageGroup] ?? stage.stageGroup}</p>
+              <p className="mt-0.5 text-sm text-fur-gray-600">Grupo: {stageGroupLabel(stage.stageGroup)}</p>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <Stat icon={Package} value={total} label="activos asociados" />

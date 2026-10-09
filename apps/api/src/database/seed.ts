@@ -8,6 +8,7 @@ import {
   assetTypes,
   assetTypeStages,
   ecosystems,
+  variableDefinitions,
   networkMaster,
   permissions,
   rolePermissions,
@@ -126,6 +127,25 @@ const TYPE_NETWORKS: Record<string, string[]> = {
   TRANSMISOR_FLUJO: ['FUR-IOT', 'FUR-PROC'],
 }
 
+// Variables de la ficha técnica (datos del fabricante) que arrancan definidas: ejemplo de la etapa 01 del proceso y de la
+// red de potencia. El administrador crea las demás desde el catálogo. [código, nombre, unidad, tipo, red, etapa, grupo, clave, orden]
+const VARIABLES: Array<[string, string, string | null, string, string, string | null, string, boolean, number]> = [
+  ['CAPACIDAD_NOMINAL_PROC_D01', 'Capacidad nominal', 't/h', 'RANGE', 'FUR-PROC', 'D01', 'Variables críticas del proceso', true, 10],
+  ['ABERTURA_DE_CRIBADO_PROC_D01', 'Abertura de cribado', 'mm', 'NUMBER', 'FUR-PROC', 'D01', 'Variables críticas del proceso', true, 20],
+  ['TAMANO_DE_ROCA_ROM_PROC_D01', 'Tamaño de roca (ROM)', 'mm', 'RANGE', 'FUR-PROC', 'D01', 'Variables críticas del proceso', false, 30],
+  ['TIPO_DE_CRIBA_PROC_D01', 'Tipo de criba', null, 'TEXT', 'FUR-PROC', 'D01', 'Variables críticas del proceso', false, 40],
+  ['REVESTIMIENTO_PROC_D01', 'Revestimiento', null, 'TEXT', 'FUR-PROC', 'D01', 'Variables críticas del proceso', false, 50],
+  ['INSTRUMENTACION_CLAVE_PROC_D01', 'Instrumentación clave', null, 'LIST', 'FUR-PROC', 'D01', 'Variables críticas del proceso', false, 60],
+  // Red de potencia (aplican a todas las etapas)
+  ['POTENCIA_INSTALADA_TOTAL_PTE', 'Potencia instalada total', 'kW', 'NUMBER', 'FUR-PTE', null, 'Variables críticas del proceso', true, 10],
+  ['POTENCIA_DEMANDADA_TIPICA_PTE', 'Potencia demandada (típica)', 'kW', 'RANGE', 'FUR-PTE', null, 'Variables críticas del proceso', false, 20],
+  ['TENSION_DE_SUMINISTRO_PTE', 'Tensión de suministro', 'kV', 'NUMBER', 'FUR-PTE', null, 'Variables críticas del proceso', true, 30],
+  ['CORRIENTE_NOMINAL_PTE', 'Corriente nominal', 'A', 'RANGE', 'FUR-PTE', null, 'Variables críticas del proceso', true, 40],
+  ['FACTOR_DE_POTENCIA_PTE', 'Factor de potencia', null, 'RANGE', 'FUR-PTE', null, 'Variables críticas del proceso', true, 50],
+  ['SISTEMA_DE_ARRANQUE_PTE', 'Sistema de arranque', null, 'TEXT', 'FUR-PTE', null, 'Variables críticas del proceso', false, 60],
+  ['RED_DE_DISTRIBUCION_PTE', 'Red de distribución', null, 'TEXT', 'FUR-PTE', null, 'Variables críticas del proceso', false, 70],
+]
+
 // Arquitectura §12.1. Íconos = nombres de Lucide.
 const NETWORKS: Array<[code: string, name: string, icon: string, color: string]> = [
   ['FUR-PROC', 'Procesos', 'cog', 'network-proc'],
@@ -181,7 +201,7 @@ export async function runSeed(url: string) {
     // lo que el administrador haya cambiado.
     await db
       .insert(networkMaster)
-      .values(NETWORKS.map(([code, name, icon, colorToken]) => ({ code, name, icon, colorToken })))
+      .values(NETWORKS.map(([code, name, icon, colorToken], i) => ({ code, name, icon, colorToken, sequence: i + 1 })))
       .onConflictDoNothing({ target: networkMaster.code })
 
     await db
@@ -248,6 +268,14 @@ export async function runSeed(url: string) {
       if (!networkedTypes.has(id) && TYPE_NETWORKS[code]) {
         await db.insert(assetTypeNetworks).values(TYPE_NETWORKS[code].map((n) => ({ assetTypeId: id, networkMasterId: networkId.get(n)! }))).onConflictDoNothing()
       }
+    }
+
+    // Definiciones de variables: solo se crean las que faltan (no pisan lo que el administrador haya editado).
+    for (const [code, label, unit, valueType, network, stage, groupLabel, isKey, sortOrder] of VARIABLES) {
+      await db
+        .insert(variableDefinitions)
+        .values({ code, label, unit, valueType, networkMasterId: networkId.get(network)!, stageMasterId: stage ? stageId.get(stage)! : null, groupLabel, isKey, sortOrder })
+        .onConflictDoNothing({ target: variableDefinitions.code })
     }
 
     console.log(

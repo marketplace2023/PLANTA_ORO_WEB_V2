@@ -51,15 +51,17 @@ export class NetworksAdminController {
         types: sql<number>`(select count(*)::int from catalog.asset_type_networks atn where atn.network_master_id = plant.network_master.id)`,
       })
       .from(networkMaster)
-      .orderBy(asc(networkMaster.code))
+      .orderBy(asc(networkMaster.sequence), asc(networkMaster.code))
     return rows
   }
 
   @Post()
   async create(@Body(new ZodValidationPipe(createNetworkSchema)) dto: CreateNetworkDto, @Req() req: AppRequest) {
+    // Sin orden indicado, la red nueva va al final.
+    const sequence = dto.sequence ?? ((await this.db.select({ n: sql<number>`coalesce(max(${networkMaster.sequence}), 0)::int` }).from(networkMaster))[0].n + 1)
     const [row] = await this.db
       .insert(networkMaster)
-      .values(dto)
+      .values({ ...dto, sequence })
       .returning()
       .catch((e) => (isUniqueViolation(e) ? Promise.reject(new ConflictException(`Ya existe una red con el código ${dto.code}`)) : Promise.reject(e)))
     await this.audit.record(req, { module: 'networks', entityType: 'network_master', entityId: row.id, action: 'created', newData: dto })

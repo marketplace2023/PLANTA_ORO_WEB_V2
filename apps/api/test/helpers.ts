@@ -160,6 +160,8 @@ export class TestDb {
     // Los activos ya cayeron en cascada con sus plantas; ahora se pueden borrar los modelos de prueba.
     await this.db.delete(schema.assetModels).where(like(schema.assetModels.modelName, 'E2E %'))
     await this.db.delete(schema.manufacturers).where(like(schema.manufacturers.name, 'E2E %'))
+    // Variables de ficha técnica creadas por las pruebas (sus valores caen en cascada con ellas o con los modelos).
+    await this.db.delete(schema.variableDefinitions).where(like(schema.variableDefinitions.code, 'E2E\_%'))
     // Catálogo creado por las pruebas de administración (tipos antes que familias).
     await this.db.delete(schema.assetTypes).where(like(schema.assetTypes.code, 'E2E\_%'))
     await this.db.delete(schema.assetFamilies).where(like(schema.assetFamilies.code, 'E2E\_%'))

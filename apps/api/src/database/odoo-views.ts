@@ -25,6 +25,8 @@ export const MAP: Entry[] = [
   { odoo: 'product_template', real: 'catalog.asset_models', extra: `t.model_name as name, (t.status = 'ACTIVE') as active, t.asset_type_id as categ_id` },
   { odoo: 'product_product', real: 'asset.assets', extra: `t.tag as default_code, t.fur_code as barcode, t.asset_model_id as product_tmpl_id, t.plant_id as company_id, (t.status <> 'DECOMMISSIONED') as active` },
   { odoo: 'x_product_manufacturer', real: 'catalog.manufacturers' },
+  { odoo: 'product_attribute', real: 'catalog.variable_definitions', extra: `t.label as name` },
+  { odoo: 'product_template_attribute_value', real: 'catalog.model_variable_values', extra: `t.asset_model_id as product_tmpl_id, t.variable_id as attribute_id` },
   { odoo: 'x_product_type_stage', real: 'catalog.asset_type_stages' },
   { odoo: 'x_product_type_network', real: 'catalog.asset_type_networks' },
   { odoo: 'x_product_network_rel', real: 'asset.asset_networks' },

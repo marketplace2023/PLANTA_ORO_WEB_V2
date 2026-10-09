@@ -4,6 +4,7 @@ import { memoryStorage } from 'multer'
 import { DocumentsModule } from '../documents/documents.module'
 import { CatalogAdminController } from './catalog-admin.controller'
 import { CatalogController } from './catalog.controller'
+import { CatalogVariablesAdminController, CatalogVariablesController } from './variables.controller'
 import { MODEL_IMAGE_MAX_BYTES } from './model-image'
 
 @Module({
@@ -13,6 +14,6 @@ import { MODEL_IMAGE_MAX_BYTES } from './model-image'
     // En memoria porque se valida el contenido antes de escribir; el tope evita agotar la RAM del servidor.
     MulterModule.register({ storage: memoryStorage(), limits: { fileSize: MODEL_IMAGE_MAX_BYTES, files: 1, fields: 5 } }),
   ],
-  controllers: [CatalogController, CatalogAdminController],
+  controllers: [CatalogController, CatalogAdminController, CatalogVariablesController, CatalogVariablesAdminController],
 })
 export class CatalogModule {}

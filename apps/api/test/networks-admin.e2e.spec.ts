@@ -50,6 +50,40 @@ describe('Administración de redes transversales (e2e)', () => {
     expect((await catalog()).length).toBeGreaterThanOrEqual(10)
   })
 
+  describe('orden de las redes', () => {
+    const BASE = ['FUR-PROC', 'FUR-PTE', 'FUR-IOT', 'FUR-GPON', 'FUR-CC', 'FUR-LAB', 'FUR-MNT', 'FUR-RQ', 'FUR-OF', 'FUR-CAM']
+    const codesOf = async () => (await catalog()).map((n) => n.code).filter((c) => !c.startsWith('FUR-TST'))
+
+    it('el maestro se lista en el orden oficial, no alfabético', async () => {
+      expect(await codesOf()).toEqual(BASE)
+    })
+
+    it('las redes habilitadas de una planta siguen el mismo orden', async () => {
+      await t.plant('netord', 'PUBLIC') // planta aparte: no mezclar con las redes de las otras pruebas
+      for (const code of ['FUR-CAM', 'FUR-PROC', 'FUR-IOT', 'FUR-RQ']) await send('post', '/api/v1/plants/e2e-netord/networks', admin, { networkCode: code }).expect(201)
+      const plantNets = (await http().get('/api/v1/plants/e2e-netord/networks').set('Authorization', bearer(admin)).expect(200)).body as Array<{ code: string }>
+      expect(plantNets.map((n) => n.code)).toEqual(['FUR-PROC', 'FUR-IOT', 'FUR-RQ', 'FUR-CAM'])
+    })
+
+    it('una red nueva va al final y su orden se puede cambiar', async () => {
+      const created = await send('post', '/api/v1/networks/catalog', admin, { code: 'FUR-TSTORD', name: 'Prueba de orden' }).expect(201)
+      expect(created.body.sequence).toBeGreaterThan(10)
+      expect((await catalog()).at(-1)?.code).toBe('FUR-TSTORD')
+      await send('patch', `/api/v1/networks/catalog/${created.body.id}`, admin, { sequence: 3 }).expect(200)
+      const list = (await catalog()).map((n) => n.code)
+      expect(list.indexOf('FUR-TSTORD')).toBe(list.indexOf('FUR-IOT') + 1) // el orden 3 empata con IoT y a igualdad manda el código
+      await send('patch', `/api/v1/networks/catalog/${created.body.id}`, admin, { sequence: 0 }).expect(200)
+      expect((await catalog())[0].code).toBe('FUR-TSTORD')
+      await send('delete', `/api/v1/networks/catalog/${created.body.id}?force=true`, admin).expect(204)
+      expect(await codesOf()).toEqual(BASE)
+    })
+
+    it('rechaza órdenes inválidos', async () => {
+      await send('post', '/api/v1/networks/catalog', admin, { code: 'FUR-TSTBAD', name: 'Orden malo', sequence: -1 }).expect(400)
+      await send('post', '/api/v1/networks/catalog', admin, { code: 'FUR-TSTBAD', name: 'Orden malo', sequence: 1.5 }).expect(400)
+    })
+  })
+
   describe('crear', () => {
     it('crea una red (código en mayúsculas) y aparece en el maestro público', async () => {
       const res = await send('post', '/api/v1/networks/catalog', admin, { code: 'fur-tstagua', name: 'Agua industrial', description: 'Red de agua de proceso', icon: 'droplets', colorToken: 'network-iot' }).expect(201)

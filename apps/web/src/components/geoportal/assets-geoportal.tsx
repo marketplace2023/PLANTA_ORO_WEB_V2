@@ -159,7 +159,7 @@ export function AssetsGeoportal({ plant, actions }: { plant: PlantDetail; action
           </div>
         </div>
 
-        <AssetFicha plantSlug={plant.slug} asset={selectedAsset} networkName={networkName} />
+        <AssetFicha plantSlug={plant.slug} plantName={plant.name} asset={selectedAsset} networkName={networkName} networkCode={network} />
       </div>
     </>
   )

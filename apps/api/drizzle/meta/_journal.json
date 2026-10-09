@@ -169,6 +169,20 @@
       "when": 1791556411667,
       "tag": "0023_stages_19",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791561758347,
+      "tag": "0024_model_variables",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791564814728,
+      "tag": "0025_network_sequence",
+      "breakpoints": true
     }
   ]
 }

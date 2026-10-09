@@ -1,6 +1,6 @@
 # Diagrama entidad-relación (nombres de Odoo)
 
-Generado el 2026-10-08 desde las claves foráneas reales (146 relaciones entre 74 tablas). Cada entidad lleva el nombre de su vista en el esquema `odoo`; la equivalencia con la tabla real está en `odoo._mapa_tablas`. Se regenera con `npm run db:er`.
+Generado el 2026-10-09 desde las claves foráneas reales (151 relaciones entre 76 tablas). Cada entidad lleva el nombre de su vista en el esquema `odoo`; la equivalencia con la tabla real está en `odoo._mapa_tablas`. Se regenera con `npm run db:er`.
 
 ## Vista general
 
@@ -45,6 +45,11 @@ erDiagram
   x_product_type ||--o{ x_product_type_stage : "asset_type_id"
   mrp_workcenter ||--o{ x_product_type_stage : "stage_master_id"
   product_category ||--o{ x_product_type : "family_id"
+  product_template ||--o{ product_template_attribute_value : "asset_model_id"
+  product_attribute ||--o{ product_template_attribute_value : "variable_id"
+  x_product_type |o--o{ product_attribute : "asset_type_id"
+  x_network |o--o{ product_attribute : "network_master_id"
+  mrp_workcenter |o--o{ product_attribute : "stage_master_id"
   res_company ||--o{ ir_sequence : "plant_id"
   res_company ||--o{ res_config_settings : "plant_id"
   x_ecosystem ||--o{ res_company : "ecosystem_id"
@@ -156,7 +161,7 @@ erDiagram
 
 ## Productos (catálogo, activos físicos y marketplace)
 
-11 tablas · 26 relaciones que las tocan. Las entidades sin columnas pertenecen a otro grupo.
+13 tablas · 31 relaciones que las tocan. Las entidades sin columnas pertenecen a otro grupo.
 
 ```mermaid
 erDiagram
@@ -164,6 +169,13 @@ erDiagram
     uuid id PK
     uuid asset_id FK
     uuid changed_by FK
+  }
+  product_attribute {
+    uuid id PK
+    varchar code
+    uuid network_master_id FK
+    uuid stage_master_id FK
+    uuid asset_type_id FK
   }
   product_category {
     uuid id PK
@@ -193,6 +205,10 @@ erDiagram
     uuid asset_type_id FK
     uuid manufacturer_id FK
     varchar status
+  }
+  product_template_attribute_value {
+    uuid asset_model_id PK
+    uuid variable_id PK
   }
   x_product_manufacturer {
     uuid id PK
@@ -235,6 +251,11 @@ erDiagram
   x_product_type ||--o{ x_product_type_stage : "asset_type_id"
   mrp_workcenter ||--o{ x_product_type_stage : "stage_master_id"
   product_category ||--o{ x_product_type : "family_id"
+  product_template ||--o{ product_template_attribute_value : "asset_model_id"
+  product_attribute ||--o{ product_template_attribute_value : "variable_id"
+  x_product_type |o--o{ product_attribute : "asset_type_id"
+  x_network |o--o{ product_attribute : "network_master_id"
+  mrp_workcenter |o--o{ product_attribute : "stage_master_id"
   product_product ||--o{ x_product_document : "asset_id"
   product_template |o--o{ x_stock_item : "catalog_item_id"
   product_product ||--o{ maintenance_plan : "asset_id"
@@ -637,7 +658,7 @@ erDiagram
 
 ## Procesos de planta y redes
 
-5 tablas · 17 relaciones que las tocan. Las entidades sin columnas pertenecen a otro grupo.
+5 tablas · 19 relaciones que las tocan. Las entidades sin columnas pertenecen a otro grupo.
 
 ```mermaid
 erDiagram
@@ -671,6 +692,8 @@ erDiagram
   mrp_routing_workcenter |o--o{ product_product : "plant_stage_id"
   x_network ||--o{ x_product_type_network : "network_master_id"
   mrp_workcenter ||--o{ x_product_type_stage : "stage_master_id"
+  x_network |o--o{ product_attribute : "network_master_id"
+  mrp_workcenter |o--o{ product_attribute : "stage_master_id"
   mrp_routing_workcenter ||--o{ x_stage_document : "plant_stage_id"
   mrp_workcenter ||--o{ x_slide_channel_stage : "stage_master_id"
   mrp_workcenter ||--o{ x_product_supplierinfo_stage : "stage_master_id"

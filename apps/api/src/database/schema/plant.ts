@@ -1,4 +1,4 @@
-import { boolean, jsonb, pgSchema, text, unique, uuid, varchar } from 'drizzle-orm/pg-core'
+import { boolean, integer, jsonb, pgSchema, text, unique, uuid, varchar } from 'drizzle-orm/pg-core'
 import { pk } from './common'
 import { plants } from './core'
 
@@ -13,6 +13,8 @@ export const networkMaster = plantSchema.table('network_master', {
   icon: varchar('icon', { length: 40 }),
   /** Token CSS del frontend, p. ej. `network-proc` → var(--network-proc). */
   colorToken: varchar('color_token', { length: 40 }),
+  /** Orden en que se listan las redes (menor primero); a igualdad, por código. */
+  sequence: integer('sequence').notNull().default(0),
 })
 
 export const plantNetworks = plantSchema.table(

@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, jsonBody } from '@/lib/api'
 import type { AssetCriticality, AssetStatus } from '@/lib/assets'
+import type { VariableType } from '@/lib/variable-value'
 import type { DocumentItem } from '@/features/documents/use-documents'
 import type { WorkOrderItem } from '@/features/maintenance/use-maintenance'
 
@@ -21,7 +22,8 @@ export type AssetItem = {
   stage: { code: string; name: string; group: string } | null
   /** `imageUrl`: ruta (relativa a la API) de la foto del modelo; usar con `apiUrl`. null = sin foto. */
   model: { id: string; name: string; imageUrl: string | null }
-  type: { code: string; name: string }
+  /** `description`: texto del tipo (p. ej. «Criba / parrilla de recepción de mineral ROM»); null si no tiene. */
+  type: { code: string; name: string; description: string | null }
   family: { code: string; name: string }
   manufacturer: string | null
   networks: NetworkRef[]
@@ -124,6 +126,32 @@ export const useAssetsSummary = (slug: string | undefined) =>
     queryKey: ['plant', slug, 'assets', 'summary'],
     queryFn: () => api<AssetsSummary>(`/plants/${slug}/assets/summary`),
     enabled: !!slug,
+  })
+
+/** Variable de la ficha técnica de un modelo (dato del fabricante) y el valor registrado, si lo hay. */
+export type ModelVariable = {
+  id: string
+  code: string
+  label: string
+  unit: string | null
+  valueType: VariableType
+  group: string | null
+  isKey: boolean
+  sortOrder: number
+  networkCode: string | null
+  networkName: string | null
+  stageCode: string | null
+  assetTypeCode: string | null
+  value: unknown
+}
+
+/** Variables que aplican al tipo del modelo, con sus valores. El catálogo es público. */
+export const useModelVariables = (modelId: string | undefined) =>
+  useQuery({
+    queryKey: ['catalog', 'model-variables', modelId],
+    queryFn: () => api<ModelVariable[]>(`/catalog/models/${modelId}/variables`),
+    enabled: !!modelId,
+    staleTime: 60_000,
   })
 
 export const useAssetFur =(slug: string | undefined, assetId: string | undefined) =>

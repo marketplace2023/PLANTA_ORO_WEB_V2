@@ -97,7 +97,7 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
         family: { code: 'MOLINOS' },
         manufacturer: 'E2E Metso', // fabricante heredado del modelo
       })
-      expect(res.body.networks.map((n: { code: string }) => n.code)).toEqual(['FUR-IOT', 'FUR-PTE'])
+      expect(res.body.networks.map((n: { code: string }) => n.code)).toEqual(['FUR-PTE', 'FUR-IOT'])
 
       const history = await t.db.select().from(assetStatusHistory).where(eq(assetStatusHistory.assetId, res.body.id))
       expect(history).toMatchObject([{ oldStatus: null, newStatus: 'OPERATIVE', reason: 'Alta del activo' }])

@@ -215,7 +215,7 @@ export class ProcessService {
       .from(plantNetworks)
       .innerJoin(networkMaster, eq(networkMaster.id, plantNetworks.networkMasterId))
       .where(and(eq(plantNetworks.plantId, plantId), eq(plantNetworks.isEnabled, true), scope.internal ? undefined : eq(plantNetworks.isPublic, true)))
-      .orderBy(asc(networkMaster.code))
+      .orderBy(asc(networkMaster.sequence), asc(networkMaster.code))
   }
 
   /** Solo redes HABILITADAS (design.md §37), cada una con el resumen de sus activos. */

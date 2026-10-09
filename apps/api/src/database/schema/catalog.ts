@@ -1,5 +1,5 @@
-import { jsonb, pgSchema, primaryKey, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core'
-import { pk } from './common'
+import { boolean, integer, jsonb, pgSchema, primaryKey, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core'
+import { createdAt, pk, updatedAt } from './common'
 import { networkMaster } from './plant'
 import { stageMaster } from './process'
 
@@ -84,4 +84,46 @@ export const assetModels = catalogSchema.table(
     imageUpdatedAt: timestamp('image_updated_at', { withTimezone: true }),
   },
   (t) => [unique().on(t.assetTypeId, t.manufacturerId, t.modelName)],
+)
+
+export const VARIABLE_TYPES = ['NUMBER', 'RANGE', 'TEXT', 'LIST', 'BOOLEAN'] as const
+export type VariableType = (typeof VARIABLE_TYPES)[number]
+
+/**
+ * Variables de la ficha técnica de un modelo (datos del fabricante). Cada una se define una vez y aplica a los tipos de
+ * activo que cumplan su alcance: una red transversal, y opcionalmente una etapa y/o un tipo concreto.
+ * Sin alcance en un campo significa «todas».
+ */
+export const variableDefinitions = catalogSchema.table('variable_definitions', {
+  id: pk(),
+  code: varchar('code', { length: 60 }).notNull().unique(),
+  label: varchar('label', { length: 160 }).notNull(),
+  unit: varchar('unit', { length: 30 }),
+  /** NUMBER (un valor), RANGE (mínimo y/o máximo), TEXT, LIST (varios textos) o BOOLEAN. */
+  valueType: varchar('value_type', { length: 20 }).notNull(),
+  networkMasterId: uuid('network_master_id').references(() => networkMaster.id, { onDelete: 'cascade' }),
+  stageMasterId: uuid('stage_master_id').references(() => stageMaster.id, { onDelete: 'cascade' }),
+  assetTypeId: uuid('asset_type_id').references(() => assetTypes.id, { onDelete: 'cascade' }),
+  /** Título de la sección donde se muestra (p. ej. «Variables críticas del proceso»). */
+  groupLabel: varchar('group_label', { length: 120 }),
+  /** Variable clave: se destaca en la ficha. */
+  isKey: boolean('is_key').notNull().default(false),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: createdAt(),
+})
+
+/** Valor de una variable para un modelo: lo que dice el fabricante. El jsonb depende del tipo de la variable. */
+export const modelVariableValues = catalogSchema.table(
+  'model_variable_values',
+  {
+    assetModelId: uuid('asset_model_id')
+      .notNull()
+      .references(() => assetModels.id, { onDelete: 'cascade' }),
+    variableId: uuid('variable_id')
+      .notNull()
+      .references(() => variableDefinitions.id, { onDelete: 'cascade' }),
+    value: jsonb('value').notNull(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [primaryKey({ columns: [t.assetModelId, t.variableId] })],
 )

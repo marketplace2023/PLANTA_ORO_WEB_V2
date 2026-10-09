@@ -282,7 +282,7 @@ describe('Plantas y autorización por planta (e2e)', () => {
       const anon = await http().get('/api/v1/plants/e2e-pub/networks').expect(200)
       expect(anon.body.map((n: { code: string }) => n.code)).toEqual(['FUR-IOT'])
       const internal = await http().get('/api/v1/plants/e2e-pub/networks').set('Authorization', bearer(admin)).expect(200)
-      expect(internal.body.map((n: { code: string }) => n.code)).toEqual(['FUR-IOT', 'FUR-PTE'])
+      expect(internal.body.map((n: { code: string }) => n.code)).toEqual(['FUR-PTE', 'FUR-IOT'])
 
       await http().patch(`/api/v1/plants/e2e-pub/networks/${iot.body.id}`).set('Authorization', bearer(admin)).send({ isEnabled: false }).expect(200)
       expect((await http().get('/api/v1/plants/e2e-pub/networks').expect(200)).body).toEqual([])

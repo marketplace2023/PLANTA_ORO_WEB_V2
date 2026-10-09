@@ -166,7 +166,7 @@ export class PlantConfigService {
           ? eq(plantNetworks.plantId, plant.id)
           : and(eq(plantNetworks.plantId, plant.id), eq(plantNetworks.isEnabled, true), eq(plantNetworks.isPublic, true)),
       )
-      .orderBy(asc(networkMaster.code))
+      .orderBy(asc(networkMaster.sequence), asc(networkMaster.code))
   }
 
   async enableNetwork(plant: PlantRow, dto: EnableNetworkDto, req: AppRequest) {

@@ -13,7 +13,8 @@ const csv = <const T extends readonly [string, ...string[]]>(values: T) =>
 const stageCode = z.string().regex(/^D\d{2}$/, 'Código de etapa inválido (D01…D19)')
 const networkCode = z.string().regex(/^FUR-[A-Z]+$/, 'Código de red inválido (p. ej. FUR-IOT)')
 
-export const ASSET_SORTS = ['tag', 'name', 'status', 'criticality', 'updatedAt'] as const
+/** `order`: el orden manual de la planta (el de las tarjetas del geoportal). */
+export const ASSET_SORTS = ['tag', 'name', 'status', 'criticality', 'updatedAt', 'order'] as const
 
 /** Filtros del listado (arquitectura §29.4); se reflejan en la URL del frontend (design.md §13). */
 export const listAssetsQuerySchema = z.object({
@@ -78,3 +79,9 @@ export const updateAssetSchema = z
 export type ListAssetsQuery = z.infer<typeof listAssetsQuerySchema>
 export type CreateAssetDto = z.infer<typeof createAssetSchema>
 export type UpdateAssetDto = z.infer<typeof updateAssetSchema>
+
+/** Nuevo orden de activos: los ids en la posición en que deben quedar. */
+export const reorderAssetsSchema = z.object({
+  assetIds: z.array(z.string().uuid()).min(1).max(500),
+})
+export type ReorderAssetsDto = z.infer<typeof reorderAssetsSchema>

@@ -1,11 +1,22 @@
 import { Body, ConflictException, Controller, Delete, Get, HttpCode, Inject, NotFoundException, Param, ParseUUIDPipe, Patch, Post, Put, Query, Req } from '@nestjs/common'
-import { and, asc, count, eq, sql, type SQL } from 'drizzle-orm'
+import { and, asc, count, eq, inArray, sql, type SQL } from 'drizzle-orm'
 import { z } from 'zod'
 import { validationError } from '../../common/errors'
 import type { AppRequest } from '../../common/types'
 import { ZodValidationPipe } from '../../common/zod-validation.pipe'
 import { DB, type Database } from '../../database/database.module'
-import { assetModels, assetTypes, modelVariableValues, networkMaster, stageMaster, variableDefinitions, type VariableType } from '../../database/schema'
+import {
+  assetModels,
+  assetTypes,
+  modelVariableValues,
+  networkMaster,
+  stageMaster,
+  variableDefinitions,
+  variableNetworks,
+  variableStages,
+  variableTypes,
+  type VariableType,
+} from '../../database/schema'
 import { AuditService } from '../audit/audit.service'
 import { GlobalAdminOnly, Public } from '../iam/decorators'
 import {
@@ -25,6 +36,22 @@ const listQuery = z.object({
   type: z.string().trim().min(1).max(60).optional(),
 })
 
+// Referencias calificadas a mano: en un select de una sola tabla drizzle omite el prefijo y `id` se confundiría con el de las subconsultas.
+const VD_ID = sql.raw('catalog.variable_definitions.id')
+
+/** Lista (ordenada) de códigos del alcance de una variable: `{}` = todas. */
+const scopeCodes = (join: string) => sql<string[]>`coalesce((${sql.raw(join)}), '{}')`
+
+const NETWORK_CODES = scopeCodes(
+  `select array_agg(nm.code order by nm.sequence, nm.code) from catalog.variable_networks vn join plant.network_master nm on nm.id = vn.network_master_id where vn.variable_id = catalog.variable_definitions.id`,
+)
+const STAGE_CODES = scopeCodes(
+  `select array_agg(sm.code order by sm.code) from catalog.variable_stages vs join process.stage_master sm on sm.id = vs.stage_master_id where vs.variable_id = catalog.variable_definitions.id`,
+)
+const TYPE_CODES = scopeCodes(
+  `select array_agg(t.code order by t.code) from catalog.variable_types vt join catalog.asset_types t on t.id = vt.asset_type_id where vt.variable_id = catalog.variable_definitions.id`,
+)
+
 /** Lógica compartida: definiciones de variables y sus valores por modelo. */
 class VariablesBase {
   constructor(
@@ -40,18 +67,15 @@ class VariablesBase {
         label: variableDefinitions.label,
         unit: variableDefinitions.unit,
         valueType: variableDefinitions.valueType,
+        defaultValue: variableDefinitions.defaultValue,
         group: variableDefinitions.groupLabel,
         isKey: variableDefinitions.isKey,
         sortOrder: variableDefinitions.sortOrder,
-        networkCode: networkMaster.code,
-        networkName: networkMaster.name,
-        stageCode: stageMaster.code,
-        assetTypeCode: assetTypes.code,
+        networkCodes: NETWORK_CODES,
+        stageCodes: STAGE_CODES,
+        assetTypeCodes: TYPE_CODES,
       })
       .from(variableDefinitions)
-      .leftJoin(networkMaster, eq(networkMaster.id, variableDefinitions.networkMasterId))
-      .leftJoin(stageMaster, eq(stageMaster.id, variableDefinitions.stageMasterId))
-      .leftJoin(assetTypes, eq(assetTypes.id, variableDefinitions.assetTypeId))
   }
 
   protected async one(id: string) {
@@ -61,28 +85,37 @@ class VariablesBase {
   }
 
   /**
-   * Variables que aplican a un modelo. Si la variable nombra un tipo de activo, aplica a los modelos de ese tipo y nada más
-   * (asociación explícita). Si no nombra tipo, la red y la etapa de la variable (vacío = todas) deben cumplirse por la
-   * clasificación del tipo **o** porque algún activo de ese modelo ya está en esa red o etapa: así una variable de la red
-   * de Potencia aplica a un equipo que pertenece a Potencia aunque su tipo no esté clasificado ahí.
+   * Variables que aplican a un modelo.
+   * - Si la variable lista tipos de activo, aplica a los modelos de esos tipos (asociación explícita).
+   * - Si no lista tipos, sus redes y etapas (vacío = todas) deben cumplirse por la clasificación del tipo del modelo **o**
+   *   porque algún activo de ese modelo ya está en esa red o etapa.
+   * Una variable sin ninguna lista es general y aplica a todos.
    */
   protected async applicable(modelId: string) {
     const [model] = await this.db.select({ id: assetModels.id, typeId: assetModels.assetTypeId }).from(assetModels).where(eq(assetModels.id, modelId))
     if (!model) throw new NotFoundException('Modelo no encontrado')
+
+    const hasTypes = sql`exists (select 1 from catalog.variable_types vt where vt.variable_id = ${VD_ID})`
+    const inTypes = sql`exists (select 1 from catalog.variable_types vt where vt.variable_id = ${VD_ID} and vt.asset_type_id = ${model.typeId})`
+    const networkOk = sql`(
+      not exists (select 1 from catalog.variable_networks vn where vn.variable_id = ${VD_ID})
+      or exists (
+        select 1 from catalog.variable_networks vn where vn.variable_id = ${VD_ID} and (
+          exists (select 1 from catalog.asset_type_networks atn where atn.asset_type_id = ${model.typeId} and atn.network_master_id = vn.network_master_id)
+          or exists (select 1 from asset.assets a join asset.asset_networks an on an.asset_id = a.id join plant.plant_networks pn on pn.id = an.plant_network_id
+                     where a.asset_model_id = ${modelId} and a.status <> 'DECOMMISSIONED' and pn.network_master_id = vn.network_master_id)))
+    )`
+    const stageOk = sql`(
+      not exists (select 1 from catalog.variable_stages vs where vs.variable_id = ${VD_ID})
+      or exists (
+        select 1 from catalog.variable_stages vs where vs.variable_id = ${VD_ID} and (
+          exists (select 1 from catalog.asset_type_stages ats where ats.asset_type_id = ${model.typeId} and ats.stage_master_id = vs.stage_master_id)
+          or exists (select 1 from asset.assets a join process.plant_stages ps on ps.id = a.plant_stage_id
+                     where a.asset_model_id = ${modelId} and a.status <> 'DECOMMISSIONED' and ps.stage_master_id = vs.stage_master_id)))
+    )`
+
     const rows = await this.view()
-      .where(
-        sql`(${variableDefinitions.assetTypeId} = ${model.typeId} or (
-          ${variableDefinitions.assetTypeId} is null
-          and (${variableDefinitions.networkMasterId} is null
-            or exists (select 1 from catalog.asset_type_networks atn where atn.asset_type_id = ${model.typeId} and atn.network_master_id = ${variableDefinitions.networkMasterId})
-            or exists (select 1 from asset.assets a join asset.asset_networks an on an.asset_id = a.id join plant.plant_networks pn on pn.id = an.plant_network_id
-                       where a.asset_model_id = ${modelId} and a.status <> 'DECOMMISSIONED' and pn.network_master_id = ${variableDefinitions.networkMasterId}))
-          and (${variableDefinitions.stageMasterId} is null
-            or exists (select 1 from catalog.asset_type_stages ats where ats.asset_type_id = ${model.typeId} and ats.stage_master_id = ${variableDefinitions.stageMasterId})
-            or exists (select 1 from asset.assets a join process.plant_stages ps on ps.id = a.plant_stage_id
-                       where a.asset_model_id = ${modelId} and a.status <> 'DECOMMISSIONED' and ps.stage_master_id = ${variableDefinitions.stageMasterId}))
-        ))`,
-      )
+      .where(sql`((${hasTypes} and ${inTypes}) or (not ${hasTypes} and ${networkOk} and ${stageOk}))`)
       .orderBy(asc(variableDefinitions.sortOrder), asc(variableDefinitions.label))
     const values = await this.db.select().from(modelVariableValues).where(eq(modelVariableValues.assetModelId, modelId))
     const byVariable = new Map(values.map((v) => [v.variableId, v.value]))
@@ -98,20 +131,20 @@ export class CatalogVariablesController extends VariablesBase {
     super(db, audit)
   }
 
-  /** Definiciones, filtrables por el alcance exacto que tienen (red, etapa o tipo). */
+  /** Definiciones; con `network`, `stage` o `type` solo las que incluyen ese código en su alcance. */
   @Get('variables')
   list(@Query(new ZodValidationPipe(listQuery)) q: z.infer<typeof listQuery>) {
     const conditions: Array<SQL | undefined> = [
-      q.network ? eq(networkMaster.code, q.network.toUpperCase()) : undefined,
-      q.stage ? eq(stageMaster.code, q.stage.toUpperCase()) : undefined,
-      q.type ? eq(assetTypes.code, q.type.toUpperCase()) : undefined,
+      q.network ? sql`exists (select 1 from catalog.variable_networks vn join plant.network_master nm on nm.id = vn.network_master_id where vn.variable_id = ${VD_ID} and nm.code = ${q.network.toUpperCase()})` : undefined,
+      q.stage ? sql`exists (select 1 from catalog.variable_stages vs join process.stage_master sm on sm.id = vs.stage_master_id where vs.variable_id = ${VD_ID} and sm.code = ${q.stage.toUpperCase()})` : undefined,
+      q.type ? sql`exists (select 1 from catalog.variable_types vt join catalog.asset_types t on t.id = vt.asset_type_id where vt.variable_id = ${VD_ID} and t.code = ${q.type.toUpperCase()})` : undefined,
     ]
     return this.view()
       .where(and(...conditions))
       .orderBy(asc(variableDefinitions.sortOrder), asc(variableDefinitions.label))
   }
 
-  /** Variables que aplican a un modelo, con el valor que tiene (null si aún no se registró). */
+  /** Variables que aplican a un modelo, con el valor propio que tiene (null si aún no registró uno). */
   @Get('models/:id/variables')
   forModel(@Param('id', ParseUUIDPipe) id: string) {
     return this.applicable(id)
@@ -130,25 +163,39 @@ export class CatalogVariablesAdminController extends VariablesBase {
     await this.audit.record(req, { module: 'catalog', entityType: 'variable_definition', entityId: id, action, oldData: data.old, newData: data.new })
   }
 
-  /** Resuelve los códigos de alcance a ids; uno que no existe es un error de validación del campo. */
-  private async scope(dto: { networkCode?: string | null; stageCode?: string | null; assetTypeCode?: string | null }) {
-    const pick = async <T extends { id: string }>(code: string | null | undefined, field: string, label: string, lookup: (c: string) => Promise<T[]>) => {
-      if (code === undefined) return undefined
-      if (code === null) return null
-      const [row] = await lookup(code)
-      if (!row) throw validationError(field, `${label} ${code} no existe`)
-      return row.id
-    }
-    return {
-      networkMasterId: await pick(dto.networkCode, 'networkCode', 'La red', (c) => this.db.select({ id: networkMaster.id }).from(networkMaster).where(eq(networkMaster.code, c))),
-      stageMasterId: await pick(dto.stageCode, 'stageCode', 'La etapa', (c) => this.db.select({ id: stageMaster.id }).from(stageMaster).where(eq(stageMaster.code, c))),
-      assetTypeId: await pick(dto.assetTypeCode, 'assetTypeCode', 'El tipo', (c) => this.db.select({ id: assetTypes.id }).from(assetTypes).where(eq(assetTypes.code, c))),
-    }
+  /** Resuelve listas de códigos a ids; un código que no existe es un error de validación del campo. */
+  private async resolve(field: 'networkCodes' | 'stageCodes' | 'assetTypeCodes', codes: string[]): Promise<string[]> {
+    if (codes.length === 0) return []
+    const table = field === 'networkCodes' ? networkMaster : field === 'stageCodes' ? stageMaster : assetTypes
+    const label = field === 'networkCodes' ? 'La red' : field === 'stageCodes' ? 'La etapa' : 'El tipo'
+    const rows = await this.db.select({ id: table.id, code: table.code }).from(table).where(inArray(table.code, codes))
+    const missing = codes.filter((c) => !rows.some((r) => r.code === c))
+    if (missing.length > 0) throw validationError(field, `${label} ${missing.join(', ')} no existe`)
+    return rows.map((r) => r.id)
+  }
+
+  /** Reemplaza las listas del alcance que vengan en la petición (las que no vienen no se tocan). */
+  private async setScope(variableId: string, ids: { networks?: string[]; stages?: string[]; types?: string[] }) {
+    await this.db.transaction(async (tx) => {
+      if (ids.networks) {
+        await tx.delete(variableNetworks).where(eq(variableNetworks.variableId, variableId))
+        if (ids.networks.length) await tx.insert(variableNetworks).values(ids.networks.map((networkMasterId) => ({ variableId, networkMasterId })))
+      }
+      if (ids.stages) {
+        await tx.delete(variableStages).where(eq(variableStages.variableId, variableId))
+        if (ids.stages.length) await tx.insert(variableStages).values(ids.stages.map((stageMasterId) => ({ variableId, stageMasterId })))
+      }
+      if (ids.types) {
+        await tx.delete(variableTypes).where(eq(variableTypes.variableId, variableId))
+        if (ids.types.length) await tx.insert(variableTypes).values(ids.types.map((assetTypeId) => ({ variableId, assetTypeId })))
+      }
+    })
   }
 
   /** Código único a partir del nombre y el alcance: ABERTURA_DE_CRIBADO_PROC_D01, y _2, _3… si ya existe. */
   private async uniqueCode(dto: CreateVariableDto) {
-    const parts = [slugCode(dto.label), dto.networkCode?.replace('FUR-', ''), dto.stageCode, dto.assetTypeCode]
+    const single = (list: string[], map: (c: string) => string) => (list.length === 1 ? map(list[0]) : undefined)
+    const parts = [slugCode(dto.label), single(dto.networkCodes, (c) => c.replace('FUR-', '')), single(dto.stageCodes, (c) => c), single(dto.assetTypeCodes, (c) => c)]
     const base = parts.filter(Boolean).join('_').slice(0, 56)
     if (base.length < 2) throw validationError('label', 'El nombre debe tener letras o números')
     for (let n = 1; n < 100; n++) {
@@ -161,7 +208,12 @@ export class CatalogVariablesAdminController extends VariablesBase {
 
   @Post('variables')
   async create(@Body(new ZodValidationPipe(createVariableSchema)) dto: CreateVariableDto, @Req() req: AppRequest) {
-    const scope = await this.scope(dto)
+    const ids = {
+      networks: await this.resolve('networkCodes', dto.networkCodes),
+      stages: await this.resolve('stageCodes', dto.stageCodes),
+      types: await this.resolve('assetTypeCodes', dto.assetTypeCodes),
+    }
+    const defaultValue = dto.defaultValue === undefined || dto.defaultValue === null ? null : parseVariableValue(dto.valueType, 'defaultValue', dto.defaultValue, 'defaultValue')
     let code = dto.code
     if (code) {
       const [taken] = await this.db.select({ id: variableDefinitions.id }).from(variableDefinitions).where(eq(variableDefinitions.code, code))
@@ -171,8 +223,9 @@ export class CatalogVariablesAdminController extends VariablesBase {
     }
     const [row] = await this.db
       .insert(variableDefinitions)
-      .values({ code, label: dto.label, unit: dto.unit, valueType: dto.valueType, groupLabel: dto.group, isKey: dto.isKey, sortOrder: dto.sortOrder, ...scope })
+      .values({ code, label: dto.label, unit: dto.unit, valueType: dto.valueType, defaultValue, groupLabel: dto.group, isKey: dto.isKey, sortOrder: dto.sortOrder })
       .returning({ id: variableDefinitions.id })
+    await this.setScope(row.id, ids)
     await this.record(req, row.id, 'created', { new: { ...dto, code } })
     return this.one(row.id)
   }
@@ -180,16 +233,25 @@ export class CatalogVariablesAdminController extends VariablesBase {
   @Patch('variables/:id')
   async update(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(updateVariableSchema)) dto: UpdateVariableDto, @Req() req: AppRequest) {
     const before = await this.one(id)
-    if (dto.valueType && dto.valueType !== before.valueType) {
+    const typeChanged = dto.valueType !== undefined && dto.valueType !== before.valueType
+    if (typeChanged) {
       const [{ n }] = await this.db.select({ n: count() }).from(modelVariableValues).where(eq(modelVariableValues.variableId, id))
       if (n > 0) throw new ConflictException(`No se puede cambiar el tipo: ${n} modelo(s) ya tienen un valor registrado. Bórralos o crea otra variable.`)
     }
-    const { networkCode, stageCode, assetTypeCode, group, ...rest } = dto
-    const scope = await this.scope({ networkCode, stageCode, assetTypeCode })
-    await this.db
-      .update(variableDefinitions)
-      .set({ ...rest, ...(group !== undefined && { groupLabel: group }), ...Object.fromEntries(Object.entries(scope).filter(([, v]) => v !== undefined)) })
-      .where(eq(variableDefinitions.id, id))
+    const effectiveType = (dto.valueType ?? before.valueType) as VariableType
+    const ids = {
+      networks: dto.networkCodes ? await this.resolve('networkCodes', dto.networkCodes) : undefined,
+      stages: dto.stageCodes ? await this.resolve('stageCodes', dto.stageCodes) : undefined,
+      types: dto.assetTypeCodes ? await this.resolve('assetTypeCodes', dto.assetTypeCodes) : undefined,
+    }
+    // El valor general se valida con el tipo; si el tipo cambia y no se manda uno nuevo, el anterior ya no tiene sentido.
+    const defaultValue =
+      dto.defaultValue === undefined ? (typeChanged ? null : undefined) : dto.defaultValue === null ? null : parseVariableValue(effectiveType, 'defaultValue', dto.defaultValue, 'defaultValue')
+
+    const { networkCodes: _n, stageCodes: _s, assetTypeCodes: _t, defaultValue: _d, group, ...rest } = dto
+    const fields = { ...rest, ...(group !== undefined && { groupLabel: group }), ...(defaultValue !== undefined && { defaultValue }) }
+    if (Object.keys(fields).length > 0) await this.db.update(variableDefinitions).set(fields).where(eq(variableDefinitions.id, id))
+    await this.setScope(id, ids)
     await this.record(req, id, 'updated', { old: before, new: dto })
     return this.one(id)
   }
@@ -206,7 +268,7 @@ export class CatalogVariablesAdminController extends VariablesBase {
 
   /**
    * Registra los datos del fabricante de un modelo: `{ values: { CODIGO: valor | null } }`. Solo variables que aplican al
-   * tipo del modelo; `null` borra el valor. Los demás valores no se tocan.
+   * modelo; `null` borra el valor propio (el modelo vuelve a mostrar el valor general, si la variable lo tiene).
    */
   @Put('models/:id/variables')
   async setValues(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(setModelVariablesSchema)) dto: SetModelVariablesDto, @Req() req: AppRequest) {

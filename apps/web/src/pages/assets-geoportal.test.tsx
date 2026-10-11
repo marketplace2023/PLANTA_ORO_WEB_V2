@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -29,21 +29,24 @@ const ASSETS = [
   asset({ id: 'a2', tag: 'MT-301', name: 'Motor del molino', status: 'MAINTENANCE', criticality: 'HIGH', stage: D07, family: { code: 'MOTORES', name: 'Motores' } }),
   asset({ id: 'a3', tag: 'HC-801', name: 'Hidrociclón', status: 'REPAIR', criticality: 'LOW', stage: D07, family: { code: 'CRIBAS', name: 'Cribas y clasificadores' } }),
 ]
-const def = (over: object) => ({ id: 'v?', code: 'X', label: 'X', unit: null, valueType: 'TEXT', group: null, isKey: false, sortOrder: 0, networkCode: null, networkName: null, stageCode: null, assetTypeCode: null, value: null, ...over })
-// Datos del fabricante del modelo m1: de la etapa 07 y la red IoT, de la red de potencia (el activo no la tiene) y de otra etapa.
+const def = (over: object) => ({ id: 'v?', code: 'X', label: 'X', unit: null, valueType: 'TEXT', group: null, isKey: false, sortOrder: 0, networkCodes: [], stageCodes: [], assetTypeCodes: [], value: null, defaultValue: null, ...over })
+// Datos del fabricante del modelo m1: de la etapa 07 y la red IoT, de la red de potencia (el activo no la tiene), de otra
+// etapa, una general con valor general y una compartida entre dos etapas.
 const VARIABLES = [
-  def({ id: 'v1', code: 'CAP', label: 'Capacidad nominal', unit: 't/h', valueType: 'RANGE', group: 'Variables críticas del proceso', isKey: true, sortOrder: 1, networkCode: 'FUR-IOT', networkName: 'IoT / Instrumentación', stageCode: 'D07', value: { min: 600, max: 800 } }),
-  def({ id: 'v2', code: 'ROM', label: 'Tamaño de roca (ROM)', unit: 'mm', valueType: 'RANGE', group: 'Variables críticas del proceso', sortOrder: 2, networkCode: 'FUR-IOT', networkName: 'IoT / Instrumentación', stageCode: 'D07', value: { max: 700 } }),
-  def({ id: 'v3', code: 'INS', label: 'Instrumentación clave', valueType: 'LIST', group: 'Variables críticas del proceso', sortOrder: 3, networkCode: 'FUR-IOT', networkName: 'IoT / Instrumentación', stageCode: 'D07', value: ['vibración', 'monitoreo de desgaste'] }),
-  def({ id: 'v4', code: 'REV', label: 'Revestimiento', valueType: 'TEXT', group: 'Variables críticas del proceso', sortOrder: 4, networkCode: 'FUR-IOT', networkName: 'IoT / Instrumentación', stageCode: 'D07', value: null }), // aplica pero sin valor: dice «Sin registrar»
-  def({ id: 'v5', code: 'PWR', label: 'Potencia nominal', unit: 'kW', valueType: 'RANGE', group: 'Variables eléctricas', isKey: true, networkCode: 'FUR-PTE', networkName: 'Potencia Eléctrica', value: { min: 600, max: 1250 } }),
-  def({ id: 'v6', code: 'OTRA', label: 'Dato de otra etapa', valueType: 'TEXT', networkCode: 'FUR-IOT', networkName: 'IoT / Instrumentación', stageCode: 'D01', value: 'no debe verse' }),
+  def({ id: 'v1', code: 'CAP', label: 'Capacidad nominal', unit: 't/h', valueType: 'RANGE', group: 'Variables críticas del proceso', isKey: true, sortOrder: 1, networkCodes: ['FUR-IOT'], stageCodes: ['D07'], value: { min: 600, max: 800 } }),
+  def({ id: 'v2', code: 'ROM', label: 'Tamaño de roca (ROM)', unit: 'mm', valueType: 'RANGE', group: 'Variables críticas del proceso', sortOrder: 2, networkCodes: ['FUR-IOT'], stageCodes: ['D07'], value: { max: 700 } }),
+  def({ id: 'v3', code: 'INS', label: 'Instrumentación clave', valueType: 'LIST', group: 'Variables críticas del proceso', sortOrder: 3, networkCodes: ['FUR-IOT'], stageCodes: ['D07'], value: ['vibración', 'monitoreo de desgaste'] }),
+  def({ id: 'v4', code: 'REV', label: 'Revestimiento', valueType: 'TEXT', group: 'Variables críticas del proceso', sortOrder: 4, networkCodes: ['FUR-IOT'], stageCodes: ['D07'], value: null }), // aplica pero sin valor: dice «Sin registrar»
+  def({ id: 'v5', code: 'PWR', label: 'Potencia nominal', unit: 'kW', valueType: 'RANGE', group: 'Variables eléctricas', isKey: true, networkCodes: ['FUR-PTE'], value: { min: 600, max: 1250 } }),
+  def({ id: 'v6', code: 'OTRA', label: 'Dato de otra etapa', valueType: 'TEXT', networkCodes: ['FUR-IOT'], stageCodes: ['D01'], value: 'no debe verse' }),
+  def({ id: 'v7', code: 'GEN', label: 'Tensión de suministro', unit: 'kV', valueType: 'NUMBER', group: 'Datos generales', sortOrder: 7, defaultValue: 13.8 }), // general: sin redes ni etapas
+  def({ id: 'v8', code: 'SHR', label: 'Peso del equipo', unit: 't', valueType: 'NUMBER', sortOrder: 8, stageCodes: ['D06', 'D07'], value: 42 }), // compartida entre dos etapas
 ]
 
 // D07 ya está ubicada en el mapa; D06 no.
 const MAPPED_STAGES = STAGES.map((s) => ({ ...s, mapPosition: s.code === 'D07' ? { x: 30, y: 20 } : null }))
 
-function setup(assets: unknown = page(ASSETS, 3, 1, 100), summary: unknown = SUMMARY) {
+function setup(assets: unknown = page(ASSETS, 3, 1, 100), summary: unknown = SUMMARY, extra: Parameters<typeof mockApi>[0] = {}) {
   return mockApi({
     'GET /plants/revemin-ii': { body: plantDetail() },
     'GET /plants/revemin-ii/stages': { body: MAPPED_STAGES },
@@ -58,6 +61,7 @@ function setup(assets: unknown = page(ASSETS, 3, 1, 100), summary: unknown = SUM
     'PATCH /plants/revemin-ii/assets/a1': { body: {} },
     'PATCH /plants/revemin-ii/assets/a2': { body: {} },
     'PATCH /plants/revemin-ii/stages/s7': { body: {} },
+    ...extra,
   })
 }
 
@@ -204,6 +208,12 @@ describe('Geoportal de Activos Físicos', () => {
       expect(within(proceso).getByText('Revestimiento').nextElementSibling).toHaveTextContent('Sin registrar') // aplica pero aún no tiene valor
       expect(within(ficha).queryByText('Potencia nominal')).not.toBeInTheDocument() // red que el activo no tiene
       expect(within(ficha).queryByText('Dato de otra etapa')).not.toBeInTheDocument() // otra etapa
+      // variables generales y compartidas entre varias etapas
+      const general = within(ficha).getByRole('region', { name: 'Datos generales' })
+      expect(within(general).getByText('Tensión de suministro').nextElementSibling).toHaveTextContent('13,8 kV')
+      expect(within(general).getByText('(general)')).toBeInTheDocument() // viene del valor general, no del modelo
+      const compartida = within(ficha).getByRole('region', { name: 'Datos del fabricante (Etapas 06, 07)' })
+      expect(within(compartida).getByText('Peso del equipo').nextElementSibling).toHaveTextContent('42 t')
       // «Variables clave»: las marcadas como clave que aplican a este activo
       const data = within(ficha).getByLabelText('Datos del activo')
       expect(within(data).getByText('Variables clave').nextElementSibling).toHaveTextContent('capacidad nominal')
@@ -215,6 +225,8 @@ describe('Geoportal de Activos Físicos', () => {
       const ficha = (await screen.findByRole('heading', { name: 'Ficha técnica general / Potencia Eléctrica – MB-301' })).closest('section')!
       const electricas = await within(ficha).findByRole('region', { name: 'Variables eléctricas (Red PTE)' })
       expect(within(electricas).getByText('Potencia nominal').nextElementSibling).toHaveTextContent('600 – 1250 kW')
+      expect(within(ficha).getByText('Tensión de suministro')).toBeInTheDocument() // la general aplica a cualquier red
+      expect(within(ficha).queryByText('Peso del equipo')).toBeInTheDocument()
       const data = within(ficha).getByLabelText('Datos del activo')
       expect(within(data).getByText('FUR-PTE', { selector: 'dt' }).nextElementSibling).toHaveTextContent('MB-301-PTE-001') // código de registro de la red elegida
       expect(within(data).getByText('Red activa').nextElementSibling).toHaveTextContent('FUR-PTE · Potencia Eléctrica')
@@ -238,6 +250,29 @@ describe('Geoportal de Activos Físicos', () => {
       await waitFor(() => expect(within(ficha).queryByLabelText('Cargando especificaciones')).not.toBeInTheDocument())
       expect(within(ficha).queryAllByRole('region')).toHaveLength(0)
       expect(within(ficha).queryByText('Variables clave')).not.toBeInTheDocument()
+    })
+
+    it('en pantalla ancha toma la altura de la columna central y se desplaza por dentro', async () => {
+      const observers: Array<(entries: Array<{ contentRect: { height: number } }>) => void> = []
+      class FakeResizeObserver {
+        constructor(cb: (entries: Array<{ contentRect: { height: number } }>) => void) {
+          observers.push(cb)
+        }
+        observe() {}
+        disconnect() {}
+      }
+      vi.stubGlobal('ResizeObserver', FakeResizeObserver)
+      vi.stubGlobal('matchMedia', (query: string) => ({ matches: true, media: query, addEventListener() {}, removeEventListener() {} }))
+      setup()
+      renderGeo()
+
+      const ficha = (await screen.findByRole('heading', { name: /^Ficha técnica general/ })).closest('section')!
+      await waitFor(() => expect(observers.length).toBeGreaterThan(0))
+      act(() => observers.forEach((cb) => cb([{ contentRect: { height: 812 } }])))
+      await waitFor(() => expect(ficha).toHaveStyle({ maxHeight: '812px' }))
+      // el contenido es el que se desplaza, no la tarjeta entera
+      expect(ficha.lastElementChild).toHaveClass('overflow-y-auto')
+      expect(ficha.firstElementChild?.tagName).toBe('HEADER')
     })
 
     it('si no hay activos lo dice', async () => {
@@ -472,6 +507,44 @@ describe('Geoportal de Activos Físicos', () => {
       expect(await screen.findByRole('button', { name: /Nuevo activo/ })).toBeInTheDocument()
       await userEvent.click(screen.getByRole('button', { name: 'Lista' }))
       expect(await screen.findByRole('button', { name: /Nuevo activo/ })).toBeInTheDocument()
+    })
+  })
+  describe('orden de las tarjetas', () => {
+    const REORDER = '/plants/revemin-ii/assets/order'
+    const putCalls = (mock: ReturnType<typeof setup>) => mock.calls.filter((c) => c.method === 'PUT' && c.path === REORDER)
+
+    it('pide los activos de la etapa en el orden manual y sin permiso no hay asas', async () => {
+      const mock = setup()
+      renderGeo()
+      await cards()
+      expect(lastQuery(mock).get('sort')).toBe('order')
+      expect(screen.queryByRole('button', { name: /para cambiar su orden/ })).not.toBeInTheDocument()
+    })
+
+    it('con asset.update cada tarjeta tiene su asa de arrastre, sin pasar por ningún modo', async () => {
+      state.permissions = ['asset.update']
+      setup()
+      renderGeo()
+      const list = await cards()
+      expect(list.getAllByRole('button', { name: /para cambiar su orden/ })).toHaveLength(3)
+      expect(list.getByRole('button', { name: 'Arrastrar MB-301 para cambiar su orden' })).toBeInTheDocument()
+    })
+
+    it('con teclado (asa, espacio, flecha, espacio) mueve la tarjeta y guarda el nuevo orden de todos', async () => {
+      state.permissions = ['asset.update']
+      const mock = setup(undefined, undefined, { [`PUT ${REORDER}`]: { body: { assetIds: [] } } })
+      renderGeo()
+      const list = await cards()
+      const handle = list.getByRole('button', { name: 'Arrastrar HC-801 para cambiar su orden' })
+      handle.focus()
+      await userEvent.keyboard(' ')
+      await userEvent.keyboard('{ArrowLeft}')
+      await userEvent.keyboard(' ')
+
+      await waitFor(() => expect(putCalls(mock)).toHaveLength(1))
+      const sent = JSON.parse(String(putCalls(mock)[0].init.body)).assetIds as string[]
+      expect([...sent].sort()).toEqual(['a1', 'a2', 'a3'])
+      expect(sent.indexOf('a3')).toBeLessThan(2) // HC-801 ya no es la última
     })
   })
 })

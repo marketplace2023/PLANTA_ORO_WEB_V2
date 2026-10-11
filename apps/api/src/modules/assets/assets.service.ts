@@ -42,6 +42,7 @@ const SORTS = {
   status: assets.status,
   criticality: assets.criticality,
   updatedAt: assets.updatedAt,
+  order: assets.sortOrder,
 } as const
 
 @Injectable()
@@ -404,6 +405,10 @@ export class AssetsService {
           .onConflictDoUpdate({ target: plantSettings.plantId, set: { assetSeq: sql`${plantSettings.assetSeq} + 1` } })
           .returning({ seq: plantSettings.assetSeq })
 
+        // Va al final del orden de la planta (la fila de plant_settings ya está bloqueada por esta transacción).
+        const [{ max }] = await tx.select({ max: sql<number>`coalesce(max(${assets.sortOrder}), 0)::int` }).from(assets).where(eq(assets.plantId, plant.id))
+        const next = max + 1
+
         const [asset] = await tx
           .insert(assets)
           .values({
@@ -422,6 +427,7 @@ export class AssetsService {
             parentAssetId: dto.parentAssetId,
             isPublic: dto.isPublic,
             metadata: dto.metadata,
+            sortOrder: next,
           })
           .returning()
         await this.setNetworks(tx, asset.id, networkIds)
@@ -448,6 +454,36 @@ export class AssetsService {
       newData: { furCode: created.furCode, tag: created.tag, name: created.name, status: created.status, stageCode: dto.stageCode ?? null },
     })
     return this.get(plant.id, created.id, req.user)
+  }
+
+  /**
+   * Reordena los activos dados: ocupan, en el orden recibido, las mismas posiciones que ya tenían. Así sirve igual con
+   * todos los de una etapa que con un subconjunto (filtro por red o búsqueda) sin mover a los demás.
+   */
+  async reorder(plant: PlantRow, assetIds: string[], req: AppRequest) {
+    if (new Set(assetIds).size !== assetIds.length) throw new BadRequestException('Hay activos repetidos en el orden')
+    const rows = await this.db
+      .select({ id: assets.id, sortOrder: assets.sortOrder })
+      .from(assets)
+      .where(and(eq(assets.plantId, plant.id), inArray(assets.id, assetIds), ne(assets.status, 'DECOMMISSIONED')))
+    if (rows.length !== assetIds.length) throw new NotFoundException('Alguno de los activos no existe en esta planta')
+
+    const slots = rows.map((r) => r.sortOrder).sort((a, b) => a - b)
+    const before = new Map(rows.map((r) => [r.id, r.sortOrder]))
+    await this.db.transaction(async (tx) => {
+      for (const [i, id] of assetIds.entries()) {
+        if (before.get(id) !== slots[i]) await tx.update(assets).set({ sortOrder: slots[i] }).where(eq(assets.id, id))
+      }
+    })
+    await this.audit.record(req, {
+      module: 'assets',
+      entityType: 'asset',
+      entityId: assetIds[0],
+      plantId: plant.id,
+      action: 'reordered',
+      newData: { assetIds },
+    })
+    return { assetIds }
   }
 
   async update(plant: PlantRow, assetId: string, dto: UpdateAssetDto, req: AppRequest) {

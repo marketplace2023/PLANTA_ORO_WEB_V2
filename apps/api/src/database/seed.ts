@@ -9,6 +9,8 @@ import {
   assetTypeStages,
   ecosystems,
   variableDefinitions,
+  variableNetworks,
+  variableStages,
   networkMaster,
   permissions,
   rolePermissions,
@@ -272,10 +274,14 @@ export async function runSeed(url: string) {
 
     // Definiciones de variables: solo se crean las que faltan (no pisan lo que el administrador haya editado).
     for (const [code, label, unit, valueType, network, stage, groupLabel, isKey, sortOrder] of VARIABLES) {
-      await db
+      const [created] = await db
         .insert(variableDefinitions)
-        .values({ code, label, unit, valueType, networkMasterId: networkId.get(network)!, stageMasterId: stage ? stageId.get(stage)! : null, groupLabel, isKey, sortOrder })
+        .values({ code, label, unit, valueType, groupLabel, isKey, sortOrder })
         .onConflictDoNothing({ target: variableDefinitions.code })
+        .returning({ id: variableDefinitions.id })
+      if (!created) continue // ya existía: su alcance es el que tenga
+      await db.insert(variableNetworks).values({ variableId: created.id, networkMasterId: networkId.get(network)! })
+      if (stage) await db.insert(variableStages).values({ variableId: created.id, stageMasterId: stageId.get(stage)! })
     }
 
     console.log(

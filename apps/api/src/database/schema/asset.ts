@@ -1,4 +1,4 @@
-import { boolean, date, index, jsonb, pgSchema, primaryKey, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core'
+import { boolean, date, index, integer, jsonb, pgSchema, primaryKey, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core'
 import { assetModels, manufacturers } from './catalog'
 import { createdAt, pk, updatedAt } from './common'
 import { plants } from './core'
@@ -53,6 +53,8 @@ export const assets = assetSchema.table(
     parentAssetId: uuid('parent_asset_id'),
     isPublic: boolean('is_public').notNull().default(false),
     metadata: jsonb('metadata').notNull().default({}),
+    /** Posición manual en las tarjetas del geoportal (orden de la planta; los nuevos van al final). */
+    sortOrder: integer('sort_order').notNull().default(0),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

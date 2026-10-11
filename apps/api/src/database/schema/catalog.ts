@@ -90,9 +90,9 @@ export const VARIABLE_TYPES = ['NUMBER', 'RANGE', 'TEXT', 'LIST', 'BOOLEAN'] as 
 export type VariableType = (typeof VARIABLE_TYPES)[number]
 
 /**
- * Variables de la ficha técnica de un modelo (datos del fabricante). Cada una se define una vez y aplica a los tipos de
- * activo que cumplan su alcance: una red transversal, y opcionalmente una etapa y/o un tipo concreto.
- * Sin alcance en un campo significa «todas».
+ * Variables de la ficha técnica de un modelo (datos del fabricante). Cada una se define una vez y puede compartirse entre
+ * muchos equipos: su alcance son listas de redes, etapas y tipos de activo (varias a la vez); una lista vacía significa
+ * «todas». Una variable sin ninguna lista es general: aplica a todos los equipos.
  */
 export const variableDefinitions = catalogSchema.table('variable_definitions', {
   id: pk(),
@@ -101,9 +101,8 @@ export const variableDefinitions = catalogSchema.table('variable_definitions', {
   unit: varchar('unit', { length: 30 }),
   /** NUMBER (un valor), RANGE (mínimo y/o máximo), TEXT, LIST (varios textos) o BOOLEAN. */
   valueType: varchar('value_type', { length: 20 }).notNull(),
-  networkMasterId: uuid('network_master_id').references(() => networkMaster.id, { onDelete: 'cascade' }),
-  stageMasterId: uuid('stage_master_id').references(() => stageMaster.id, { onDelete: 'cascade' }),
-  assetTypeId: uuid('asset_type_id').references(() => assetTypes.id, { onDelete: 'cascade' }),
+  /** Valor general: lo que muestran los modelos que no registraron uno propio. */
+  defaultValue: jsonb('default_value'),
   /** Título de la sección donde se muestra (p. ej. «Variables críticas del proceso»). */
   groupLabel: varchar('group_label', { length: 120 }),
   /** Variable clave: se destaca en la ficha. */
@@ -111,6 +110,48 @@ export const variableDefinitions = catalogSchema.table('variable_definitions', {
   sortOrder: integer('sort_order').notNull().default(0),
   createdAt: createdAt(),
 })
+
+/** Redes a las que aplica una variable (varias; ninguna = todas). */
+export const variableNetworks = catalogSchema.table(
+  'variable_networks',
+  {
+    variableId: uuid('variable_id')
+      .notNull()
+      .references(() => variableDefinitions.id, { onDelete: 'cascade' }),
+    networkMasterId: uuid('network_master_id')
+      .notNull()
+      .references(() => networkMaster.id, { onDelete: 'cascade' }),
+  },
+  (t) => [primaryKey({ columns: [t.variableId, t.networkMasterId] })],
+)
+
+/** Etapas a las que aplica una variable (varias; ninguna = todas). */
+export const variableStages = catalogSchema.table(
+  'variable_stages',
+  {
+    variableId: uuid('variable_id')
+      .notNull()
+      .references(() => variableDefinitions.id, { onDelete: 'cascade' }),
+    stageMasterId: uuid('stage_master_id')
+      .notNull()
+      .references(() => stageMaster.id, { onDelete: 'cascade' }),
+  },
+  (t) => [primaryKey({ columns: [t.variableId, t.stageMasterId] })],
+)
+
+/** Tipos de activo a los que aplica una variable (varios; ninguno = todos). */
+export const variableTypes = catalogSchema.table(
+  'variable_types',
+  {
+    variableId: uuid('variable_id')
+      .notNull()
+      .references(() => variableDefinitions.id, { onDelete: 'cascade' }),
+    assetTypeId: uuid('asset_type_id')
+      .notNull()
+      .references(() => assetTypes.id, { onDelete: 'cascade' }),
+  },
+  (t) => [primaryKey({ columns: [t.variableId, t.assetTypeId] })],
+)
 
 /** Valor de una variable para un modelo: lo que dice el fabricante. El jsonb depende del tipo de la variable. */
 export const modelVariableValues = catalogSchema.table(

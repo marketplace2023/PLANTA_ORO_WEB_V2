@@ -1,16 +1,17 @@
 import { Search } from 'lucide-react'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { ErrorState } from '@/components/base/error-state'
 import { PageHeader } from '@/components/layout/page-header'
 import { Input } from '@/components/ui/input'
-import { useAssets, useAssetsSummary, useSetAssetMapPosition } from '@/features/assets/use-assets'
+import { useAssets, useAssetsSummary, useReorderAssets, useSetAssetMapPosition } from '@/features/assets/use-assets'
 import { usePlant } from '@/features/plant/plant-context'
 import { useUpdateStage } from '@/features/plant/use-plant-admin'
 import { usePlantNetworks, usePlantStages, type MapPosition, type PlantDetail } from '@/features/plant/use-plant-data'
 import { ApiError } from '@/lib/api'
 import { useDebouncedValue } from '@/lib/use-debounced-value'
+import { useElementHeight } from '@/lib/use-element-height'
 import { AssetFicha } from './asset-ficha'
 import { GeoKpis } from './geo-kpis'
 import { NetworkList, StageList } from './geo-lists'
@@ -22,6 +23,7 @@ import { stageNumber } from './stage-number'
 const STAGE_ASSETS = 100
 
 const failed = (e: unknown) => toast.error(e instanceof ApiError ? e.message : 'No se pudo guardar la posición en el mapa')
+const reorderFailed = (e: unknown) => toast.error(e instanceof ApiError ? e.message : 'No se pudo guardar el orden de los activos')
 
 /**
  * Geoportal de Activos Físicos: las etapas del proceso mandan. Se elige una etapa (y, si se quiere, una red transversal)
@@ -36,6 +38,7 @@ export function AssetsGeoportal({ plant, actions }: { plant: PlantDetail; action
   const summary = useAssetsSummary(plant.slug)
   const updateStage = useUpdateStage(plant.slug)
   const setAssetPosition = useSetAssetMapPosition(plant.slug)
+  const reorderAssets = useReorderAssets(plant.slug)
 
   const stages = (stagesQuery.data ?? []).filter((s) => s.isEnabled).sort((a, b) => a.sequence - b.sequence)
   const networks = (networksQuery.data ?? []).filter((n) => n.isEnabled)
@@ -67,11 +70,14 @@ export function AssetsGeoportal({ plant, actions }: { plant: PlantDetail; action
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debounced])
 
-  const assets = useAssets(plant.slug, { stage: selected?.code, network, search }, STAGE_ASSETS, !!selected)
+  const assets = useAssets(plant.slug, { stage: selected?.code, network, search, sort: 'order' }, STAGE_ASSETS, !!selected)
   const items = assets.data?.items ?? []
   // El activo de la URL si sigue en la lista; si no, el primero.
   const selectedAsset = items.find((a) => a.id === params.get('asset')) ?? items[0]
   const [expandedFor, setExpandedFor] = useState<string | undefined>()
+  // La ficha técnica toma la altura de la columna central (mapa, etapa y activos) y se desplaza por dentro.
+  const centerRef = useRef<HTMLDivElement>(null)
+  const centerHeight = useElementHeight(centerRef)
 
   const placeStage = (stage: { id: string; code: string }, position: MapPosition | null) =>
     updateStage.mutate(
@@ -124,7 +130,7 @@ export function AssetsGeoportal({ plant, actions }: { plant: PlantDetail; action
           <NetworkList networks={networks} counts={summary.data?.byNetwork} selected={network} loading={networksQuery.isLoading} onSelect={(code) => setParam({ network: code, asset: undefined })} />
         </div>
 
-        <div className="min-w-0">
+        <div className="min-w-0" ref={centerRef}>
           <GeoMap
             plantName={plant.name}
             plantCode={plant.code}
@@ -154,12 +160,14 @@ export function AssetsGeoportal({ plant, actions }: { plant: PlantDetail; action
                 expanded={!!selected && expandedFor === selected.code}
                 onExpand={() => setExpandedFor(selected?.code)}
                 filtered={!!network || !!search}
+                canReorder={permissions.includes('asset.update')}
+                onReorder={(ids) => reorderAssets.mutate(ids, { onError: reorderFailed })}
               />
             )}
           </div>
         </div>
 
-        <AssetFicha plantSlug={plant.slug} plantName={plant.name} asset={selectedAsset} networkName={networkName} networkCode={network} />
+        <AssetFicha plantSlug={plant.slug} plantName={plant.name} asset={selectedAsset} networkName={networkName} networkCode={network} maxHeight={centerHeight} />
       </div>
     </>
   )

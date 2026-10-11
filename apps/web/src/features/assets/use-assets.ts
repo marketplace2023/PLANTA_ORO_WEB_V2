@@ -138,11 +138,14 @@ export type ModelVariable = {
   group: string | null
   isKey: boolean
   sortOrder: number
-  networkCode: string | null
-  networkName: string | null
-  stageCode: string | null
-  assetTypeCode: string | null
+  /** Alcance: listas de códigos; vacía = aplica a todas (una variable puede compartirse entre varios equipos). */
+  networkCodes: string[]
+  stageCodes: string[]
+  assetTypeCodes: string[]
+  /** Valor propio del modelo (null si no registró uno). */
   value: unknown
+  /** Valor general de la variable: lo que se muestra cuando el modelo no tiene uno propio. */
+  defaultValue: unknown
 }
 
 /** Variables que aplican al tipo del modelo, con sus valores. El catálogo es público. */
@@ -194,6 +197,34 @@ export function useUpdateAsset(slug: string, assetId: string) {
       void queryClient.invalidateQueries({ queryKey: ['plant', slug, 'assets'] })
       void queryClient.invalidateQueries({ queryKey: ['plant', slug, 'asset', assetId] })
     },
+  })
+}
+
+/**
+ * Reordena las tarjetas de activos: los ids ocupan, en ese orden, las posiciones que ya tenían (sirve con un subconjunto).
+ * El cambio se ve al instante en las listas en caché y se revierte si el servidor lo rechaza.
+ */
+export function useReorderAssets(slug: string) {
+  const queryClient = useQueryClient()
+  const key = ['plant', slug, 'assets']
+  return useMutation({
+    mutationFn: (assetIds: string[]) => api<{ assetIds: string[] }>(`/plants/${slug}/assets/order`, { method: 'PUT', ...jsonBody({ assetIds }) }),
+    onMutate: async (assetIds) => {
+      await queryClient.cancelQueries({ queryKey: key })
+      const previous = queryClient.getQueriesData<Page<AssetItem>>({ queryKey: key })
+      queryClient.setQueriesData<Page<AssetItem>>({ queryKey: key }, (page) => {
+        if (!page || !Array.isArray(page.items)) return page
+        const byId = new Map(page.items.map((a) => [a.id, a]))
+        const moved = assetIds.filter((id) => byId.has(id))
+        if (moved.length < 2) return page
+        const queue = moved.map((id) => byId.get(id) as AssetItem)
+        const inSet = new Set(moved)
+        return { ...page, items: page.items.map((a) => (inSet.has(a.id) ? (queue.shift() as AssetItem) : a)) }
+      })
+      return { previous }
+    },
+    onError: (_e, _ids, ctx) => ctx?.previous.forEach(([k, data]) => queryClient.setQueryData(k, data)),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
   })
 }
 

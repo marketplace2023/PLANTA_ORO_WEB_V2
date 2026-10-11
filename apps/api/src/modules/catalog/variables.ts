@@ -4,6 +4,11 @@ import { validationError } from '../../common/errors'
 
 const text = (max: number) => z.string().trim().min(1).max(max)
 
+const networkCodes = z.array(z.string().trim().toUpperCase().regex(/^FUR-[A-Z]+$/, 'Código de red inválido (p. ej. FUR-PROC)')).max(30)
+const stageCodes = z.array(z.string().trim().toUpperCase().regex(/^D\d{2}$/, 'Código de etapa inválido (D01…D19)')).max(40)
+const assetTypeCodes = z.array(z.string().trim().toUpperCase().regex(/^[A-Z0-9_]{2,60}$/, 'Código de tipo inválido')).max(200)
+const unique = <T>(list: T[]) => [...new Set(list)]
+
 export const createVariableSchema = z.object({
   /** Opcional: si no viene se genera a partir del nombre y del alcance. */
   code: z
@@ -15,10 +20,12 @@ export const createVariableSchema = z.object({
   label: text(160),
   unit: text(30).optional(),
   valueType: z.enum(VARIABLE_TYPES),
-  /** Alcance: sin valor = aplica a todas. */
-  networkCode: z.string().trim().toUpperCase().regex(/^FUR-[A-Z]+$/, 'Código de red inválido (p. ej. FUR-PROC)').optional(),
-  stageCode: z.string().trim().toUpperCase().regex(/^D\d{2}$/, 'Código de etapa inválido (D01…D19)').optional(),
-  assetTypeCode: z.string().trim().toUpperCase().regex(/^[A-Z0-9_]{2,60}$/).optional(),
+  /** Alcance: listas de redes, etapas y tipos. Vacío o ausente = todas (una variable general). */
+  networkCodes: networkCodes.transform(unique).default([]),
+  stageCodes: stageCodes.transform(unique).default([]),
+  assetTypeCodes: assetTypeCodes.transform(unique).default([]),
+  /** Valor general: lo que muestran los modelos que no registraron uno propio. */
+  defaultValue: z.unknown().optional(),
   group: text(120).optional(),
   isKey: z.boolean().default(false),
   sortOrder: z.number().int().min(0).max(9999).default(0),
@@ -29,9 +36,11 @@ export const updateVariableSchema = z
     label: text(160),
     unit: text(30).nullable(),
     valueType: z.enum(VARIABLE_TYPES),
-    networkCode: z.string().trim().toUpperCase().regex(/^FUR-[A-Z]+$/).nullable(),
-    stageCode: z.string().trim().toUpperCase().regex(/^D\d{2}$/).nullable(),
-    assetTypeCode: z.string().trim().toUpperCase().regex(/^[A-Z0-9_]{2,60}$/).nullable(),
+    networkCodes: networkCodes.transform(unique),
+    stageCodes: stageCodes.transform(unique),
+    assetTypeCodes: assetTypeCodes.transform(unique),
+    /** null quita el valor general. */
+    defaultValue: z.unknown(),
     group: text(120).nullable(),
     isKey: z.boolean(),
     sortOrder: z.number().int().min(0).max(9999),
@@ -61,9 +70,9 @@ const valueSchemas: Record<VariableType, z.ZodType> = {
 }
 
 /** Valida y normaliza un valor según el tipo de la variable; un valor inválido es un error de validación del campo. */
-export function parseVariableValue(type: VariableType, code: string, raw: unknown): unknown {
+export function parseVariableValue(type: VariableType, code: string, raw: unknown, path = `values.${code}`): unknown {
   const parsed = valueSchemas[type].safeParse(raw)
-  if (!parsed.success) throw validationError(`values.${code}`, parsed.error.issues[0]?.message ?? 'Valor inválido')
+  if (!parsed.success) throw validationError(path, parsed.error.issues[0]?.message ?? 'Valor inválido')
   return parsed.data
 }
 

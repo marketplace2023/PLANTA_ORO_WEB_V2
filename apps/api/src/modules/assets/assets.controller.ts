@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query, Req } from '@nestjs/common'
+import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Put, Query, Req } from '@nestjs/common'
 import type { AppRequest, AuthUser, PlantRow } from '../../common/types'
 import { ZodValidationPipe } from '../../common/zod-validation.pipe'
 import { CurrentPlant, CurrentUser, Public, RequirePermission } from '../iam/decorators'
@@ -7,6 +7,8 @@ import {
   createAssetSchema,
   type ListAssetsQuery,
   listAssetsQuerySchema,
+  type ReorderAssetsDto,
+  reorderAssetsSchema,
   type UpdateAssetDto,
   updateAssetSchema,
 } from './assets.schemas'
@@ -37,6 +39,13 @@ export class AssetsController {
   @Post()
   create(@CurrentPlant() plant: PlantRow, @Body(new ZodValidationPipe(createAssetSchema)) dto: CreateAssetDto, @Req() req: AppRequest) {
     return this.assets.create(plant, dto, req)
+  }
+
+  /** Reordena las tarjetas: los ids ocupan, en ese orden, las posiciones que ya tenían. Declarada antes de `:assetId`. */
+  @RequirePermission('asset.update')
+  @Put('order')
+  reorder(@CurrentPlant() plant: PlantRow, @Body(new ZodValidationPipe(reorderAssetsSchema)) dto: ReorderAssetsDto, @Req() req: AppRequest) {
+    return this.assets.reorder(plant, dto.assetIds, req)
   }
 
   @Public()

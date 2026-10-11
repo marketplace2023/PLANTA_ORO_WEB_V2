@@ -1,4 +1,4 @@
-import { Archive, Boxes, Hourglass, LockKeyhole, Pencil, SearchX, Upload, Wrench } from 'lucide-react'
+import { Archive, Boxes, LockKeyhole, Pencil, SearchX, Star, Upload, Wrench } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -7,36 +7,30 @@ import { ErrorState } from '@/components/base/error-state'
 import { PermissionGate } from '@/components/base/permission-gate'
 import { AssetFormDialog } from '@/components/assets/asset-form-dialog'
 import { StockFlags } from '@/components/inventory/item-badges'
-import { AssetCostsView } from '@/components/maintenance/asset-costs-view'
 import { WorkOrderStatusBadge } from '@/components/maintenance/work-order-badges'
 import { WorkOrderFormDialog } from '@/components/maintenance/work-order-form-dialog'
 import { DocumentUploadDialog } from '@/components/documents/document-upload-dialog'
 import { DownloadButton } from '@/components/documents/document-detail-sheet'
-import { AssetStatusBadge } from '@/components/industrial/asset-badges'
 import { FurHeader } from '@/components/industrial/fur-header'
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useAssetFur, useDecommissionAsset, type AssetFur } from '@/features/assets/use-assets'
-import { useAssetCosts } from '@/features/maintenance/use-maintenance'
+import { useAssetFur, useDecommissionAsset, useModelVariables, type AssetFur, type NetworkRef } from '@/features/assets/use-assets'
 import { ApiError } from '@/lib/api'
 import { formatBytes, iconForMime, typeLabel } from '@/lib/documents'
 import { formatDate, formatDateTime, formatMoney, formatQuantity } from '@/lib/format'
+import { generalVariableSections, networkVariableSections, type VariableSection } from '@/lib/model-variables'
 import { usePlantOutlet } from './plant-route'
 
-function Fact({ label, children }: { label: string; children: React.ReactNode }) {
+function Fact({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="space-y-0.5">
       <dt className="text-xs font-medium tracking-wide text-fur-gray-600 uppercase">{label}</dt>
       <dd className="text-sm">{children ?? '—'}</dd>
     </div>
   )
-}
-
-function ComingSoon({ title, phase }: { title: string; phase: string }) {
-  return <EmptyState icon={Hourglass} title={`${title}: próximamente`} description={`Este módulo se habilitará en ${phase} del plan del ecosistema.`} />
 }
 
 function KeyValueTable({ data }: { data: Record<string, unknown> | undefined }) {
@@ -85,36 +79,6 @@ function Summary({ fur }: { fur: AssetFur }) {
       <Fact label="Visibilidad">{asset.isPublic ? 'Pública' : 'Interna'}</Fact>
       <Fact label="Registrado">{formatDateTime(asset.createdAt)}</Fact>
     </dl>
-  )
-}
-
-function History({ fur }: { fur: AssetFur }) {
-  if (fur.history.length === 0) {
-    return <p className="text-sm text-fur-gray-600">El historial solo está disponible para el personal de la planta.</p>
-  }
-  return (
-    <ol className="space-y-4 border-l-2 border-border pl-5">
-      {fur.history.map((h) => (
-        <li key={h.id} className="relative">
-          <span className="absolute top-1.5 -left-[1.6rem] size-3 rounded-full border-2 border-card bg-fur-navy-800" aria-hidden />
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            {h.oldStatus ? (
-              <>
-                <AssetStatusBadge status={h.oldStatus} /> <span aria-label="cambió a">→</span>
-              </>
-            ) : (
-              <span className="text-fur-gray-600">Alta:</span>
-            )}
-            <AssetStatusBadge status={h.newStatus} />
-          </div>
-          {h.reason && <p className="mt-1 text-sm">{h.reason}</p>}
-          <p className="mt-0.5 text-xs text-fur-gray-600">
-            {formatDateTime(h.changedAt)}
-            {h.changedBy && ` · ${h.changedBy}`}
-          </p>
-        </li>
-      ))}
-    </ol>
   )
 }
 
@@ -288,16 +252,65 @@ function InventoryTab({ fur, slug }: { fur: AssetFur; slug: string }) {
   )
 }
 
-/** Costos del activo: repuestos de inventario + mano de obra, equipos, transporte y servicios de sus órdenes. */
-function CostsTab({ fur }: { fur: AssetFur }) {
-  const allowed = fur.maintenance.partsCost !== undefined // el backend omite el bloque si no tienes maintenance.read
-  const costs = useAssetCosts(fur.plant.slug, fur.asset.id, allowed)
-  if (!allowed) {
-    return <EmptyState icon={LockKeyhole} title="Sin acceso a Costos" description="Los costos de mantenimiento son información interna de la planta." />
-  }
-  if (costs.isError) return <ErrorState onRetry={() => void costs.refetch()} />
-  if (costs.isLoading || !costs.data) return <Skeleton className="h-48" aria-busy="true" aria-label="Cargando costos" />
-  return <AssetCostsView slug={fur.plant.slug} data={costs.data} />
+/** Variables (datos del fabricante) agrupadas por sección, con el valor propio, el general o «Sin registrar». */
+function VariableSections({ sections }: { sections: VariableSection[] }) {
+  return (
+    <div className="space-y-6">
+      {sections.map((section) => (
+        <section key={section.title} aria-label={section.title}>
+          <h3 className="mb-3 text-sm font-semibold tracking-wide text-fur-navy-900 uppercase">{section.title}</h3>
+          <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+            {section.items.map(({ def, text, general }) => (
+              <Fact
+                key={def.id}
+                label={
+                  <span className="inline-flex items-center gap-1">
+                    {def.label}
+                    {def.isKey && <Star className="size-3 fill-fur-gold-500 text-fur-gold-500" aria-label="Variable clave" />}
+                  </span>
+                }
+              >
+                {text === null ? (
+                  <span className="text-fur-gray-600">Sin registrar</span>
+                ) : (
+                  <>
+                    {text}
+                    {general && <span className="ml-1.5 text-xs text-fur-gray-600">(general)</span>}
+                  </>
+                )}
+              </Fact>
+            ))}
+          </dl>
+          {section.items.some((i) => i.text === null) && (
+            <p className="mt-3 text-xs text-fur-gray-600">Faltan datos del fabricante: se registran en el catálogo del administrador (Modelos → Datos del fabricante).</p>
+          )}
+        </section>
+      ))}
+    </div>
+  )
+}
+
+/** Pestaña de una red del activo: las variables de esa red que aplican a su etapa, con sus valores. */
+function NetworkVariablesTab({ network, stageName, sections, loading, failed }: { network: NetworkRef; stageName: string | undefined; sections: VariableSection[]; loading: boolean; failed: boolean }) {
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-fur-gray-600">
+        Variables de la red <span className="fur-code text-fur-navy-900">{network.code}</span> · {network.name}
+        {stageName ? ` que aplican a la etapa ${stageName}` : ''}.
+      </p>
+      {loading ? (
+        <Skeleton className="h-32" aria-busy="true" aria-label="Cargando variables" />
+      ) : failed ? (
+        <p className="text-sm text-fur-red-500">No se pudieron cargar las variables de esta red.</p>
+      ) : sections.length === 0 ? (
+        <p className="text-sm text-fur-gray-600">
+          Esta red aún no tiene variables definidas para este activo. El administrador las crea en Catálogo → Variables y registra sus valores en Modelos → Datos del fabricante.
+        </p>
+      ) : (
+        <VariableSections sections={sections} />
+      )}
+    </div>
+  )
 }
 
 /** Baja lógica: el activo y su historial se conservan. */
@@ -346,6 +359,7 @@ export function AssetFurPage() {
   const { assetId } = useParams()
   const navigate = useNavigate()
   const { data: fur, isLoading, error, refetch } = useAssetFur(plant.slug, assetId)
+  const variables = useModelVariables(fur?.asset.model.id)
   const [editing, setEditing] = useState(false)
   const [decommissioning, setDecommissioning] = useState(false)
 
@@ -377,6 +391,8 @@ export function AssetFurPage() {
 
   const { asset } = fur
   const decommissioned = asset.status === 'DECOMMISSIONED'
+  const stageCode = fur.stage?.code
+  const generalSections = generalVariableSections(variables.data ?? [], stageCode)
 
   return (
     <>
@@ -438,10 +454,12 @@ export function AssetFurPage() {
             <TabsTrigger value="maintenance">Mantenimiento</TabsTrigger>
             <TabsTrigger value="inventory">Inventario / BOM</TabsTrigger>
             <TabsTrigger value="documents">Documentos</TabsTrigger>
-            <TabsTrigger value="telemetry">Telemetría</TabsTrigger>
-            <TabsTrigger value="history">Historial</TabsTrigger>
-            <TabsTrigger value="costs">Costos</TabsTrigger>
-            <TabsTrigger value="kpis">KPIs</TabsTrigger>
+            {fur.networks.map((n) => (
+              <TabsTrigger key={n.code} value={`network-${n.code}`} title={n.name}>
+                <span className="size-2 rounded-full" style={{ backgroundColor: n.colorToken ? `var(--${n.colorToken})` : undefined }} aria-hidden />
+                {n.code}
+              </TabsTrigger>
+            ))}
           </TabsList>
         </div>
 
@@ -460,6 +478,13 @@ export function AssetFurPage() {
                 <KeyValueTable data={asset.technicalData} />
               </section>
             )}
+            {generalSections.length > 0 && (
+              <section aria-label="Variables generales">
+                <h2 className="mb-1 text-lg text-fur-navy-900">Variables generales</h2>
+                <p className="mb-3 text-sm text-fur-gray-600">Datos del fabricante que no pertenecen a una red concreta: aplican a todas las redes del activo.</p>
+                <VariableSections sections={generalSections} />
+              </section>
+            )}
           </TabsContent>
           <TabsContent value="maintenance">
             <MaintenanceTab fur={fur} slug={plant.slug} />
@@ -470,18 +495,17 @@ export function AssetFurPage() {
           <TabsContent value="documents">
             <DocumentsTab fur={fur} slug={plant.slug} />
           </TabsContent>
-          <TabsContent value="telemetry">
-            <ComingSoon title="Telemetría" phase="la Fase 3" />
-          </TabsContent>
-          <TabsContent value="history">
-            <History fur={fur} />
-          </TabsContent>
-          <TabsContent value="costs">
-            <CostsTab fur={fur} />
-          </TabsContent>
-          <TabsContent value="kpis">
-            <ComingSoon title="KPIs" phase="la Fase 3" />
-          </TabsContent>
+          {fur.networks.map((n) => (
+            <TabsContent key={n.code} value={`network-${n.code}`}>
+              <NetworkVariablesTab
+                network={n}
+                stageName={fur.stage?.name}
+                sections={networkVariableSections(variables.data ?? [], stageCode, n.code)}
+                loading={variables.isLoading}
+                failed={variables.isError}
+              />
+            </TabsContent>
+          ))}
         </div>
       </Tabs>
 

@@ -183,6 +183,27 @@
       "when": 1791564814728,
       "tag": "0025_network_sequence",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1791723892380,
+      "tag": "0026_variable_scopes",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1791723903243,
+      "tag": "0027_variable_drop_single_scope",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1791725246412,
+      "tag": "0028_asset_sort_order",
+      "breakpoints": true
     }
   ]
 }

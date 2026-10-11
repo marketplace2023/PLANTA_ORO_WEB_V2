@@ -1,12 +1,12 @@
 import { ClipboardList, ExternalLink, Package } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useAssetFur, useModelVariables, type AssetItem, type ModelVariable } from '@/features/assets/use-assets'
+import { useAssetFur, useModelVariables, type AssetItem } from '@/features/assets/use-assets'
 import { apiUrl } from '@/lib/api'
 import { criticalityLabel, STATUS_META, type AssetStatus } from '@/lib/assets'
 import { specLabel } from '@/lib/spec-label'
 import { stageGroupLabel } from '@/lib/stage-groups'
-import { formatVariableValue } from '@/lib/variable-value'
+import { networkSuffix, variableSections } from '@/lib/model-variables'
 import { GeoPanel } from './geo-panel'
 import { stageNumber } from './stage-number'
 
@@ -19,35 +19,8 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   )
 }
 
-/** «FUR-PROC» → «PROC»: el sufijo con el que se arman los códigos de registro por red. */
-const networkSuffix = (code: string) => code.replace(/^FUR-/, '')
-
 /** Fecha corta (AAAA-MM-DD) de una marca de tiempo ISO. */
 const shortDate = (iso: string) => iso.slice(0, 10)
-
-/**
- * Variables de la ficha (datos del fabricante) que corresponden a este activo: las de su etapa y las de las redes a las
- * que pertenece (o solo la red elegida en el filtro). Se muestran todas las que aplican; las que aún no tienen valor
- * dicen «Sin registrar». Se agrupan por sección: el título lleva la etapa «(Etapa 01)» o, si la variable es de una red
- * para todas las etapas, la red «(Red PTE)».
- */
-function variableSections(defs: ModelVariable[], asset: AssetItem, networkCode: string | undefined) {
-  const shown = defs.filter(
-    (d) =>
-      (d.stageCode === null || d.stageCode === asset.stage?.code) &&
-      (d.networkCode === null || (networkCode ? d.networkCode === networkCode : asset.networks.some((n) => n.code === d.networkCode))),
-  )
-  const sections = new Map<string, { title: string; items: Array<{ def: ModelVariable; text: string | null }> }>()
-  for (const def of shown) {
-    const text = def.value === null ? null : formatVariableValue(def.valueType, def.value, def.unit)
-    const base = def.group ?? 'Datos del fabricante'
-    const title = def.stageCode ? `${base} (Etapa ${stageNumber(def.stageCode)})` : def.networkCode ? `${base} (Red ${networkSuffix(def.networkCode)})` : base
-    const section = sections.get(title) ?? { title, items: [] }
-    section.items.push({ def, text })
-    sections.set(title, section)
-  }
-  return [...sections.values()]
-}
 
 /** Especificaciones del modelo que se muestran como filas (las primeras; el resto está en la ficha completa). */
 const MAX_SPECS = 5
@@ -62,12 +35,15 @@ export function AssetFicha({
   asset,
   networkName,
   networkCode,
+  maxHeight,
 }: {
   plantSlug: string
   plantName: string
   asset: AssetItem | undefined
   networkName: string | undefined
   networkCode?: string
+  /** Altura máxima en píxeles (la de la columna central); el contenido se desplaza dentro. Sin valor, un tope relativo a la pantalla. */
+  maxHeight?: number
 }) {
   const fur = useAssetFur(plantSlug, asset?.id)
   const variables = useModelVariables(asset?.model.id)
@@ -91,7 +67,13 @@ export function AssetFicha({
   const documents = fur.data?.documents.length
 
   return (
-    <GeoPanel title={title} icon={ClipboardList} bodyClassName="p-0">
+    <GeoPanel
+      title={title}
+      icon={ClipboardList}
+      className="flex flex-col max-xl:max-h-[70vh]"
+      style={maxHeight ? { maxHeight } : undefined}
+      bodyClassName="min-h-0 flex-1 overflow-y-auto overscroll-contain p-0"
+    >
       <div className="flex gap-3 border-b border-border p-3">
         <div className="grid h-20 w-24 shrink-0 place-items-center overflow-hidden rounded-md border border-border bg-white">
           {asset.model.imageUrl ? (
@@ -182,9 +164,16 @@ export function AssetFicha({
         <section key={section.title} aria-label={section.title} className="border-t border-border px-3 py-2">
           <h3 className="mb-0.5 text-xs font-semibold tracking-wide text-fur-navy-900 uppercase">{section.title}</h3>
           <dl>
-            {section.items.map(({ def, text }) => (
+            {section.items.map(({ def, text, general }) => (
               <Row key={def.id} label={def.label}>
-                {text ?? <span className="font-normal text-muted-foreground">Sin registrar</span>}
+                {text === null ? (
+                  <span className="font-normal text-muted-foreground">Sin registrar</span>
+                ) : (
+                  <>
+                    {text}
+                    {general && <span className="ml-1.5 text-[11px] font-normal text-muted-foreground">(general)</span>}
+                  </>
+                )}
               </Row>
             ))}
           </dl>

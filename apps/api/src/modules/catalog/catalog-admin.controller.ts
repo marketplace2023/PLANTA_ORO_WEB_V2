@@ -1,13 +1,14 @@
 import { randomUUID } from 'node:crypto'
 import { Body, ConflictException, Controller, Delete, HttpCode, Inject, NotFoundException, Param, ParseUUIDPipe, Patch, Post, Req, UploadedFile, UseInterceptors } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
-import { eq, inArray } from 'drizzle-orm'
+import { count, eq, inArray, type SQL } from 'drizzle-orm'
+import type { PgColumn, PgTable } from 'drizzle-orm/pg-core'
 import { validationError } from '../../common/errors'
 import { isUniqueViolation } from '../../common/db-errors'
 import type { AppRequest } from '../../common/types'
 import { ZodValidationPipe } from '../../common/zod-validation.pipe'
 import { DB, type Database } from '../../database/database.module'
-import { assetFamilies, assetModels, assetTypeNetworks, assetTypes, assetTypeStages, manufacturers, networkMaster, stageMaster } from '../../database/schema'
+import { assetFamilies, assetModels, assets, assetTypeNetworks, assetTypes, assetTypeStages, items as inventoryItems, listings, manufacturers, networkMaster, stageMaster } from '../../database/schema'
 import { AuditService } from '../audit/audit.service'
 import { StorageService } from '../documents/storage.service'
 import { GlobalAdminOnly } from '../iam/decorators'
@@ -49,6 +50,17 @@ export class CatalogAdminController {
     throw new ConflictException(`Ya existe ${what}`)
   }
 
+  /**
+   * Un registro del catálogo solo se elimina si nada lo usa: cada dependencia con filas bloquea con un mensaje que dice
+   * qué lo usa y qué hacer. Lo que cuelga del registro y no tiene sentido sin él (valores, etapas, redes) se borra solo.
+   */
+  private async assertUnused(label: string, uses: Array<{ table: PgTable; column: PgColumn; id: string; text: (n: number) => string }>) {
+    for (const u of uses) {
+      const [{ n }] = await this.db.select({ n: count() }).from(u.table).where(eq(u.column, u.id) as SQL)
+      if (n > 0) throw new ConflictException(`${label} ${u.text(n)}`)
+    }
+  }
+
   // ---------- Familias ----------
 
   @Post('families')
@@ -65,6 +77,19 @@ export class CatalogAdminController {
     const [row] = await this.db.update(assetFamilies).set(dto).where(eq(assetFamilies.id, id)).returning()
     await this.record(req, 'asset_family', id, 'updated', { old: before, new: dto })
     return row
+  }
+
+  @Delete('families/:id')
+  @HttpCode(204)
+  async deleteFamily(@Param('id', ParseUUIDPipe) id: string, @Req() req: AppRequest) {
+    const [before] = await this.db.select().from(assetFamilies).where(eq(assetFamilies.id, id))
+    if (!before) throw new NotFoundException('Familia no encontrada')
+    await this.assertUnused(`No se puede eliminar la familia «${before.name}»:`, [
+      { table: assetTypes, column: assetTypes.familyId, id, text: (n) => `tiene ${n} tipo(s). Elimina o mueve esos tipos a otra familia primero.` },
+      { table: listings, column: listings.assetFamilyId, id, text: (n) => `la usan ${n} publicación(es) del marketplace.` },
+    ])
+    await this.db.delete(assetFamilies).where(eq(assetFamilies.id, id))
+    await this.record(req, 'asset_family', id, 'deleted', { old: before })
   }
 
   // ---------- Tipos ----------
@@ -132,6 +157,19 @@ export class CatalogAdminController {
     return row
   }
 
+  @Delete('types/:id')
+  @HttpCode(204)
+  async deleteType(@Param('id', ParseUUIDPipe) id: string, @Req() req: AppRequest) {
+    const [before] = await this.db.select().from(assetTypes).where(eq(assetTypes.id, id))
+    if (!before) throw new NotFoundException('Tipo no encontrado')
+    await this.assertUnused(`No se puede eliminar el tipo «${before.name}»:`, [
+      { table: assetModels, column: assetModels.assetTypeId, id, text: (n) => `tiene ${n} modelo(s). Elimina esos modelos o cámbialos de tipo primero.` },
+    ])
+    // Sus etapas, redes y la asociación con variables caen en cascada.
+    await this.db.delete(assetTypes).where(eq(assetTypes.id, id))
+    await this.record(req, 'asset_type', id, 'deleted', { old: before })
+  }
+
   // ---------- Fabricantes ----------
 
   @Post('manufacturers')
@@ -153,6 +191,19 @@ export class CatalogAdminController {
       .catch((e) => (isUniqueViolation(e) ? this.conflict(`un fabricante llamado ${dto.name}`) : Promise.reject(e)))
     await this.record(req, 'manufacturer', id, 'updated', { old: before, new: dto })
     return row
+  }
+
+  @Delete('manufacturers/:id')
+  @HttpCode(204)
+  async deleteManufacturer(@Param('id', ParseUUIDPipe) id: string, @Req() req: AppRequest) {
+    const [before] = await this.db.select().from(manufacturers).where(eq(manufacturers.id, id))
+    if (!before) throw new NotFoundException('Fabricante no encontrado')
+    await this.assertUnused(`No se puede eliminar el fabricante «${before.name}»:`, [
+      { table: assetModels, column: assetModels.manufacturerId, id, text: (n) => `lo usan ${n} modelo(s). Cámbialos de fabricante o elimínalos primero.` },
+      { table: assets, column: assets.manufacturerId, id, text: (n) => `lo usan ${n} activo(s) de planta.` },
+    ])
+    await this.db.delete(manufacturers).where(eq(manufacturers.id, id))
+    await this.record(req, 'manufacturer', id, 'deleted', { old: before })
   }
 
   // ---------- Modelos ----------
@@ -194,6 +245,21 @@ export class CatalogAdminController {
       new: dto,
     })
     return row
+  }
+
+  @Delete('models/:id')
+  @HttpCode(204)
+  async deleteModel(@Param('id', ParseUUIDPipe) id: string, @Req() req: AppRequest) {
+    const [before] = await this.db.select().from(assetModels).where(eq(assetModels.id, id))
+    if (!before) throw new NotFoundException('Modelo no encontrado')
+    await this.assertUnused(`No se puede eliminar el modelo «${before.modelName}»:`, [
+      { table: assets, column: assets.assetModelId, id, text: (n) => `lo usan ${n} activo(s) de planta. Desactívalo, o cambia el modelo de esos activos, antes de eliminarlo.` },
+      { table: inventoryItems, column: inventoryItems.assetModelId, id, text: (n) => `está vinculado a ${n} ítem(s) de inventario.` },
+    ])
+    // Los valores de «Datos del fabricante» caen en cascada; las publicaciones del marketplace quedan sin modelo.
+    await this.db.delete(assetModels).where(eq(assetModels.id, id))
+    if (before.imageKey) await this.storage.delete(before.imageKey).catch(() => undefined)
+    await this.record(req, 'asset_model', id, 'deleted', { old: { modelName: before.modelName, status: before.status, manufacturerId: before.manufacturerId } })
   }
 
   // ---------- Foto del modelo ----------

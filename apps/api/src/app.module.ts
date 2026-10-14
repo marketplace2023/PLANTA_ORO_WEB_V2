@@ -16,10 +16,9 @@ import { OrganizationsModule } from './modules/organizations/organizations.modul
 import { ProcessModule } from './modules/process/process.module'
 import { ProcurementModule } from './modules/procurement/procurement.module'
 import { MaintenanceModule } from './modules/maintenance/maintenance.module'
-import { NetworksAdminController } from './modules/networks/networks-admin.controller'
-import { NetworksController } from './modules/networks/networks.controller'
+import { NetworksModule } from './modules/networks/networks.module'
 import { PlantsModule } from './modules/plants/plants.module'
-import { StagesController } from './modules/processes/stages.controller'
+import { StagesModule } from './modules/processes/stages.module'
 
 @Module({
   imports: [
@@ -40,10 +39,12 @@ import { StagesController } from './modules/processes/stages.controller'
     OrganizationsModule,
     ProcurementModule,
     ProcessModule,
+    StagesModule,
+    NetworksModule,
     LmsModule,
     BudgetModule,
     DashboardModule,
   ],
-  controllers: [HealthController, StagesController, NetworksController, NetworksAdminController],
+  controllers: [HealthController],
 })
 export class AppModule {}

@@ -11,7 +11,7 @@ vi.mock('@/features/plant/plant-context', () => ({
 
 // Nombres fijos: docs/design.md §9 y §56.
 const NAV_LABELS = [
-  'Todo el ecosistema',
+  'Página principal',
   'Catálogo',
   'Activos Físicos',
   'Procesos',
@@ -72,6 +72,6 @@ describe('MainNavbar', () => {
   it('marca la sección activa', () => {
     renderWithProviders(<MainNavbar />, { route: '/catalog' })
     expect(screen.getByRole('link', { name: 'Catálogo' })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('link', { name: 'Todo el ecosistema' })).not.toHaveAttribute('aria-current')
+    expect(screen.getByRole('link', { name: 'Página principal' })).not.toHaveAttribute('aria-current')
   })
 })

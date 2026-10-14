@@ -9,6 +9,8 @@ export type StageMaster = {
   description: string | null
   stageGroup: string
   colorToken: string | null
+  /** Ruta (relativa a la API) de la imagen del layout de la etapa; usar con `apiUrl`. null = sin imagen. */
+  layoutImageUrl: string | null
 }
 
 export type NetworkMaster = {
@@ -18,6 +20,8 @@ export type NetworkMaster = {
   description: string | null
   icon: string | null
   colorToken: string | null
+  /** Ruta (relativa a la API) de la imagen de la red; usar con `apiUrl`. null = sin imagen. */
+  layoutImageUrl: string | null
 }
 
 export type HealthStatus = {

@@ -95,7 +95,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   )
 
   return (
-    <div className="mx-auto max-w-md pt-6">
+    <div>
       <Card>
         <CardHeader>
           <CardTitle className="text-xl">{isLogin ? 'Iniciar sesión' : 'Crear cuenta'}</CardTitle>

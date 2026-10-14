@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/app-layout'
+import { AuthLayout } from '@/components/layout/auth-layout'
 import { AdminCatalogPage } from '@/pages/admin-catalog-page'
 import { ApuEditorPage } from '@/pages/apu-editor-page'
 import { AssetFurPage } from '@/pages/asset-fur-page'
@@ -37,10 +38,14 @@ import { ProcessesPage } from '@/pages/processes-page'
 export default function App() {
   return (
     <Routes>
-      <Route element={<AppLayout />}>
-        <Route index element={<HomePage />} />
+      {/* Acceso: vista sola, sin la barra de navegación del ecosistema. */}
+      <Route element={<AuthLayout />}>
         <Route path="login" element={<AuthPage mode="login" />} />
         <Route path="register" element={<AuthPage mode="register" />} />
+      </Route>
+
+      <Route element={<AppLayout />}>
+        <Route index element={<HomePage />} />
         <Route path="plants" element={<PlantsPage />} />
         <Route path="catalog" element={<CatalogPage />} />
         <Route path="admin/catalog" element={<AdminCatalogPage />} />

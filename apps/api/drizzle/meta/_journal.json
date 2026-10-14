@@ -204,6 +204,20 @@
       "when": 1791725246412,
       "tag": "0028_asset_sort_order",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1791998768045,
+      "tag": "0029_stage_layout_image",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1792013712152,
+      "tag": "0030_network_image",
+      "breakpoints": true
     }
   ]
 }

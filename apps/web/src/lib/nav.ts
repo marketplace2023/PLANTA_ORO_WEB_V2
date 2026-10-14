@@ -27,7 +27,7 @@ export type NavItem = {
 
 // Nombres fijos: no renombrar por pantalla (docs/design.md §56).
 export const NAV_ITEMS: NavItem[] = [
-  { label: 'Todo el ecosistema', icon: Globe, scope: 'global', path: '/' },
+  { label: 'Página principal', icon: Globe, scope: 'global', path: '/' },
   { label: 'Catálogo', icon: BookOpen, scope: 'global', path: '/catalog' },
   { label: 'Activos Físicos', icon: Package, scope: 'plant', path: 'assets' },
   { label: 'Procesos', icon: Cog, scope: 'plant', path: 'processes' },

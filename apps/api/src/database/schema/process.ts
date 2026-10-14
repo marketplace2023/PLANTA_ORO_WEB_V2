@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { boolean, check, index, integer, jsonb, pgSchema, text, unique, uuid, varchar } from 'drizzle-orm/pg-core'
+import { boolean, check, index, integer, jsonb, pgSchema, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core'
 import { pk } from './common'
 import { plants } from './core'
 
@@ -15,6 +15,10 @@ export const stageMaster = processSchema.table('stage_master', {
   description: text('description'),
   stageGroup: varchar('stage_group', { length: 40 }).notNull(),
   colorToken: varchar('color_token', { length: 40 }),
+  /** Imagen del layout de la etapa (clave en el almacenamiento de objetos); la sube el administrador. */
+  layoutImageKey: text('layout_image_key'),
+  layoutImageMime: varchar('layout_image_mime', { length: 50 }),
+  layoutImageUpdatedAt: timestamp('layout_image_updated_at', { withTimezone: true }),
 })
 
 /** Etapas habilitadas en cada planta. */

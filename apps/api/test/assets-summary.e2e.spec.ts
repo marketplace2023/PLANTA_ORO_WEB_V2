@@ -57,6 +57,20 @@ describe('Resumen de activos de la planta (geoportal) (e2e)', () => {
     expect(body.byNetwork).toEqual({ 'FUR-PROC': 2, 'FUR-PTE': 1 })
   })
 
+  it('con ?network= cuenta solo los activos de esa red (la vista de Procesos usa FUR-PROC)', async () => {
+    const proc = (await http().get('/api/v1/plants/e2e-geo/assets/summary?network=FUR-PROC').set('Authorization', bearer(pa)).expect(200)).body
+    expect(proc.total).toBe(2)
+    expect(proc.byStage).toEqual({ D06: 2 })
+    expect(proc.byNetwork).toEqual({ 'FUR-PROC': 2, 'FUR-PTE': 1 }) // un activo de la red también pertenece a otra
+
+    const pte = (await http().get('/api/v1/plants/e2e-geo/assets/summary?network=fur-pte').set('Authorization', bearer(pa)).expect(200)).body
+    expect(pte.total).toBe(1)
+    expect(pte.byStatus).toEqual({ OPERATIVE: 1 })
+
+    expect((await http().get('/api/v1/plants/e2e-geo/assets/summary?network=FUR-NADA').set('Authorization', bearer(pa)).expect(200)).body.total).toBe(0)
+    await http().get('/api/v1/plants/e2e-geo/assets/summary?network=no-valida').set('Authorization', bearer(pa)).expect(400)
+  })
+
   it('los dados de baja no cuentan', async () => {
     const list = await http().get('/api/v1/plants/e2e-geo/assets?search=G-3').set('Authorization', bearer(pa)).expect(200)
     await http().delete(`/api/v1/plants/e2e-geo/assets/${list.body.items[0].id}`).set('Authorization', bearer(pa)).expect((r) => expect([200, 204]).toContain(r.status))

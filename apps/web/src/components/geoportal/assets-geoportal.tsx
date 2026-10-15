@@ -9,6 +9,7 @@ import { useAssets, useAssetsSummary, useReorderAssets, useSetAssetMapPosition }
 import { usePlant } from '@/features/plant/plant-context'
 import { useUpdateStage } from '@/features/plant/use-plant-admin'
 import { usePlantNetworks, usePlantStages, type MapPosition, type PlantDetail } from '@/features/plant/use-plant-data'
+import { usePlantProcess } from '@/features/process/use-process'
 import { ApiError } from '@/lib/api'
 import { useDebouncedValue } from '@/lib/use-debounced-value'
 import { useElementHeight } from '@/lib/use-element-height'
@@ -17,10 +18,14 @@ import { GeoKpis } from './geo-kpis'
 import { NetworkList, StageList } from './geo-lists'
 import { GeoMap } from './geo-map'
 import { StageDetail } from './stage-detail'
+import { StageFlow } from './stage-flow'
 import { stageNumber } from './stage-number'
 
 /** Tope del servidor por página: una etapa rara vez lo alcanza y así el mapa y las tarjetas ven todos sus activos. */
 const STAGE_ASSETS = 100
+
+/** En la vista de Procesos solo está disponible esta red; las demás se muestran bloqueadas. */
+const PROCESS_NETWORK = 'FUR-PROC'
 
 const failed = (e: unknown) => toast.error(e instanceof ApiError ? e.message : 'No se pudo guardar la posición en el mapa')
 const reorderFailed = (e: unknown) => toast.error(e instanceof ApiError ? e.message : 'No se pudo guardar el orden de los activos')
@@ -30,12 +35,14 @@ const reorderFailed = (e: unknown) => toast.error(e instanceof ApiError ? e.mess
  * y el mapa, la ficha de la etapa, las tarjetas de activos y la ficha técnica se ajustan a ella. La etapa, la red, el
  * activo y la búsqueda viven en la URL para poder compartir la vista.
  */
-export function AssetsGeoportal({ plant, actions }: { plant: PlantDetail; actions: ReactNode }) {
+export function AssetsGeoportal({ plant, actions, mode = 'assets' }: { plant: PlantDetail; actions: ReactNode; mode?: 'assets' | 'process' }) {
+  const processView = mode === 'process'
   const [params, setParams] = useSearchParams()
   const { permissions } = usePlant()
   const stagesQuery = usePlantStages(plant.slug)
   const networksQuery = usePlantNetworks(plant.slug)
-  const summary = useAssetsSummary(plant.slug)
+  const summary = useAssetsSummary(plant.slug, processView ? PROCESS_NETWORK : undefined)
+  const processOverview = usePlantProcess(processView ? plant.slug : undefined)
   const updateStage = useUpdateStage(plant.slug)
   const setAssetPosition = useSetAssetMapPosition(plant.slug)
   const reorderAssets = useReorderAssets(plant.slug)
@@ -46,7 +53,7 @@ export function AssetsGeoportal({ plant, actions }: { plant: PlantDetail; action
   // Sin etapa en la URL: la primera que tenga activos (o la primera de la planta).
   const firstWithAssets = stages.find((s) => (summary.data?.byStage[s.code] ?? 0) > 0) ?? stages[0]
   const selected = stages.find((s) => s.code === params.get('stage')) ?? firstWithAssets
-  const network = params.get('network') ?? undefined
+  const network = processView ? PROCESS_NETWORK : (params.get('network') ?? undefined)
   const networkName = networks.find((n) => n.code === network)?.name ?? network
   const search = params.get('search') ?? undefined
 
@@ -92,7 +99,7 @@ export function AssetsGeoportal({ plant, actions }: { plant: PlantDetail; action
 
   const subtitle = [
     plant.name,
-    'Mapa integral de activos físicos',
+    processView ? 'Mapa de procesos' : 'Mapa integral de activos físicos',
     selected && `Etapa ${stageNumber(selected.code)} – ${selected.displayName}`,
     networkName && `Red transversal – ${networkName}`,
   ]
@@ -102,7 +109,7 @@ export function AssetsGeoportal({ plant, actions }: { plant: PlantDetail; action
   return (
     <>
       <PageHeader
-        title="Geoportal de Activos Físicos"
+        title={processView ? 'Procesos' : 'Geoportal de Activos Físicos'}
         description={subtitle}
         actions={
           <div className="flex flex-wrap items-center gap-2">
@@ -122,12 +129,25 @@ export function AssetsGeoportal({ plant, actions }: { plant: PlantDetail; action
         }
       />
 
-      <GeoKpis summary={summary.data} stages={stages.length} networks={networks.length} loading={summary.isLoading || stagesQuery.isLoading || networksQuery.isLoading} />
+      <GeoKpis
+        summary={summary.data}
+        stages={stages.length}
+        networks={networks.length}
+        availableNetworks={processView ? networks.filter((n) => n.code === PROCESS_NETWORK).length : undefined}
+        loading={summary.isLoading || stagesQuery.isLoading || networksQuery.isLoading}
+      />
 
       <div className="grid items-start gap-4 xl:grid-cols-[17rem_minmax(0,1fr)_21rem]">
         <div className="space-y-3">
           <StageList stages={stages} counts={summary.data?.byStage} selected={selected?.code} loading={stagesQuery.isLoading} onSelect={(code) => setParam({ stage: code, asset: undefined })} />
-          <NetworkList networks={networks} counts={summary.data?.byNetwork} selected={network} loading={networksQuery.isLoading} onSelect={(code) => setParam({ network: code, asset: undefined })} />
+          <NetworkList
+            networks={networks}
+            counts={summary.data?.byNetwork}
+            selected={network}
+            loading={networksQuery.isLoading}
+            onSelect={(code) => setParam({ network: code, asset: undefined })}
+            onlyNetwork={processView ? PROCESS_NETWORK : undefined}
+          />
         </div>
 
         <div className="min-w-0" ref={centerRef}>
@@ -159,12 +179,13 @@ export function AssetsGeoportal({ plant, actions }: { plant: PlantDetail; action
                 loading={assets.isLoading || (!selected && stagesQuery.isLoading)}
                 expanded={!!selected && expandedFor === selected.code}
                 onExpand={() => setExpandedFor(selected?.code)}
-                filtered={!!network || !!search}
+                filtered={(!processView && !!network) || !!search}
                 canReorder={permissions.includes('asset.update')}
                 onReorder={(ids) => reorderAssets.mutate(ids, { onError: reorderFailed })}
               />
             )}
           </div>
+          {processView && <StageFlow overview={processOverview.data} stageCode={selected?.code} />}
         </div>
 
         <AssetFicha plantSlug={plant.slug} plantName={plant.name} asset={selectedAsset} networkName={networkName} networkCode={network} maxHeight={centerHeight} />

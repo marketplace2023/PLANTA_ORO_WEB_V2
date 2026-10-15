@@ -1,0 +1,1364 @@
+{
+  "metadata": {
+    "dataset": "REVEMIN II / Etapa 01 / 10 activos físicos",
+    "schema_version": "1.0.0",
+    "database_model": "Relacional normalizado (hasta 3FN; catálogos, relaciones N:M, identificadores externos separados)",
+    "created_date": "2026-10-13",
+    "source": "Listado maestro de activos REVEMIN II y fichas FUR proporcionadas en la conversación",
+    "source_policy": "Los fabricantes son referencias comerciales, no marcas instaladas verificadas.",
+    "technical_data_policy": "No se asignan valores operativos a asset_specifications sin documentación comprobable.",
+    "null_policy": "No se crea identificador TAG_MAPA para activos sin alias documentado.",
+    "possible_discrepancy": "Ver fila 06 en data_quality_flags, validar antes de usar en producción."
+  },
+  "tables": {
+    "projects": [
+      {
+        "project_code": "REVEMIN_II",
+        "project_name": "REVEMIN II — Planta de beneficio de oro"
+      }
+    ],
+    "process_stages": [
+      {
+        "stage_id": "REV2-E01",
+        "project_code": "REVEMIN_II",
+        "stage_number": 1,
+        "stage_name": "Recepción, chancado y cribado"
+      }
+    ],
+    "asset_roles": [
+      {
+        "role_code": "P",
+        "role_name": "Principal"
+      },
+      {
+        "role_code": "S",
+        "role_name": "Secundario"
+      }
+    ],
+    "criticality_levels": [
+      {
+        "criticality_code": "A",
+        "criticality_name": "Alta",
+        "rank_order": 1
+      },
+      {
+        "criticality_code": "B",
+        "criticality_name": "Media",
+        "rank_order": 2
+      },
+      {
+        "criticality_code": "C",
+        "criticality_name": "Baja",
+        "rank_order": 3
+      }
+    ],
+    "record_states": [
+      {
+        "state_code": "REFERENCIAL",
+        "state_name": "Registro documental referencial"
+      },
+      {
+        "state_code": "VALIDADO",
+        "state_name": "Validado mediante evidencia de planta"
+      }
+    ],
+    "identifier_types": [
+      {
+        "identifier_type_code": "TAG_ACTIVO",
+        "identifier_type_name": "Identificador del listado maestro"
+      },
+      {
+        "identifier_type_code": "TAG_MAPA",
+        "identifier_type_name": "Alias del mapa integral"
+      }
+    ],
+    "asset_types": [
+      {
+        "asset_type_id": "ROM_STOCKPILE",
+        "asset_type_name": "Recepción ROM / Patio stockpile",
+        "functional_description": "Área de recepción, acopio temporal y recuperación de mineral ROM."
+      },
+      {
+        "asset_type_id": "RECEIVING_HOPPER",
+        "asset_type_name": "Tolva de recepción",
+        "functional_description": "Recibe y amortigua la entrega de mineral hacia el sistema de alimentación."
+      },
+      {
+        "asset_type_id": "RECEPTION_SCREEN",
+        "asset_type_name": "Criba de recepción",
+        "functional_description": "Separa tamaños y/o finos del mineral recibido."
+      },
+      {
+        "asset_type_id": "APRON_FEEDER",
+        "asset_type_name": "Alimentador de placas",
+        "functional_description": "Dosifica material grueso mediante placas articuladas."
+      },
+      {
+        "asset_type_id": "FEED_BELT_CONVEYOR",
+        "asset_type_name": "Cinta de alimentación",
+        "functional_description": "Transporta el mineral hacia equipos aguas abajo."
+      },
+      {
+        "asset_type_id": "MAGNETIC_SEPARATOR",
+        "asset_type_name": "Separador magnético",
+        "functional_description": "Retira materiales ferromagnéticos del flujo de mineral."
+      },
+      {
+        "asset_type_id": "BELT_SCALE",
+        "asset_type_name": "Báscula de mineral",
+        "functional_description": "Mide el caudal másico y total acumulado del mineral sobre una banda."
+      },
+      {
+        "asset_type_id": "ROCK_BREAKER",
+        "asset_type_name": "Rompedor de rocas",
+        "functional_description": "Fragmenta bloques sobredimensionados y despeja obstrucciones."
+      },
+      {
+        "asset_type_id": "DUST_SUPPRESSION",
+        "asset_type_name": "Supresión de polvo",
+        "functional_description": "Reduce emisiones fugitivas durante el manejo de mineral."
+      },
+      {
+        "asset_type_id": "METAL_DETECTOR",
+        "asset_type_name": "Detector de metales",
+        "functional_description": "Detecta metales extraños y genera avisos/interbloqueos de protección."
+      }
+    ],
+    "assets": [
+      {
+        "asset_id": "REV2-E01-001",
+        "stage_id": "REV2-E01",
+        "asset_type_id": "ROM_STOCKPILE",
+        "inventory_no": 1,
+        "role_code": "P",
+        "criticality_code": "A",
+        "state_code": "REFERENCIAL"
+      },
+      {
+        "asset_id": "REV2-E01-002",
+        "stage_id": "REV2-E01",
+        "asset_type_id": "RECEIVING_HOPPER",
+        "inventory_no": 2,
+        "role_code": "P",
+        "criticality_code": "A",
+        "state_code": "REFERENCIAL"
+      },
+      {
+        "asset_id": "REV2-E01-003",
+        "stage_id": "REV2-E01",
+        "asset_type_id": "RECEPTION_SCREEN",
+        "inventory_no": 3,
+        "role_code": "P",
+        "criticality_code": "A",
+        "state_code": "REFERENCIAL"
+      },
+      {
+        "asset_id": "REV2-E01-004",
+        "stage_id": "REV2-E01",
+        "asset_type_id": "APRON_FEEDER",
+        "inventory_no": 4,
+        "role_code": "P",
+        "criticality_code": "A",
+        "state_code": "REFERENCIAL"
+      },
+      {
+        "asset_id": "REV2-E01-005",
+        "stage_id": "REV2-E01",
+        "asset_type_id": "FEED_BELT_CONVEYOR",
+        "inventory_no": 5,
+        "role_code": "P",
+        "criticality_code": "B",
+        "state_code": "REFERENCIAL"
+      },
+      {
+        "asset_id": "REV2-E01-006",
+        "stage_id": "REV2-E01",
+        "asset_type_id": "MAGNETIC_SEPARATOR",
+        "inventory_no": 6,
+        "role_code": "S",
+        "criticality_code": "B",
+        "state_code": "REFERENCIAL"
+      },
+      {
+        "asset_id": "REV2-E01-007",
+        "stage_id": "REV2-E01",
+        "asset_type_id": "BELT_SCALE",
+        "inventory_no": 7,
+        "role_code": "S",
+        "criticality_code": "B",
+        "state_code": "REFERENCIAL"
+      },
+      {
+        "asset_id": "REV2-E01-008",
+        "stage_id": "REV2-E01",
+        "asset_type_id": "ROCK_BREAKER",
+        "inventory_no": 8,
+        "role_code": "S",
+        "criticality_code": "B",
+        "state_code": "REFERENCIAL"
+      },
+      {
+        "asset_id": "REV2-E01-009",
+        "stage_id": "REV2-E01",
+        "asset_type_id": "DUST_SUPPRESSION",
+        "inventory_no": 9,
+        "role_code": "S",
+        "criticality_code": "C",
+        "state_code": "REFERENCIAL"
+      },
+      {
+        "asset_id": "REV2-E01-010",
+        "stage_id": "REV2-E01",
+        "asset_type_id": "METAL_DETECTOR",
+        "inventory_no": 10,
+        "role_code": "S",
+        "criticality_code": "C",
+        "state_code": "REFERENCIAL"
+      }
+    ],
+    "asset_identifiers": [
+      {
+        "asset_id": "REV2-E01-001",
+        "identifier_type_code": "TAG_ACTIVO",
+        "identifier_value": "CAND-01-01"
+      },
+      {
+        "asset_id": "REV2-E01-001",
+        "identifier_type_code": "TAG_MAPA",
+        "identifier_value": "ASM-001"
+      },
+      {
+        "asset_id": "REV2-E01-002",
+        "identifier_type_code": "TAG_ACTIVO",
+        "identifier_value": "FT-002"
+      },
+      {
+        "asset_id": "REV2-E01-002",
+        "identifier_type_code": "TAG_MAPA",
+        "identifier_value": "TH-101"
+      },
+      {
+        "asset_id": "REV2-E01-003",
+        "identifier_type_code": "TAG_ACTIVO",
+        "identifier_value": "CAND-01-03"
+      },
+      {
+        "asset_id": "REV2-E01-004",
+        "identifier_type_code": "TAG_ACTIVO",
+        "identifier_value": "CAND-01-04"
+      },
+      {
+        "asset_id": "REV2-E01-004",
+        "identifier_type_code": "TAG_MAPA",
+        "identifier_value": "AP-101"
+      },
+      {
+        "asset_id": "REV2-E01-005",
+        "identifier_type_code": "TAG_ACTIVO",
+        "identifier_value": "CAND-01-05"
+      },
+      {
+        "asset_id": "REV2-E01-006",
+        "identifier_type_code": "TAG_ACTIVO",
+        "identifier_value": "CAND-01-06"
+      },
+      {
+        "asset_id": "REV2-E01-007",
+        "identifier_type_code": "TAG_ACTIVO",
+        "identifier_value": "CAND-01-07"
+      },
+      {
+        "asset_id": "REV2-E01-007",
+        "identifier_type_code": "TAG_MAPA",
+        "identifier_value": "BF-101"
+      },
+      {
+        "asset_id": "REV2-E01-008",
+        "identifier_type_code": "TAG_ACTIVO",
+        "identifier_value": "CAND-01-08"
+      },
+      {
+        "asset_id": "REV2-E01-009",
+        "identifier_type_code": "TAG_ACTIVO",
+        "identifier_value": "CAND-01-09"
+      },
+      {
+        "asset_id": "REV2-E01-010",
+        "identifier_type_code": "TAG_ACTIVO",
+        "identifier_value": "CAND-01-10"
+      }
+    ],
+    "fur_records": [
+      {
+        "fur_code": "FUR-PROC-E01-001",
+        "asset_id": "REV2-E01-001",
+        "fur_family": "FUR-PROC",
+        "validation_status": "PENDIENTE_VALIDACION"
+      },
+      {
+        "fur_code": "FUR-PROC-E01-002",
+        "asset_id": "REV2-E01-002",
+        "fur_family": "FUR-PROC",
+        "validation_status": "PENDIENTE_VALIDACION"
+      },
+      {
+        "fur_code": "FUR-PROC-E01-003",
+        "asset_id": "REV2-E01-003",
+        "fur_family": "FUR-PROC",
+        "validation_status": "PENDIENTE_VALIDACION"
+      },
+      {
+        "fur_code": "FUR-PROC-E01-004",
+        "asset_id": "REV2-E01-004",
+        "fur_family": "FUR-PROC",
+        "validation_status": "PENDIENTE_VALIDACION"
+      },
+      {
+        "fur_code": "FUR-PROC-E01-005",
+        "asset_id": "REV2-E01-005",
+        "fur_family": "FUR-PROC",
+        "validation_status": "PENDIENTE_VALIDACION"
+      },
+      {
+        "fur_code": "FUR-PROC-E01-006",
+        "asset_id": "REV2-E01-006",
+        "fur_family": "FUR-PROC",
+        "validation_status": "PENDIENTE_VALIDACION"
+      },
+      {
+        "fur_code": "FUR-PROC-E01-007",
+        "asset_id": "REV2-E01-007",
+        "fur_family": "FUR-PROC",
+        "validation_status": "PENDIENTE_VALIDACION"
+      },
+      {
+        "fur_code": "FUR-PROC-E01-008",
+        "asset_id": "REV2-E01-008",
+        "fur_family": "FUR-PROC",
+        "validation_status": "PENDIENTE_VALIDACION"
+      },
+      {
+        "fur_code": "FUR-PROC-E01-009",
+        "asset_id": "REV2-E01-009",
+        "fur_family": "FUR-PROC",
+        "validation_status": "PENDIENTE_VALIDACION"
+      },
+      {
+        "fur_code": "FUR-PROC-E01-010",
+        "asset_id": "REV2-E01-010",
+        "fur_family": "FUR-PROC",
+        "validation_status": "PENDIENTE_VALIDACION"
+      }
+    ],
+    "manufacturers": [
+      {
+        "manufacturer_id": "METSO",
+        "manufacturer_name": "Metso",
+        "website_url": "https://www.metso.com/"
+      },
+      {
+        "manufacturer_id": "TAKRAF",
+        "manufacturer_name": "TAKRAF",
+        "website_url": "https://www.takraf.com/"
+      },
+      {
+        "manufacturer_id": "SANDVIK",
+        "manufacturer_name": "Sandvik Rock Processing",
+        "website_url": "https://www.rockprocessing.sandvik/"
+      },
+      {
+        "manufacturer_id": "ERIEZ",
+        "manufacturer_name": "Eriez",
+        "website_url": "https://www.eriez.com/"
+      },
+      {
+        "manufacturer_id": "BELTWAY",
+        "manufacturer_name": "Belt-Way Scales",
+        "website_url": "https://www.beltwayscales.com/"
+      },
+      {
+        "manufacturer_id": "THERMO",
+        "manufacturer_name": "Thermo Fisher Scientific",
+        "website_url": "https://www.thermofisher.com/"
+      },
+      {
+        "manufacturer_id": "TECMAN",
+        "manufacturer_name": "Tecman",
+        "website_url": "https://www.tecman.com/"
+      },
+      {
+        "manufacturer_id": "MARTIN",
+        "manufacturer_name": "Martin Engineering",
+        "website_url": "https://www.martin-eng.com/"
+      }
+    ],
+    "asset_type_manufacturer_references": [
+      {
+        "asset_type_id": "ROM_STOCKPILE",
+        "manufacturer_id": "METSO",
+        "reference_scope": "Manejo y acopio de mineral"
+      },
+      {
+        "asset_type_id": "ROM_STOCKPILE",
+        "manufacturer_id": "TAKRAF",
+        "reference_scope": "Sistemas de apilado y recuperación"
+      },
+      {
+        "asset_type_id": "RECEIVING_HOPPER",
+        "manufacturer_id": "METSO",
+        "reference_scope": "Tolvas, chutes y revestimientos"
+      },
+      {
+        "asset_type_id": "RECEPTION_SCREEN",
+        "manufacturer_id": "SANDVIK",
+        "reference_scope": "Cribas vibratorias"
+      },
+      {
+        "asset_type_id": "RECEPTION_SCREEN",
+        "manufacturer_id": "METSO",
+        "reference_scope": "Cribado de mineral"
+      },
+      {
+        "asset_type_id": "APRON_FEEDER",
+        "manufacturer_id": "METSO",
+        "reference_scope": "Alimentadores de placas y repuestos"
+      },
+      {
+        "asset_type_id": "FEED_BELT_CONVEYOR",
+        "manufacturer_id": "METSO",
+        "reference_scope": "Transportadores y alimentadores de banda"
+      },
+      {
+        "asset_type_id": "FEED_BELT_CONVEYOR",
+        "manufacturer_id": "MARTIN",
+        "reference_scope": "Accesorios y limpieza de transportadores"
+      },
+      {
+        "asset_type_id": "MAGNETIC_SEPARATOR",
+        "manufacturer_id": "ERIEZ",
+        "reference_scope": "Separadores magnéticos suspendidos"
+      },
+      {
+        "asset_type_id": "BELT_SCALE",
+        "manufacturer_id": "BELTWAY",
+        "reference_scope": "Básculas de cinta"
+      },
+      {
+        "asset_type_id": "BELT_SCALE",
+        "manufacturer_id": "THERMO",
+        "reference_scope": "Básculas Ramsey"
+      },
+      {
+        "asset_type_id": "ROCK_BREAKER",
+        "manufacturer_id": "TECMAN",
+        "reference_scope": "Brazo rompedor estacionario"
+      },
+      {
+        "asset_type_id": "DUST_SUPPRESSION",
+        "manufacturer_id": "MARTIN",
+        "reference_scope": "Control y supresión de polvo"
+      },
+      {
+        "asset_type_id": "METAL_DETECTOR",
+        "manufacturer_id": "ERIEZ",
+        "reference_scope": "Detectores industriales; familia Serie 1200"
+      }
+    ],
+    "component_types": [
+      {
+        "component_type_id": "STOCKPILE",
+        "component_name": "Pila de mineral ROM"
+      },
+      {
+        "component_type_id": "ACCESS",
+        "component_name": "Vías de acceso y maniobra"
+      },
+      {
+        "component_type_id": "LOADER",
+        "component_name": "Cargador frontal"
+      },
+      {
+        "component_type_id": "DRAINAGE",
+        "component_name": "Drenaje y control de aguas"
+      },
+      {
+        "component_type_id": "HOPPER_BODY",
+        "component_name": "Cuerpo de tolva"
+      },
+      {
+        "component_type_id": "WEAR_LINER",
+        "component_name": "Revestimiento antidesgaste"
+      },
+      {
+        "component_type_id": "SUPPORT_FRAME",
+        "component_name": "Estructura soporte"
+      },
+      {
+        "component_type_id": "CHUTE",
+        "component_name": "Chute de descarga"
+      },
+      {
+        "component_type_id": "ANCHORS",
+        "component_name": "Placas y pernos de anclaje"
+      },
+      {
+        "component_type_id": "VIBRATING_BODY",
+        "component_name": "Caja vibratoria"
+      },
+      {
+        "component_type_id": "SCREEN_MEDIA",
+        "component_name": "Mallas o paneles de cribado"
+      },
+      {
+        "component_type_id": "EXCITER",
+        "component_name": "Excitador o motovibrador"
+      },
+      {
+        "component_type_id": "SPRINGS",
+        "component_name": "Resortes de aislamiento"
+      },
+      {
+        "component_type_id": "APRON_PANS",
+        "component_name": "Placas de arrastre"
+      },
+      {
+        "component_type_id": "LATERAL_CHAINS",
+        "component_name": "Cadenas laterales"
+      },
+      {
+        "component_type_id": "TRACK_ROLLERS",
+        "component_name": "Rodillos de apoyo"
+      },
+      {
+        "component_type_id": "GEARMOTOR",
+        "component_name": "Motorreductor"
+      },
+      {
+        "component_type_id": "HOPPER_INLET",
+        "component_name": "Tolva de alimentación"
+      },
+      {
+        "component_type_id": "BELT",
+        "component_name": "Banda transportadora"
+      },
+      {
+        "component_type_id": "CARRY_IDLERS",
+        "component_name": "Rodillos portantes"
+      },
+      {
+        "component_type_id": "RETURN_IDLERS",
+        "component_name": "Rodillos de retorno"
+      },
+      {
+        "component_type_id": "DRIVE_PULLEY",
+        "component_name": "Tambor motriz"
+      },
+      {
+        "component_type_id": "TAIL_PULLEY",
+        "component_name": "Tambor de cola"
+      },
+      {
+        "component_type_id": "MAGNET_CORE",
+        "component_name": "Módulo de imán permanente"
+      },
+      {
+        "component_type_id": "CLEANING_BELT",
+        "component_name": "Banda extractora autolimpiante"
+      },
+      {
+        "component_type_id": "METAL_CHUTE",
+        "component_name": "Canal de descarga de ferrosos"
+      },
+      {
+        "component_type_id": "WEIGHBRIDGE",
+        "component_name": "Puente de pesaje"
+      },
+      {
+        "component_type_id": "LOAD_CELLS",
+        "component_name": "Celdas de carga"
+      },
+      {
+        "component_type_id": "SPEED_SENSOR",
+        "component_name": "Sensor de velocidad"
+      },
+      {
+        "component_type_id": "INTEGRATOR",
+        "component_name": "Integrador o totalizador"
+      },
+      {
+        "component_type_id": "BOOM",
+        "component_name": "Pluma y brazo hidráulico"
+      },
+      {
+        "component_type_id": "CYLINDERS",
+        "component_name": "Cilindros hidráulicos"
+      },
+      {
+        "component_type_id": "HAMMER",
+        "component_name": "Martillo rompedor y cincel"
+      },
+      {
+        "component_type_id": "HYD_POWER",
+        "component_name": "Unidad de potencia hidráulica"
+      },
+      {
+        "component_type_id": "PUMP",
+        "component_name": "Bomba de agua"
+      },
+      {
+        "component_type_id": "FILTER",
+        "component_name": "Filtro de agua"
+      },
+      {
+        "component_type_id": "NOZZLES",
+        "component_name": "Boquillas de aspersión"
+      },
+      {
+        "component_type_id": "SPRAY_MANIFOLD",
+        "component_name": "Colector de aspersión"
+      },
+      {
+        "component_type_id": "SOLENOID",
+        "component_name": "Válvula solenoide"
+      },
+      {
+        "component_type_id": "DETECTOR_COILS",
+        "component_name": "Bobinas de detección"
+      },
+      {
+        "component_type_id": "METAL_CONTROL",
+        "component_name": "Controlador de detección"
+      },
+      {
+        "component_type_id": "INTERLOCK",
+        "component_name": "Salida de alarma o interbloqueo"
+      },
+      {
+        "component_type_id": "ELECTRICAL_CABINET",
+        "component_name": "Gabinete de control"
+      },
+      {
+        "component_type_id": "SUSPENSION",
+        "component_name": "Estructura de suspensión"
+      },
+      {
+        "component_type_id": "SAFETY_GUARDS",
+        "component_name": "Guardas de seguridad"
+      },
+      {
+        "component_type_id": "WIRING",
+        "component_name": "Cableado de señal"
+      }
+    ],
+    "asset_type_components": [
+      {
+        "asset_type_id": "ROM_STOCKPILE",
+        "component_type_id": "STOCKPILE",
+        "display_order": 1
+      },
+      {
+        "asset_type_id": "ROM_STOCKPILE",
+        "component_type_id": "ACCESS",
+        "display_order": 2
+      },
+      {
+        "asset_type_id": "ROM_STOCKPILE",
+        "component_type_id": "LOADER",
+        "display_order": 3
+      },
+      {
+        "asset_type_id": "ROM_STOCKPILE",
+        "component_type_id": "DRAINAGE",
+        "display_order": 4
+      },
+      {
+        "asset_type_id": "RECEIVING_HOPPER",
+        "component_type_id": "HOPPER_BODY",
+        "display_order": 1
+      },
+      {
+        "asset_type_id": "RECEIVING_HOPPER",
+        "component_type_id": "WEAR_LINER",
+        "display_order": 2
+      },
+      {
+        "asset_type_id": "RECEIVING_HOPPER",
+        "component_type_id": "SUPPORT_FRAME",
+        "display_order": 3
+      },
+      {
+        "asset_type_id": "RECEIVING_HOPPER",
+        "component_type_id": "CHUTE",
+        "display_order": 4
+      },
+      {
+        "asset_type_id": "RECEIVING_HOPPER",
+        "component_type_id": "ANCHORS",
+        "display_order": 5
+      },
+      {
+        "asset_type_id": "RECEPTION_SCREEN",
+        "component_type_id": "HOPPER_INLET",
+        "display_order": 1
+      },
+      {
+        "asset_type_id": "RECEPTION_SCREEN",
+        "component_type_id": "VIBRATING_BODY",
+        "display_order": 2
+      },
+      {
+        "asset_type_id": "RECEPTION_SCREEN",
+        "component_type_id": "SCREEN_MEDIA",
+        "display_order": 3
+      },
+      {
+        "asset_type_id": "RECEPTION_SCREEN",
+        "component_type_id": "EXCITER",
+        "display_order": 4
+      },
+      {
+        "asset_type_id": "RECEPTION_SCREEN",
+        "component_type_id": "SPRINGS",
+        "display_order": 5
+      },
+      {
+        "asset_type_id": "RECEPTION_SCREEN",
+        "component_type_id": "SUPPORT_FRAME",
+        "display_order": 6
+      },
+      {
+        "asset_type_id": "RECEPTION_SCREEN",
+        "component_type_id": "CHUTE",
+        "display_order": 7
+      },
+      {
+        "asset_type_id": "APRON_FEEDER",
+        "component_type_id": "HOPPER_INLET",
+        "display_order": 1
+      },
+      {
+        "asset_type_id": "APRON_FEEDER",
+        "component_type_id": "APRON_PANS",
+        "display_order": 2
+      },
+      {
+        "asset_type_id": "APRON_FEEDER",
+        "component_type_id": "LATERAL_CHAINS",
+        "display_order": 3
+      },
+      {
+        "asset_type_id": "APRON_FEEDER",
+        "component_type_id": "TRACK_ROLLERS",
+        "display_order": 4
+      },
+      {
+        "asset_type_id": "APRON_FEEDER",
+        "component_type_id": "GEARMOTOR",
+        "display_order": 5
+      },
+      {
+        "asset_type_id": "APRON_FEEDER",
+        "component_type_id": "SUPPORT_FRAME",
+        "display_order": 6
+      },
+      {
+        "asset_type_id": "APRON_FEEDER",
+        "component_type_id": "SAFETY_GUARDS",
+        "display_order": 7
+      },
+      {
+        "asset_type_id": "FEED_BELT_CONVEYOR",
+        "component_type_id": "BELT",
+        "display_order": 1
+      },
+      {
+        "asset_type_id": "FEED_BELT_CONVEYOR",
+        "component_type_id": "CARRY_IDLERS",
+        "display_order": 2
+      },
+      {
+        "asset_type_id": "FEED_BELT_CONVEYOR",
+        "component_type_id": "RETURN_IDLERS",
+        "display_order": 3
+      },
+      {
+        "asset_type_id": "FEED_BELT_CONVEYOR",
+        "component_type_id": "DRIVE_PULLEY",
+        "display_order": 4
+      },
+      {
+        "asset_type_id": "FEED_BELT_CONVEYOR",
+        "component_type_id": "TAIL_PULLEY",
+        "display_order": 5
+      },
+      {
+        "asset_type_id": "FEED_BELT_CONVEYOR",
+        "component_type_id": "GEARMOTOR",
+        "display_order": 6
+      },
+      {
+        "asset_type_id": "FEED_BELT_CONVEYOR",
+        "component_type_id": "SUPPORT_FRAME",
+        "display_order": 7
+      },
+      {
+        "asset_type_id": "FEED_BELT_CONVEYOR",
+        "component_type_id": "SAFETY_GUARDS",
+        "display_order": 8
+      },
+      {
+        "asset_type_id": "MAGNETIC_SEPARATOR",
+        "component_type_id": "MAGNET_CORE",
+        "display_order": 1
+      },
+      {
+        "asset_type_id": "MAGNETIC_SEPARATOR",
+        "component_type_id": "CLEANING_BELT",
+        "display_order": 2
+      },
+      {
+        "asset_type_id": "MAGNETIC_SEPARATOR",
+        "component_type_id": "GEARMOTOR",
+        "display_order": 3
+      },
+      {
+        "asset_type_id": "MAGNETIC_SEPARATOR",
+        "component_type_id": "METAL_CHUTE",
+        "display_order": 4
+      },
+      {
+        "asset_type_id": "MAGNETIC_SEPARATOR",
+        "component_type_id": "SUSPENSION",
+        "display_order": 5
+      },
+      {
+        "asset_type_id": "MAGNETIC_SEPARATOR",
+        "component_type_id": "SAFETY_GUARDS",
+        "display_order": 6
+      },
+      {
+        "asset_type_id": "BELT_SCALE",
+        "component_type_id": "WEIGHBRIDGE",
+        "display_order": 1
+      },
+      {
+        "asset_type_id": "BELT_SCALE",
+        "component_type_id": "LOAD_CELLS",
+        "display_order": 2
+      },
+      {
+        "asset_type_id": "BELT_SCALE",
+        "component_type_id": "SPEED_SENSOR",
+        "display_order": 3
+      },
+      {
+        "asset_type_id": "BELT_SCALE",
+        "component_type_id": "INTEGRATOR",
+        "display_order": 4
+      },
+      {
+        "asset_type_id": "BELT_SCALE",
+        "component_type_id": "WIRING",
+        "display_order": 5
+      },
+      {
+        "asset_type_id": "ROCK_BREAKER",
+        "component_type_id": "BOOM",
+        "display_order": 1
+      },
+      {
+        "asset_type_id": "ROCK_BREAKER",
+        "component_type_id": "CYLINDERS",
+        "display_order": 2
+      },
+      {
+        "asset_type_id": "ROCK_BREAKER",
+        "component_type_id": "HAMMER",
+        "display_order": 3
+      },
+      {
+        "asset_type_id": "ROCK_BREAKER",
+        "component_type_id": "HYD_POWER",
+        "display_order": 4
+      },
+      {
+        "asset_type_id": "ROCK_BREAKER",
+        "component_type_id": "ANCHORS",
+        "display_order": 5
+      },
+      {
+        "asset_type_id": "ROCK_BREAKER",
+        "component_type_id": "SAFETY_GUARDS",
+        "display_order": 6
+      },
+      {
+        "asset_type_id": "DUST_SUPPRESSION",
+        "component_type_id": "PUMP",
+        "display_order": 1
+      },
+      {
+        "asset_type_id": "DUST_SUPPRESSION",
+        "component_type_id": "FILTER",
+        "display_order": 2
+      },
+      {
+        "asset_type_id": "DUST_SUPPRESSION",
+        "component_type_id": "NOZZLES",
+        "display_order": 3
+      },
+      {
+        "asset_type_id": "DUST_SUPPRESSION",
+        "component_type_id": "SPRAY_MANIFOLD",
+        "display_order": 4
+      },
+      {
+        "asset_type_id": "DUST_SUPPRESSION",
+        "component_type_id": "SOLENOID",
+        "display_order": 5
+      },
+      {
+        "asset_type_id": "DUST_SUPPRESSION",
+        "component_type_id": "ELECTRICAL_CABINET",
+        "display_order": 6
+      },
+      {
+        "asset_type_id": "METAL_DETECTOR",
+        "component_type_id": "DETECTOR_COILS",
+        "display_order": 1
+      },
+      {
+        "asset_type_id": "METAL_DETECTOR",
+        "component_type_id": "METAL_CONTROL",
+        "display_order": 2
+      },
+      {
+        "asset_type_id": "METAL_DETECTOR",
+        "component_type_id": "INTERLOCK",
+        "display_order": 3
+      },
+      {
+        "asset_type_id": "METAL_DETECTOR",
+        "component_type_id": "WIRING",
+        "display_order": 4
+      },
+      {
+        "asset_type_id": "METAL_DETECTOR",
+        "component_type_id": "SUPPORT_FRAME",
+        "display_order": 5
+      }
+    ],
+    "measurement_units": [
+      {
+        "unit_code": "t",
+        "unit_name": "tonelada"
+      },
+      {
+        "unit_code": "t/h",
+        "unit_name": "toneladas por hora"
+      },
+      {
+        "unit_code": "m3",
+        "unit_name": "metro cúbico"
+      },
+      {
+        "unit_code": "mm",
+        "unit_name": "milímetro"
+      },
+      {
+        "unit_code": "m",
+        "unit_name": "metro"
+      },
+      {
+        "unit_code": "m/s",
+        "unit_name": "metros por segundo"
+      },
+      {
+        "unit_code": "kW",
+        "unit_name": "kilovatio"
+      },
+      {
+        "unit_code": "bar",
+        "unit_name": "bar"
+      },
+      {
+        "unit_code": "L/min",
+        "unit_name": "litros por minuto"
+      },
+      {
+        "unit_code": "rpm",
+        "unit_name": "revoluciones por minuto"
+      },
+      {
+        "unit_code": "pct",
+        "unit_name": "porcentaje"
+      },
+      {
+        "unit_code": "V",
+        "unit_name": "voltio"
+      },
+      {
+        "unit_code": "uds",
+        "unit_name": "unidades"
+      }
+    ],
+    "technical_parameters": [
+      {
+        "parameter_code": "STORAGE_T",
+        "parameter_name": "Capacidad de acopio",
+        "unit_code": "t"
+      },
+      {
+        "parameter_code": "STOCKPILE_HEIGHT_M",
+        "parameter_name": "Altura de pila",
+        "unit_code": "m"
+      },
+      {
+        "parameter_code": "HOPPER_VOLUME_M3",
+        "parameter_name": "Volumen útil de tolva",
+        "unit_code": "m3"
+      },
+      {
+        "parameter_code": "MAX_FEED_MM",
+        "parameter_name": "Tamaño máximo de alimentación",
+        "unit_code": "mm"
+      },
+      {
+        "parameter_code": "CAPACITY_TPH",
+        "parameter_name": "Capacidad de proceso",
+        "unit_code": "t/h"
+      },
+      {
+        "parameter_code": "SCREEN_APERTURE_MM",
+        "parameter_name": "Abertura de criba",
+        "unit_code": "mm"
+      },
+      {
+        "parameter_code": "VIBRATION_RPM",
+        "parameter_name": "Frecuencia de vibración",
+        "unit_code": "rpm"
+      },
+      {
+        "parameter_code": "BELT_WIDTH_MM",
+        "parameter_name": "Ancho de banda",
+        "unit_code": "mm"
+      },
+      {
+        "parameter_code": "BELT_SPEED_MPS",
+        "parameter_name": "Velocidad de banda",
+        "unit_code": "m/s"
+      },
+      {
+        "parameter_code": "MOTOR_POWER_KW",
+        "parameter_name": "Potencia del motor",
+        "unit_code": "kW"
+      },
+      {
+        "parameter_code": "FEEDER_LENGTH_M",
+        "parameter_name": "Longitud de alimentador",
+        "unit_code": "m"
+      },
+      {
+        "parameter_code": "MAGNET_HEIGHT_MM",
+        "parameter_name": "Altura de suspensión magnética",
+        "unit_code": "mm"
+      },
+      {
+        "parameter_code": "MAGNET_GAP_MM",
+        "parameter_name": "Separación imán-material",
+        "unit_code": "mm"
+      },
+      {
+        "parameter_code": "WEIGH_ACCURACY_PCT",
+        "parameter_name": "Exactitud del sistema de pesaje",
+        "unit_code": "pct"
+      },
+      {
+        "parameter_code": "BELT_SCALE_RANGE_TPH",
+        "parameter_name": "Rango de medida de báscula",
+        "unit_code": "t/h"
+      },
+      {
+        "parameter_code": "ROCK_BREAKER_REACH_M",
+        "parameter_name": "Alcance del rompedor",
+        "unit_code": "m"
+      },
+      {
+        "parameter_code": "HYD_PRESSURE_BAR",
+        "parameter_name": "Presión de trabajo hidráulica",
+        "unit_code": "bar"
+      },
+      {
+        "parameter_code": "HYD_FLOW_LPM",
+        "parameter_name": "Caudal hidráulico",
+        "unit_code": "L/min"
+      },
+      {
+        "parameter_code": "WATER_PRESSURE_BAR",
+        "parameter_name": "Presión de agua de aspersión",
+        "unit_code": "bar"
+      },
+      {
+        "parameter_code": "WATER_FLOW_LPM",
+        "parameter_name": "Caudal de agua total",
+        "unit_code": "L/min"
+      },
+      {
+        "parameter_code": "NOZZLE_COUNT",
+        "parameter_name": "Cantidad de boquillas",
+        "unit_code": "uds"
+      },
+      {
+        "parameter_code": "DETECTOR_OPENING_MM",
+        "parameter_name": "Altura útil del detector",
+        "unit_code": "mm"
+      },
+      {
+        "parameter_code": "POWER_SUPPLY_V",
+        "parameter_name": "Tensión de alimentación",
+        "unit_code": "V"
+      },
+      {
+        "parameter_code": "BULK_DENSITY",
+        "parameter_name": "Densidad aparente del mineral",
+        "unit_code": null
+      },
+      {
+        "parameter_code": "WEIGHBRIDGE_SPAN_M",
+        "parameter_name": "Longitud de puente de pesaje",
+        "unit_code": "m"
+      }
+    ],
+    "asset_type_parameter_requirements": [
+      {
+        "asset_type_id": "ROM_STOCKPILE",
+        "parameter_code": "STORAGE_T",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "ROM_STOCKPILE",
+        "parameter_code": "STOCKPILE_HEIGHT_M",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "ROM_STOCKPILE",
+        "parameter_code": "MAX_FEED_MM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "ROM_STOCKPILE",
+        "parameter_code": "BULK_DENSITY",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "RECEIVING_HOPPER",
+        "parameter_code": "HOPPER_VOLUME_M3",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "RECEIVING_HOPPER",
+        "parameter_code": "MAX_FEED_MM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "RECEIVING_HOPPER",
+        "parameter_code": "CAPACITY_TPH",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "RECEIVING_HOPPER",
+        "parameter_code": "BULK_DENSITY",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "RECEPTION_SCREEN",
+        "parameter_code": "CAPACITY_TPH",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "RECEPTION_SCREEN",
+        "parameter_code": "MAX_FEED_MM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "RECEPTION_SCREEN",
+        "parameter_code": "SCREEN_APERTURE_MM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "RECEPTION_SCREEN",
+        "parameter_code": "VIBRATION_RPM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "RECEPTION_SCREEN",
+        "parameter_code": "MOTOR_POWER_KW",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "APRON_FEEDER",
+        "parameter_code": "CAPACITY_TPH",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "APRON_FEEDER",
+        "parameter_code": "MAX_FEED_MM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "APRON_FEEDER",
+        "parameter_code": "FEEDER_LENGTH_M",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "APRON_FEEDER",
+        "parameter_code": "MOTOR_POWER_KW",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "FEED_BELT_CONVEYOR",
+        "parameter_code": "CAPACITY_TPH",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "FEED_BELT_CONVEYOR",
+        "parameter_code": "BELT_WIDTH_MM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "FEED_BELT_CONVEYOR",
+        "parameter_code": "BELT_SPEED_MPS",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "FEED_BELT_CONVEYOR",
+        "parameter_code": "MOTOR_POWER_KW",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "MAGNETIC_SEPARATOR",
+        "parameter_code": "BELT_WIDTH_MM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "MAGNETIC_SEPARATOR",
+        "parameter_code": "BELT_SPEED_MPS",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "MAGNETIC_SEPARATOR",
+        "parameter_code": "MAGNET_HEIGHT_MM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "MAGNETIC_SEPARATOR",
+        "parameter_code": "MAGNET_GAP_MM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "MAGNETIC_SEPARATOR",
+        "parameter_code": "MOTOR_POWER_KW",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "BELT_SCALE",
+        "parameter_code": "BELT_WIDTH_MM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "BELT_SCALE",
+        "parameter_code": "BELT_SCALE_RANGE_TPH",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "BELT_SCALE",
+        "parameter_code": "WEIGH_ACCURACY_PCT",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "BELT_SCALE",
+        "parameter_code": "WEIGHBRIDGE_SPAN_M",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "BELT_SCALE",
+        "parameter_code": "POWER_SUPPLY_V",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "ROCK_BREAKER",
+        "parameter_code": "ROCK_BREAKER_REACH_M",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "ROCK_BREAKER",
+        "parameter_code": "HYD_PRESSURE_BAR",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "ROCK_BREAKER",
+        "parameter_code": "HYD_FLOW_LPM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "ROCK_BREAKER",
+        "parameter_code": "MOTOR_POWER_KW",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "DUST_SUPPRESSION",
+        "parameter_code": "WATER_PRESSURE_BAR",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "DUST_SUPPRESSION",
+        "parameter_code": "WATER_FLOW_LPM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "DUST_SUPPRESSION",
+        "parameter_code": "NOZZLE_COUNT",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "DUST_SUPPRESSION",
+        "parameter_code": "MOTOR_POWER_KW",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "DUST_SUPPRESSION",
+        "parameter_code": "POWER_SUPPLY_V",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "METAL_DETECTOR",
+        "parameter_code": "BELT_WIDTH_MM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "METAL_DETECTOR",
+        "parameter_code": "DETECTOR_OPENING_MM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "METAL_DETECTOR",
+        "parameter_code": "BELT_SPEED_MPS",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "METAL_DETECTOR",
+        "parameter_code": "POWER_SUPPLY_V",
+        "required_for_fur": true
+      }
+    ],
+    "asset_specifications": [],
+    "data_quality_flags": [
+      {
+        "flag_id": "DQ-REV2-E01-006",
+        "asset_id": "REV2-E01-006",
+        "field_name": "TAG_ACTIVO / FUR",
+        "issue_detail": "La fila 06 en una captura del listado maestro presenta caracteres potencialmente inconsistentes o duplicados respecto de la secuencia. Se asignan provisionalmente CAND-01-06 y FUR-PROC-E01-006; validar contra fuente editable antes de migración definitiva.",
+        "resolution_status": "PENDIENTE"
+      }
+    ]
+  }
+}

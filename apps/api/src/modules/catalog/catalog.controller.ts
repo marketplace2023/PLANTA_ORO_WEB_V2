@@ -84,7 +84,7 @@ export class CatalogController {
         technicalData: assetModels.technicalData,
         /** Ruta (relativa a la API) de la foto del modelo; null si no tiene. */
         imageUrl: sql<string | null>`case when ${assetModels.imageKey} is null then null else '/catalog/models/' || ${assetModels.id}::text || '/image?v=' || (extract(epoch from ${assetModels.imageUpdatedAt}) * 1000)::bigint::text end`,
-        type: { id: assetTypes.id, code: assetTypes.code, name: assetTypes.name, stageCodes: typeStageCodes, networkCodes: typeNetworkCodes },
+        type: { id: assetTypes.id, code: assetTypes.code, name: assetTypes.name, description: assetTypes.description, stageCodes: typeStageCodes, networkCodes: typeNetworkCodes },
         family: { id: assetFamilies.id, code: assetFamilies.code, name: assetFamilies.name, icon: assetFamilies.icon },
         manufacturer: { id: manufacturers.id, name: manufacturers.name, countryCode: manufacturers.countryCode },
       })

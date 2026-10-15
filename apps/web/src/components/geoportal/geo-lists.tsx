@@ -1,4 +1,4 @@
-import { ListOrdered, Network } from 'lucide-react'
+import { ListOrdered, Lock, Network } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { PlantNetwork, PlantStage } from '@/features/plant/use-plant-data'
 import { cn } from '@/lib/utils'
@@ -70,12 +70,15 @@ export function NetworkList({
   selected,
   loading,
   onSelect,
+  onlyNetwork,
 }: {
   networks: PlantNetwork[]
   counts: Record<string, number> | undefined
   selected: string | undefined
   loading: boolean
   onSelect: (code: string | undefined) => void
+  /** Si se indica, solo esa red está disponible: es la activa y las demás se muestran bloqueadas (con candado). */
+  onlyNetwork?: string
 }) {
   return (
     <GeoPanel title="Redes transversales" icon={Network} bodyClassName="p-1.5">
@@ -90,13 +93,30 @@ export function NetworkList({
       ) : (
         <ul className="space-y-0.5" aria-label="Redes">
           {networks.map((n) => {
+            if (onlyNetwork && n.code !== onlyNetwork) {
+              return (
+                <li key={n.id}>
+                  <button
+                    type="button"
+                    disabled
+                    aria-label={`${n.code} ${n.name}: bloqueada`}
+                    title="Bloqueada: en esta vista solo está disponible la red de Procesos"
+                    className="flex w-full cursor-not-allowed items-center gap-2 rounded-md border border-transparent px-2.5 py-1.5 text-left text-sm text-fur-gray-500 opacity-70"
+                  >
+                    <Lock className="size-3.5 shrink-0" aria-hidden />
+                    <span className="fur-code shrink-0 text-xs">{n.code}</span>
+                    <span className="truncate">{n.name}</span>
+                  </button>
+                </li>
+              )
+            }
             const active = n.code === selected
             return (
               <li key={n.id}>
                 <button
                   type="button"
                   aria-pressed={active}
-                  onClick={() => onSelect(active ? undefined : n.code)}
+                  onClick={() => onSelect(onlyNetwork ? undefined : active ? undefined : n.code)}
                   className={cn(
                     'flex w-full items-center gap-2 rounded-md border px-2.5 py-1.5 text-left text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
                     active ? 'border-fur-navy-900 bg-fur-navy-900/5 font-semibold text-fur-navy-900' : 'border-transparent text-fur-gray-800 hover:bg-muted',
@@ -105,7 +125,7 @@ export function NetworkList({
                   <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: n.colorToken ? `var(--${n.colorToken})` : 'var(--fur-steel-500)' }} aria-hidden />
                   <span className="fur-code shrink-0 text-xs">{n.code}</span>
                   <span className="truncate text-fur-gray-600">{n.name}</span>
-                  {active ? <span className="ml-auto shrink-0 rounded-full bg-fur-gold-500 px-2 py-0.5 text-[10px] font-bold text-fur-navy-950 uppercase">Activa</span> : count(counts?.[n.code])}
+                  {active || onlyNetwork ? <span className="ml-auto shrink-0 rounded-full bg-fur-gold-500 px-2 py-0.5 text-[10px] font-bold text-fur-navy-950 uppercase">Activa</span> : count(counts?.[n.code])}
                 </button>
               </li>
             )

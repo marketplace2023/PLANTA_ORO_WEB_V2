@@ -12,12 +12,15 @@ REGION=us-east-2
 ACCOUNT=850695279479
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PARENT="$(cd "$ROOT/.." && pwd)"
+# Git Bash en Windows: el AWS CLI y Docker son programas de Windows y necesitan rutas C:/... (no /c/...).
+if command -v cygpath >/dev/null 2>&1; then ROOT="$(cygpath -m "$ROOT")"; PARENT="$(cygpath -m "$PARENT")"; fi
 aws() { command aws --profile "$PROFILE" --region "$REGION" "$@"; }
 
 deploy_api() {
   local registry="$ACCOUNT.dkr.ecr.$REGION.amazonaws.com" tag
   tag="$(date +%Y%m%d-%H%M)"
-  docker build -f "$ROOT/Dockerfile.api" -t fur-api:latest "$ROOT"
+  # Desde la raíz y con ruta relativa: Docker en Windows no entiende las rutas /c/... de Git Bash.
+  (cd "$ROOT" && docker build -f Dockerfile.api -t fur-api:latest .)
   aws ecr get-login-password | docker login --username AWS --password-stdin "$registry"
   docker tag fur-api:latest "$registry/fur-api:$tag"
   docker tag fur-api:latest "$registry/fur-api:latest"

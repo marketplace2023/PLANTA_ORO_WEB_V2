@@ -1,4 +1,4 @@
-import { ClipboardList, Cpu, Factory, Info, Package, Settings2, X, type LucideIcon } from 'lucide-react'
+import { ClipboardList, ExternalLink, Factory, Info, ListChecks, Package, Settings2, X, type LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
@@ -49,6 +49,36 @@ function Pending({ children = PENDING }: { children?: ReactNode }) {
   return <span className="text-fur-gray-500">{children}</span>
 }
 
+type ReferenceManufacturer = { nombre: string; alcance: string | null; sitioWeb: string | null }
+
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
+const textOrNull = (v: unknown) => (typeof v === 'string' && v.trim() !== '' ? v : null)
+
+/**
+ * Los datos técnicos del modelo traen, además de pares clave-valor sueltos, tres bloques que la ficha muestra en su
+ * propia sección: `identificacion` (etiqueta → valor), `componentes` (lista) y `fabricantesReferencia`.
+ */
+function readTechnicalData(technicalData: Record<string, unknown>, specifications: Record<string, unknown>) {
+  const { identificacion, componentes, fabricantesReferencia, fuente, ...rest } = technicalData
+  const identification: Array<[string, string]> = isRecord(identificacion)
+    ? Object.entries(identificacion).flatMap(([k, v]): Array<[string, string]> => {
+        const text = textOrNull(v)
+        return text ? [[k, text]] : []
+      })
+    : []
+  const components = Array.isArray(componentes) ? componentes.filter((c): c is string => typeof c === 'string') : []
+  const manufacturers: ReferenceManufacturer[] = Array.isArray(fabricantesReferencia)
+    ? fabricantesReferencia.filter(isRecord).flatMap((m) => {
+        const nombre = textOrNull(m.nombre)
+        return nombre ? [{ nombre, alcance: textOrNull(m.alcance), sitioWeb: textOrNull(m.sitioWeb) }] : []
+      })
+    : []
+  return { identification, components, manufacturers, source: textOrNull(fuente), specs: Object.entries({ ...rest, ...specifications }) }
+}
+
+/** Solo se enlazan direcciones http(s); cualquier otra cosa se muestra como texto. */
+const safeUrl = (url: string | null) => (url && /^https?:\/\//i.test(url) ? url : null)
+
 /** Un parámetro con su valor propio, el general de la variable o «Por determinar». */
 function ValueCell({ def }: { def: ModelVariable }) {
   const own = def.value === null ? null : formatVariableValue(def.valueType, def.value, def.unit)
@@ -64,7 +94,7 @@ function ValueCell({ def }: { def: ModelVariable }) {
 }
 
 function ParametersTable({ defs }: { defs: ModelVariable[] }) {
-  const grouped = defs.some((d) => d.group)
+  const grouped = new Set(defs.map((d) => d.group ?? '')).size > 1
   return (
     <table className="w-full text-sm">
       <thead>
@@ -100,8 +130,9 @@ function ParametersTable({ defs }: { defs: ModelVariable[] }) {
 }
 
 /**
- * Ficha técnica preliminar de un MODELO del catálogo global (con el formato de la ficha del activo físico): su
- * identificación y las variables por red transversal (proceso, potencia…). No es la ficha de un activo de una planta.
+ * Ficha técnica preliminar de un MODELO del catálogo global, con la misma estructura para todos (la de la ficha del
+ * activo físico): identificación, parámetros técnicos, componentes y fabricantes de referencia. Lo que aún no se
+ * conoce se muestra como «Por determinar». No es la ficha de un activo de una planta.
  */
 export function ModelFichaDialog({
   model,
@@ -118,25 +149,23 @@ export function ModelFichaDialog({
   const stageName = (code: string) => stages.find((s) => s.code === code)?.name
   const networkName = (code: string) => networks.find((n) => n.code === code)?.name ?? code
 
-  // Variables que aplican a alguna de las etapas del tipo (si el tipo no tiene etapas asignadas, todas).
-  const defs = (variables.data ?? []).filter(
-    (d) => d.stageCodes.length === 0 || model.type.stageCodes.length === 0 || d.stageCodes.some((c) => model.type.stageCodes.includes(c)),
-  )
-  const orderedNetworks = [...networks.map((n) => n.code), ...defs.flatMap((d) => d.networkCodes)].filter((c, i, all) => all.indexOf(c) === i)
-  const sections: Array<{ key: string; title: string; defs: ModelVariable[] }> = [
-    ...orderedNetworks
-      .map((code) => ({ key: code, title: `${networkName(code)} (${code})`, defs: defs.filter((d) => d.networkCodes.includes(code)) }))
-      .filter((s) => s.defs.length > 0),
-    ...(defs.some((d) => d.networkCodes.length === 0) ? [{ key: 'general', title: 'Parámetros generales', defs: defs.filter((d) => d.networkCodes.length === 0) }] : []),
-  ]
+  // Todos los parámetros del tipo en una sola tabla (como la ficha del activo): los que aplican a alguna de las etapas del
+  // tipo, o a todas, en el orden en que se definieron.
+  const defs = (variables.data ?? [])
+    .filter((d) => d.stageCodes.length === 0 || model.type.stageCodes.length === 0 || d.stageCodes.some((c) => model.type.stageCodes.includes(c)))
+    .sort((x, y) => x.sortOrder - y.sortOrder)
 
-  const specs = Object.entries({ ...model.technicalData, ...model.specifications })
+  const { identification, components, manufacturers, source, specs } = readTechnicalData(model.technicalData, model.specifications)
+  const recordState = identification.find(([k]) => k === 'Estado de la ficha')?.[1]
+  // Orden de la ficha de planta: proyecto, TAG activo, TAG mapa, FUR, etapa, clasificación, criticidad.
+  const LEADING = ['Proyecto', 'TAG activo', 'TAG mapa', 'Código FUR', 'Etapa de proceso', 'Clasificación', 'Criticidad']
+  const leading = LEADING.flatMap((k) => identification.filter(([key]) => key === k))
+  const description = model.type.description?.trim() || null
   const imageUrl = model.imageUrl ? apiUrl(model.imageUrl) : null
   const manufacturer = model.manufacturer ? `${model.manufacturer.name}${model.manufacturer.countryCode ? ` · ${model.manufacturer.countryCode}` : ''}` : null
 
-  // Numeración de las secciones: 1 identificación, luego una por red (o una sola si no hay variables) y al final las especificaciones.
-  const parametersCount = variables.isLoading || sections.length === 0 ? 1 : sections.length
-  const specsNumber = 2 + parametersCount
+  const specsNumber = 5
+  const noteNumber = specs.length > 0 ? 6 : 5
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent
@@ -168,10 +197,13 @@ export function ModelFichaDialog({
 
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3 sm:p-4">
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
-            <div className="flex flex-col justify-center rounded-lg bg-sky-100 px-5 py-4">
-              <h2 className="text-2xl leading-tight font-black tracking-tight text-fur-navy-900 uppercase sm:text-4xl">{model.modelName}</h2>
-              <p className="mt-1.5 text-base font-semibold text-sky-800 sm:text-lg">{model.type.name}</p>
-              <p className="text-sm text-fur-gray-600">{manufacturer ?? 'Fabricante genérico'}</p>
+            <div className="flex items-center gap-4 rounded-lg bg-sky-100 px-5 py-4">
+              <div className="min-w-0">
+                <h2 className="text-2xl leading-tight font-black tracking-tight text-fur-navy-900 uppercase sm:text-3xl">{model.modelName}</h2>
+                <p className="mt-1 text-base font-semibold text-sky-800 sm:text-lg">{description ?? model.type.name}</p>
+                {description && <p className="text-sm text-fur-gray-600">{model.type.name}</p>}
+                <p className="text-sm text-fur-gray-600">{manufacturer ?? 'Fabricante genérico'}</p>
+              </div>
             </div>
             <div className="grid min-h-40 place-items-center overflow-hidden rounded-lg border border-sky-200 bg-white">
               {imageUrl ? (
@@ -188,12 +220,14 @@ export function ModelFichaDialog({
           <Section n={1} icon={ClipboardList} title="Identificación del activo">
             <KeyValue
               rows={[
+                // Primero lo que identifica al activo en el inventario (como en la ficha de planta), luego lo del catálogo.
+                ...leading.map(([k, v]): [string, ReactNode] => [k, v]),
                 ['Familia', model.family.name],
                 ['Tipo de activo', model.type.name],
                 ['Modelo', model.modelName],
                 ['Fabricante', manufacturer ?? <Pending>Genérico</Pending>],
                 [
-                  'Etapas del proceso',
+                  'Etapas donde aplica',
                   model.type.stageCodes.length > 0 ? (
                     <ul className="flex flex-wrap gap-1.5">
                       {model.type.stageCodes.map((c) => (
@@ -211,26 +245,46 @@ export function ModelFichaDialog({
                   'Redes transversales',
                   model.type.networkCodes.length > 0 ? model.type.networkCodes.map(networkName).join(' · ') : <Pending>Sin asignar</Pending>,
                 ],
-                ['Estado de la ficha', <span key="st" className="font-semibold text-fur-red-500">REFERENCIAL — catálogo global, pendiente de validación en planta</span>],
+                [
+                  'Estado de la ficha',
+                  <span key="st" className="font-semibold text-fur-red-500">
+                    {recordState ?? 'REFERENCIAL — catálogo global, pendiente de validación en planta'}
+                  </span>,
+                ],
               ]}
             />
           </Section>
 
-          {variables.isLoading ? (
-            <Skeleton className="h-40 rounded-lg" aria-busy="true" aria-label="Cargando variables" />
-          ) : sections.length === 0 ? (
-            <Section n={2} icon={Settings2} title="Parámetros técnicos por confirmar">
-              <p className="px-3 py-3 text-sm text-fur-gray-600">Este tipo de activo aún no tiene variables definidas.</p>
+          <div className="grid items-start gap-3 lg:grid-cols-2">
+            {variables.isLoading ? (
+              <Skeleton className="h-40 rounded-lg" aria-busy="true" aria-label="Cargando parámetros" />
+            ) : (
+              <Section n={2} icon={Settings2} title="Parámetros técnicos" hint="(por confirmar)">
+                {defs.length > 0 ? (
+                  <ParametersTable defs={defs} />
+                ) : (
+                  <p className="px-3 py-3 text-sm text-fur-gray-600">Este tipo de activo aún no tiene parámetros técnicos definidos.</p>
+                )}
+              </Section>
+            )}
+
+            <Section n={3} icon={ListChecks} title="Componentes principales" hint="(verificar en campo)">
+              {components.length > 0 ? (
+                <ol className="divide-y divide-sky-100 text-sm">
+                  {components.map((c, i) => (
+                    <li key={`${i}-${c}`} className="grid grid-cols-[2.5rem_1fr] gap-2 px-3 py-1.5">
+                      <span className="text-center font-semibold text-sky-800">{i + 1}</span>
+                      <span className="text-fur-gray-800">{c}</span>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="px-3 py-3 text-sm">
+                  <Pending />
+                </p>
+              )}
             </Section>
-          ) : (
-            <div className={sections.length > 1 ? 'grid gap-3 lg:grid-cols-2' : 'grid gap-3'}>
-              {sections.map((s, i) => (
-                <Section key={s.key} n={2 + i} icon={s.key === 'general' ? Cpu : Settings2} title={`Parámetros · ${s.title}`}>
-                  <ParametersTable defs={s.defs} />
-                </Section>
-              ))}
-            </div>
-          )}
+          </div>
 
           {specs.length > 0 && (
             <Section n={specsNumber} icon={Factory} title="Especificaciones del modelo">
@@ -238,16 +292,58 @@ export function ModelFichaDialog({
             </Section>
           )}
 
-          <aside className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-fur-gray-800">
-            <Info className="mt-0.5 size-5 shrink-0 text-fur-navy-800" aria-hidden />
-            <div className="space-y-1">
-              <p className="font-bold text-fur-navy-800 uppercase">Nota técnica</p>
-              <p>
-                Información preliminar y referencial del catálogo global: describe el modelo, no un equipo en particular. Los datos reales, componentes y
-                mantenimiento de cada activo se registran en Activos Físicos de la planta y se validan con planos, manual del fabricante e inspección en campo.
-              </p>
-            </div>
-          </aside>
+          <div className="grid items-start gap-3 lg:grid-cols-2">
+            <Section n={4} icon={Factory} title="Fabricantes de referencia y web">
+              {manufacturers.length > 0 ? (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-sky-100 text-left text-xs font-bold text-fur-navy-800">
+                      <th className="px-3 py-1.5">Fabricante</th>
+                      <th className="px-3 py-1.5">Descripción</th>
+                      <th className="px-3 py-1.5">Sitio web</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {manufacturers.map((m) => {
+                      const url = safeUrl(m.sitioWeb)
+                      return (
+                        <tr key={`${m.nombre}-${m.alcance}`} className="border-b border-sky-50 last:border-0">
+                          <td className="px-3 py-1.5 font-semibold text-fur-navy-900">{m.nombre}</td>
+                          <td className="px-3 py-1.5 text-fur-gray-800">{m.alcance ?? '—'}</td>
+                          <td className="px-3 py-1.5">
+                            {url ? (
+                              <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sky-800 underline underline-offset-2">
+                                {new URL(url).hostname.replace(/^www\./, '')} <ExternalLink className="size-3" aria-hidden />
+                              </a>
+                            ) : (
+                              (m.sitioWeb ?? '—')
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="px-3 py-3 text-sm">
+                  <Pending>Sin fabricantes de referencia registrados</Pending>
+                </p>
+              )}
+            </Section>
+
+            <aside className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-fur-gray-800">
+              <Info className="mt-0.5 size-5 shrink-0 text-fur-navy-800" aria-hidden />
+              <div className="space-y-1">
+                <p className="font-bold text-fur-navy-800 uppercase">{noteNumber}. Nota técnica</p>
+                <p>
+                  Información preliminar y referencial del catálogo global: describe el modelo, no un equipo en particular. Los datos reales,
+                  componentes y mantenimiento de cada activo se registran en Activos Físicos de la planta y se validan con planos, manual del fabricante e
+                  inspección en campo. Los fabricantes son referencias comerciales, no marcas instaladas verificadas.
+                </p>
+                {source && <p className="text-xs text-fur-gray-600">Fuente: {source}</p>}
+              </div>
+            </aside>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

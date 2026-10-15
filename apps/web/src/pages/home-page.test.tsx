@@ -44,9 +44,11 @@ describe('HomePage', () => {
     expect(screen.getByText('Molienda Primaria')).toBeInTheDocument()
     expect(screen.getByText('FUR-IOT')).toBeInTheDocument()
     // Una tarjeta por mapa, con su imagen; ya no hay tarjeta de salud del sistema.
-    for (const name of ['Caratal', 'Mina Sosa', 'Minacolombia', 'Revemin']) {
+    for (const name of ['Caratal', 'Mina Colombia', 'Revemin', 'Mina Sosa']) {
       expect(screen.getByRole('img', { name: `Mapa de ${name}` })).toBeInTheDocument()
     }
+    // Orden de las tarjetas: Caratal, Mina Colombia, Revemin y Mina Sosa.
+    expect(screen.getAllByRole('img', { name: /^Mapa de / }).map((i) => i.getAttribute('alt'))).toEqual(['Mapa de Caratal', 'Mapa de Mina Colombia', 'Mapa de Revemin', 'Mapa de Mina Sosa'])
     expect(screen.getByRole('img', { name: 'Mapa de Revemin' })).toHaveAttribute('src', '/MAPA%20REVEMIN.png')
     expect(screen.queryByText('Salud del sistema')).not.toBeInTheDocument()
     // Sin encabezado de presentación: la página abre directo en el contenido (queda un h1 solo para lectores de pantalla).

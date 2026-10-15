@@ -2,12 +2,12 @@ import { Maximize2 } from 'lucide-react'
 import { useState } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 
-/** Mapas (diagramas) de las plantas del ecosistema, servidos desde /public. Los nombres de archivo llevan espacios: se codifican. */
+/** Mapas (diagramas) de las plantas del ecosistema, servidos desde /public, en el orden en que se muestran. Los nombres de archivo llevan espacios: se codifican. */
 const MAPS = [
   { name: 'Caratal', file: 'MAPA CARATAL.jpeg' },
-  { name: 'Mina Sosa', file: 'MAPA MINA SOSA.jpeg' },
-  { name: 'Minacolombia', file: 'MAPA MINACOLOMBIA.jpeg' },
+  { name: 'Mina Colombia', file: 'MAPA MINACOLOMBIA.jpeg' },
   { name: 'Revemin', file: 'MAPA REVEMIN.png' },
+  { name: 'Mina Sosa', file: 'MAPA MINA SOSA.jpeg' },
 ].map((m) => ({ ...m, url: `/${encodeURIComponent(m.file)}` }))
 
 type MapCard = (typeof MAPS)[number]
@@ -39,7 +39,7 @@ export function PlantMapCards() {
                   <Maximize2 className="size-3.5" aria-hidden /> Ampliar
                 </span>
               </span>
-              <span className="block border-t border-border px-4 py-3 text-base font-semibold text-fur-navy-900">{m.name}</span>
+              <span className="block border-t border-border px-4 py-3 text-base font-semibold tracking-wide text-fur-navy-900 uppercase">{m.name}</span>
             </button>
           </li>
         ))}

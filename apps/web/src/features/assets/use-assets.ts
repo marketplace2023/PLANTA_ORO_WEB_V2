@@ -121,10 +121,11 @@ export const useAssets = (slug: string | undefined, filters: AssetFilters, pageS
     placeholderData: keepPreviousData,
   })
 
-export const useAssetsSummary = (slug: string | undefined) =>
+/** Conteos de la planta; con `network`, solo los activos de esa red (la vista de Procesos usa FUR-PROC). */
+export const useAssetsSummary = (slug: string | undefined, network?: string) =>
   useQuery({
-    queryKey: ['plant', slug, 'assets', 'summary'],
-    queryFn: () => api<AssetsSummary>(`/plants/${slug}/assets/summary`),
+    queryKey: ['plant', slug, 'assets', 'summary', network ?? null],
+    queryFn: () => api<AssetsSummary>(`/plants/${slug}/assets/summary${network ? `?network=${encodeURIComponent(network)}` : ''}`),
     enabled: !!slug,
   })
 
@@ -261,7 +262,7 @@ export type CatalogModel = {
   /** Ruta (relativa a la API) de la foto del modelo; usar con `apiUrl`. null = sin foto. */
   imageUrl: string | null
   /** `stageCodes` / `networkCodes`: etapas (D01…) y redes (FUR-PTE…) donde se usa el tipo; vacío = sin asignar. */
-  type: { id: string; code: string; name: string; stageCodes: string[]; networkCodes: string[] }
+  type: { id: string; code: string; name: string; description?: string | null; stageCodes: string[]; networkCodes: string[] }
   family: { id: string; code: string; name: string; icon: string | null }
   manufacturer: { id: string; name: string; countryCode: string | null } | null
 }

@@ -225,15 +225,26 @@ export class AssetsService {
 
   /**
    * Conteos de la planta para el geoportal: totales por estado, criticidad, etapa y red. Mismo alcance que el listado
-   * (quien no tiene asset.read solo cuenta lo público) y sin los dados de baja.
+   * (quien no tiene asset.read solo cuenta lo público) y sin los dados de baja. Con `network`, solo los de esa red.
    */
-  async summary(ref: string, user: AuthUser | undefined) {
+  async summary(ref: string, user: AuthUser | undefined, network?: string) {
     const plant = await this.plants.getForMember(ref, user)
     const { internal, publicAssets } = await this.scope(plant, user)
     const empty = { total: 0, byStatus: {} as Record<string, number>, byCriticality: {} as Record<string, number>, byStage: {} as Record<string, number>, byNetwork: {} as Record<string, number> }
     if (!internal && !publicAssets) return empty
 
-    const where = and(eq(assets.plantId, plant.id), ne(assets.status, 'DECOMMISSIONED'), internal ? undefined : eq(assets.isPublic, true))
+    const inNetwork = network
+      ? inArray(
+          assets.id,
+          this.db
+            .select({ id: assetNetworks.assetId })
+            .from(assetNetworks)
+            .innerJoin(plantNetworks, eq(plantNetworks.id, assetNetworks.plantNetworkId))
+            .innerJoin(networkMaster, eq(networkMaster.id, plantNetworks.networkMasterId))
+            .where(eq(networkMaster.code, network)),
+        )
+      : undefined
+    const where = and(eq(assets.plantId, plant.id), ne(assets.status, 'DECOMMISSIONED'), internal ? undefined : eq(assets.isPublic, true), inNetwork)
     const toRecord = (rows: Array<{ key: string | null; n: number }>) => Object.fromEntries(rows.filter((r) => r.key).map((r) => [r.key as string, r.n]))
 
     const [byStatus, byCriticality, byStage, byNetwork] = await Promise.all([

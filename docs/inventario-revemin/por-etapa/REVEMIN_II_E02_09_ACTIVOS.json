@@ -1,0 +1,1634 @@
+{
+  "metadata": {
+    "dataset": "REVEMIN II / Etapa 02 / 9 activos físicos",
+    "schema_version": "1.0.0",
+    "database_model": "Relacional normalizado (hasta 3FN; catálogos, relaciones N:M, identificadores externos separados)",
+    "created_date": "2026-10-13",
+    "source": "Listado maestro REVEMIN II adjunto y transcripción de la sección PROC-E02 — Trituración primaria (filas 11–19)",
+    "source_policy": "Los fabricantes son referencias comerciales, no marcas instaladas verificadas.",
+    "technical_data_policy": "No se asignan valores operativos a asset_specifications sin documentación comprobable.",
+    "null_policy": "No se crea identificador TAG_MAPA para activos sin alias documentado.",
+    "possible_discrepancy": "Revisar data_quality_flags: TAG_ACTIVO duplicado SC-001 y secuencia de TAG CAND-02-03 a CAND-02-08."
+  },
+  "tables": {
+    "projects": [
+      {
+        "project_code": "REVEMIN_II",
+        "project_name": "REVEMIN II — Planta de beneficio de oro"
+      }
+    ],
+    "process_stages": [
+      {
+        "stage_id": "REV2-E02",
+        "project_code": "REVEMIN_II",
+        "stage_number": 2,
+        "stage_name": "Trituración primaria"
+      }
+    ],
+    "asset_roles": [
+      {
+        "role_code": "P",
+        "role_name": "Principal"
+      },
+      {
+        "role_code": "S",
+        "role_name": "Secundario"
+      }
+    ],
+    "criticality_levels": [
+      {
+        "criticality_code": "A",
+        "criticality_name": "Alta",
+        "rank_order": 1
+      },
+      {
+        "criticality_code": "B",
+        "criticality_name": "Media",
+        "rank_order": 2
+      },
+      {
+        "criticality_code": "C",
+        "criticality_name": "Baja",
+        "rank_order": 3
+      }
+    ],
+    "record_states": [
+      {
+        "state_code": "REFERENCIAL",
+        "state_name": "Registro documental referencial"
+      },
+      {
+        "state_code": "VALIDADO",
+        "state_name": "Validado mediante evidencia de planta"
+      }
+    ],
+    "identifier_types": [
+      {
+        "identifier_type_code": "TAG_ACTIVO",
+        "identifier_type_name": "Identificador del listado maestro"
+      },
+      {
+        "identifier_type_code": "TAG_MAPA",
+        "identifier_type_name": "Alias del mapa integral"
+      }
+    ],
+    "asset_types": [
+      {
+        "asset_type_id": "JAW_CRUSHER",
+        "asset_type_name": "Chancadora de mandíbulas",
+        "functional_description": "Reduce el tamaño del mineral ROM mediante compresión entre mandíbulas."
+      },
+      {
+        "asset_type_id": "MAIN_CONVEYOR",
+        "asset_type_name": "Cinta transportadora principal",
+        "functional_description": "Transporta el mineral desde la trituración primaria hacia la siguiente operación."
+      },
+      {
+        "asset_type_id": "REJECT_SCREEN",
+        "asset_type_name": "Criba de rechazo",
+        "functional_description": "Clasifica el material y separa sobretamaños o fracciones fuera de especificación, según el diseño."
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CONVEYOR",
+        "asset_type_name": "Cinta de descarga primaria",
+        "functional_description": "Evacúa el producto descargado por la chancadora hacia la siguiente etapa."
+      },
+      {
+        "asset_type_id": "GRIZZLY_FEEDER",
+        "asset_type_name": "Alimentador vibratorio grizzly",
+        "functional_description": "Dosifica el mineral y permite la preclasificación de finos antes de la chancadora."
+      },
+      {
+        "asset_type_id": "CRUSHER_LUBRICATION",
+        "asset_type_name": "Lubricación chancadora",
+        "functional_description": "Suministra y acondiciona lubricante para los componentes de la chancadora, según el diseño instalado."
+      },
+      {
+        "asset_type_id": "HYDRAULIC_ADJUSTMENT_UNIT",
+        "asset_type_name": "Unidad hidráulica de ajuste",
+        "functional_description": "Proporciona potencia hidráulica para funciones de ajuste compatibles con el modelo de chancadora instalado."
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CHUTE",
+        "asset_type_name": "Chute de descarga primaria",
+        "functional_description": "Canaliza el mineral descargado y protege las superficies mediante revestimientos según el diseño."
+      },
+      {
+        "asset_type_id": "PRIMARY_DUST_COLLECTOR",
+        "asset_type_name": "Colector de polvo primario",
+        "functional_description": "Capta polvo en la zona de chancado y puntos de transferencia."
+      }
+    ],
+    "assets": [
+      {
+        "asset_id": "REV2-E02-001",
+        "stage_id": "REV2-E02",
+        "asset_type_id": "JAW_CRUSHER",
+        "inventory_no": 11,
+        "role_code": "P",
+        "criticality_code": "A",
+        "state_code": "REFERENCIAL"
+      },
+      {
+        "asset_id": "REV2-E02-002",
+        "stage_id": "REV2-E02",
+        "asset_type_id": "MAIN_CONVEYOR",
+        "inventory_no": 12,
+        "role_code": "P",
+        "criticality_code": "A",
+        "state_code": "REFERENCIAL"
+      },
+      {
+        "asset_id": "REV2-E02-003",
+        "stage_id": "REV2-E02",
+        "asset_type_id": "REJECT_SCREEN",
+        "inventory_no": 13,
+        "role_code": "P",
+        "criticality_code": "A",
+        "state_code": "REFERENCIAL"
+      },
+      {
+        "asset_id": "REV2-E02-004",
+        "stage_id": "REV2-E02",
+        "asset_type_id": "PRIMARY_DISCHARGE_CONVEYOR",
+        "inventory_no": 14,
+        "role_code": "P",
+        "criticality_code": "B",
+        "state_code": "REFERENCIAL"
+      },
+      {
+        "asset_id": "REV2-E02-005",
+        "stage_id": "REV2-E02",
+        "asset_type_id": "GRIZZLY_FEEDER",
+        "inventory_no": 15,
+        "role_code": "S",
+        "criticality_code": "B",
+        "state_code": "REFERENCIAL"
+      },
+      {
+        "asset_id": "REV2-E02-006",
+        "stage_id": "REV2-E02",
+        "asset_type_id": "CRUSHER_LUBRICATION",
+        "inventory_no": 16,
+        "role_code": "P",
+        "criticality_code": "B",
+        "state_code": "REFERENCIAL"
+      },
+      {
+        "asset_id": "REV2-E02-007",
+        "stage_id": "REV2-E02",
+        "asset_type_id": "HYDRAULIC_ADJUSTMENT_UNIT",
+        "inventory_no": 17,
+        "role_code": "S",
+        "criticality_code": "B",
+        "state_code": "REFERENCIAL"
+      },
+      {
+        "asset_id": "REV2-E02-008",
+        "stage_id": "REV2-E02",
+        "asset_type_id": "PRIMARY_DISCHARGE_CHUTE",
+        "inventory_no": 18,
+        "role_code": "S",
+        "criticality_code": "B",
+        "state_code": "REFERENCIAL"
+      },
+      {
+        "asset_id": "REV2-E02-009",
+        "stage_id": "REV2-E02",
+        "asset_type_id": "PRIMARY_DUST_COLLECTOR",
+        "inventory_no": 19,
+        "role_code": "S",
+        "criticality_code": "C",
+        "state_code": "REFERENCIAL"
+      }
+    ],
+    "asset_identifiers": [
+      {
+        "asset_id": "REV2-E02-001",
+        "identifier_type_code": "TAG_ACTIVO",
+        "identifier_value": "TRI-001"
+      },
+      {
+        "asset_id": "REV2-E02-001",
+        "identifier_type_code": "TAG_MAPA",
+        "identifier_value": "TM-201"
+      },
+      {
+        "asset_id": "REV2-E02-002",
+        "identifier_type_code": "TAG_ACTIVO",
+        "identifier_value": "SC-001"
+      },
+      {
+        "asset_id": "REV2-E02-002",
+        "identifier_type_code": "TAG_MAPA",
+        "identifier_value": "CT-201"
+      },
+      {
+        "asset_id": "REV2-E02-003",
+        "identifier_type_code": "TAG_ACTIVO",
+        "identifier_value": "SC-001"
+      },
+      {
+        "asset_id": "REV2-E02-003",
+        "identifier_type_code": "TAG_MAPA",
+        "identifier_value": "CV-201"
+      },
+      {
+        "asset_id": "REV2-E02-004",
+        "identifier_type_code": "TAG_ACTIVO",
+        "identifier_value": "CAND-02-03"
+      },
+      {
+        "asset_id": "REV2-E02-005",
+        "identifier_type_code": "TAG_ACTIVO",
+        "identifier_value": "CAND-02-04"
+      },
+      {
+        "asset_id": "REV2-E02-006",
+        "identifier_type_code": "TAG_ACTIVO",
+        "identifier_value": "CAND-02-05"
+      },
+      {
+        "asset_id": "REV2-E02-007",
+        "identifier_type_code": "TAG_ACTIVO",
+        "identifier_value": "CAND-02-06"
+      },
+      {
+        "asset_id": "REV2-E02-008",
+        "identifier_type_code": "TAG_ACTIVO",
+        "identifier_value": "CAND-02-07"
+      },
+      {
+        "asset_id": "REV2-E02-009",
+        "identifier_type_code": "TAG_ACTIVO",
+        "identifier_value": "CAND-02-08"
+      }
+    ],
+    "fur_records": [
+      {
+        "fur_code": "FUR-PROC-E02-001",
+        "asset_id": "REV2-E02-001",
+        "fur_family": "FUR-PROC",
+        "validation_status": "PENDIENTE_VALIDACION"
+      },
+      {
+        "fur_code": "FUR-PROC-E02-002",
+        "asset_id": "REV2-E02-002",
+        "fur_family": "FUR-PROC",
+        "validation_status": "PENDIENTE_VALIDACION"
+      },
+      {
+        "fur_code": "FUR-PROC-E02-003",
+        "asset_id": "REV2-E02-003",
+        "fur_family": "FUR-PROC",
+        "validation_status": "PENDIENTE_VALIDACION"
+      },
+      {
+        "fur_code": "FUR-PROC-E02-004",
+        "asset_id": "REV2-E02-004",
+        "fur_family": "FUR-PROC",
+        "validation_status": "PENDIENTE_VALIDACION"
+      },
+      {
+        "fur_code": "FUR-PROC-E02-005",
+        "asset_id": "REV2-E02-005",
+        "fur_family": "FUR-PROC",
+        "validation_status": "PENDIENTE_VALIDACION"
+      },
+      {
+        "fur_code": "FUR-PROC-E02-006",
+        "asset_id": "REV2-E02-006",
+        "fur_family": "FUR-PROC",
+        "validation_status": "PENDIENTE_VALIDACION"
+      },
+      {
+        "fur_code": "FUR-PROC-E02-007",
+        "asset_id": "REV2-E02-007",
+        "fur_family": "FUR-PROC",
+        "validation_status": "PENDIENTE_VALIDACION"
+      },
+      {
+        "fur_code": "FUR-PROC-E02-008",
+        "asset_id": "REV2-E02-008",
+        "fur_family": "FUR-PROC",
+        "validation_status": "PENDIENTE_VALIDACION"
+      },
+      {
+        "fur_code": "FUR-PROC-E02-009",
+        "asset_id": "REV2-E02-009",
+        "fur_family": "FUR-PROC",
+        "validation_status": "PENDIENTE_VALIDACION"
+      }
+    ],
+    "manufacturers": [
+      {
+        "manufacturer_id": "METSO",
+        "manufacturer_name": "Metso",
+        "website_url": "https://www.metso.com/"
+      },
+      {
+        "manufacturer_id": "TEREX_CEDARAPIDS",
+        "manufacturer_name": "Terex Cedarapids",
+        "website_url": "https://www.terex.com/cedarapids"
+      },
+      {
+        "manufacturer_id": "SANDVIK",
+        "manufacturer_name": "Sandvik Rock Processing",
+        "website_url": "https://www.rockprocessing.sandvik/"
+      },
+      {
+        "manufacturer_id": "SKF",
+        "manufacturer_name": "SKF",
+        "website_url": "https://www.skf.com/"
+      },
+      {
+        "manufacturer_id": "BOSCH_REXROTH",
+        "manufacturer_name": "Bosch Rexroth",
+        "website_url": "https://www.boschrexroth.com/"
+      },
+      {
+        "manufacturer_id": "DONALDSON",
+        "manufacturer_name": "Donaldson",
+        "website_url": "https://www.donaldson.com/"
+      },
+      {
+        "manufacturer_id": "NEDERMAN",
+        "manufacturer_name": "Nederman",
+        "website_url": "https://www.nederman.com/"
+      }
+    ],
+    "asset_type_manufacturer_references": [
+      {
+        "asset_type_id": "JAW_CRUSHER",
+        "manufacturer_id": "METSO",
+        "reference_scope": "Trituradoras de mandíbulas"
+      },
+      {
+        "asset_type_id": "JAW_CRUSHER",
+        "manufacturer_id": "TEREX_CEDARAPIDS",
+        "reference_scope": "Trituración primaria"
+      },
+      {
+        "asset_type_id": "MAIN_CONVEYOR",
+        "manufacturer_id": "METSO",
+        "reference_scope": "Sistemas de transporte y componentes de bandas"
+      },
+      {
+        "asset_type_id": "REJECT_SCREEN",
+        "manufacturer_id": "SANDVIK",
+        "reference_scope": "Cribas vibratorias"
+      },
+      {
+        "asset_type_id": "REJECT_SCREEN",
+        "manufacturer_id": "METSO",
+        "reference_scope": "Equipos de cribado"
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CONVEYOR",
+        "manufacturer_id": "METSO",
+        "reference_scope": "Transportadores y componentes"
+      },
+      {
+        "asset_type_id": "GRIZZLY_FEEDER",
+        "manufacturer_id": "METSO",
+        "reference_scope": "Alimentadores grizzly"
+      },
+      {
+        "asset_type_id": "GRIZZLY_FEEDER",
+        "manufacturer_id": "TEREX_CEDARAPIDS",
+        "reference_scope": "Alimentadores para trituración"
+      },
+      {
+        "asset_type_id": "CRUSHER_LUBRICATION",
+        "manufacturer_id": "SKF",
+        "reference_scope": "Sistemas de lubricación"
+      },
+      {
+        "asset_type_id": "CRUSHER_LUBRICATION",
+        "manufacturer_id": "METSO",
+        "reference_scope": "Lubricación y servicios de trituradoras"
+      },
+      {
+        "asset_type_id": "HYDRAULIC_ADJUSTMENT_UNIT",
+        "manufacturer_id": "BOSCH_REXROTH",
+        "reference_scope": "Unidades hidráulicas"
+      },
+      {
+        "asset_type_id": "HYDRAULIC_ADJUSTMENT_UNIT",
+        "manufacturer_id": "METSO",
+        "reference_scope": "Sistemas asociados a chancadoras"
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CHUTE",
+        "manufacturer_id": "METSO",
+        "reference_scope": "Chutes y revestimientos antidesgaste"
+      },
+      {
+        "asset_type_id": "PRIMARY_DUST_COLLECTOR",
+        "manufacturer_id": "DONALDSON",
+        "reference_scope": "Captación de polvo industrial"
+      },
+      {
+        "asset_type_id": "PRIMARY_DUST_COLLECTOR",
+        "manufacturer_id": "NEDERMAN",
+        "reference_scope": "Extracción y filtración industrial"
+      }
+    ],
+    "component_types": [
+      {
+        "component_type_id": "CMP_ALARMAS_E_INTERBLOQUEOS",
+        "component_name": "Alarmas e interbloqueos"
+      },
+      {
+        "component_type_id": "CMP_BANDA_TRANSPORTADORA",
+        "component_name": "Banda transportadora"
+      },
+      {
+        "component_type_id": "CMP_BANDEJA_O_ARTESA",
+        "component_name": "Bandeja o artesa"
+      },
+      {
+        "component_type_id": "CMP_BARRAS_GRIZZLY",
+        "component_name": "Barras grizzly"
+      },
+      {
+        "component_type_id": "CMP_BASTIDOR_DE_SOPORTE",
+        "component_name": "Bastidor de soporte"
+      },
+      {
+        "component_type_id": "CMP_BASTIDOR_Y_CARCASA",
+        "component_name": "Bastidor y carcasa"
+      },
+      {
+        "component_type_id": "CMP_BASTIDOR_Y_SOPORTES",
+        "component_name": "Bastidor y soportes"
+      },
+      {
+        "component_type_id": "CMP_BOMBAS_DE_LUBRICACIÓN",
+        "component_name": "Bombas de lubricación"
+      },
+      {
+        "component_type_id": "CMP_BOMBA_Y_MOTOR_ELÉCTRICO",
+        "component_name": "Bomba y motor eléctrico"
+      },
+      {
+        "component_type_id": "CMP_BRIDAS_Y_SOPORTES",
+        "component_name": "Bridas y soportes"
+      },
+      {
+        "component_type_id": "CMP_CAJA_DE_CRIBA",
+        "component_name": "Caja de criba"
+      },
+      {
+        "component_type_id": "CMP_CAMPANA_Y_DUCTOS_DE_CAPTACIÓN",
+        "component_name": "Campana y ductos de captación"
+      },
+      {
+        "component_type_id": "CMP_CARCASA_DEL_COLECTOR",
+        "component_name": "Carcasa del colector"
+      },
+      {
+        "component_type_id": "CMP_CHIMENEA_SALIDA_DE_AIRE",
+        "component_name": "Chimenea / salida de aire"
+      },
+      {
+        "component_type_id": "CMP_CHUTES_DE_ALIMENTACIÓN_Y_DESCARGA",
+        "component_name": "Chutes de alimentación y descarga"
+      },
+      {
+        "component_type_id": "CMP_CHUTE_DE_DESCARGA",
+        "component_name": "Chute de descarga"
+      },
+      {
+        "component_type_id": "CMP_CHUTE_DE_TRANSFERENCIA",
+        "component_name": "Chute de transferencia"
+      },
+      {
+        "component_type_id": "CMP_CILINDROS_ACTUADORES",
+        "component_name": "Cilindros / actuadores"
+      },
+      {
+        "component_type_id": "CMP_COMPUERTAS_SI_APLICA",
+        "component_name": "Compuertas (si aplica)"
+      },
+      {
+        "component_type_id": "CMP_CUERPO_DEL_CHUTE",
+        "component_name": "Cuerpo del chute"
+      },
+      {
+        "component_type_id": "CMP_DEPÓSITO_DE_LUBRICANTE",
+        "component_name": "Depósito de lubricante"
+      },
+      {
+        "component_type_id": "CMP_DEPÓSITO_HIDRÁULICO",
+        "component_name": "Depósito hidráulico"
+      },
+      {
+        "component_type_id": "CMP_EJE_EXCÉNTRICO_Y_RODAMIENTOS",
+        "component_name": "Eje excéntrico y rodamientos"
+      },
+      {
+        "component_type_id": "CMP_ENFRIADOR_INTERCAMBIADOR_SI_APLICA",
+        "component_name": "Enfriador / intercambiador (si aplica)"
+      },
+      {
+        "component_type_id": "CMP_ESTRUCTURA_DE_SOPORTE",
+        "component_name": "Estructura de soporte"
+      },
+      {
+        "component_type_id": "CMP_FILTROS",
+        "component_name": "Filtros"
+      },
+      {
+        "component_type_id": "CMP_GUARDAS_Y_PARADAS_DE_EMERGENCIA",
+        "component_name": "Guardas y paradas de emergencia"
+      },
+      {
+        "component_type_id": "CMP_GUARDAS_Y_SENSORES",
+        "component_name": "Guardas y sensores"
+      },
+      {
+        "component_type_id": "CMP_INSTRUMENTOS_DE_PRESIÓN_Y_TEMPERATURA",
+        "component_name": "Instrumentos de presión y temperatura"
+      },
+      {
+        "component_type_id": "CMP_MALLAS_O_PANELES_DE_CRIBADO",
+        "component_name": "Mallas o paneles de cribado"
+      },
+      {
+        "component_type_id": "CMP_MANDÍBULA_FIJA",
+        "component_name": "Mandíbula fija"
+      },
+      {
+        "component_type_id": "CMP_MANDÍBULA_MÓVIL",
+        "component_name": "Mandíbula móvil"
+      },
+      {
+        "component_type_id": "CMP_MANGAS_O_CARTUCHOS_FILTRANTES",
+        "component_name": "Mangas o cartuchos filtrantes"
+      },
+      {
+        "component_type_id": "CMP_MANGUERAS_Y_TUBERÍAS",
+        "component_name": "Mangueras y tuberías"
+      },
+      {
+        "component_type_id": "CMP_MANÓMETROS_Y_SENSORES",
+        "component_name": "Manómetros y sensores"
+      },
+      {
+        "component_type_id": "CMP_MECANISMO_VIBRATORIO",
+        "component_name": "Mecanismo vibratorio"
+      },
+      {
+        "component_type_id": "CMP_MECANISMO_VIBRATORIO_EXCITADORES",
+        "component_name": "Mecanismo vibratorio / excitadores"
+      },
+      {
+        "component_type_id": "CMP_MOTORES_Y_TRANSMISIÓN",
+        "component_name": "Motores y transmisión"
+      },
+      {
+        "component_type_id": "CMP_MOTORREDUCTOR_Y_ACOPLAMIENTO",
+        "component_name": "Motorreductor y acoplamiento"
+      },
+      {
+        "component_type_id": "CMP_MOTOR_Y_TRANSMISIÓN",
+        "component_name": "Motor y transmisión"
+      },
+      {
+        "component_type_id": "CMP_PLACAS_DE_DESGASTE_BLINDAJES",
+        "component_name": "Placas de desgaste / blindajes"
+      },
+      {
+        "component_type_id": "CMP_POLEA_MOTRIZ_Y_DE_COLA",
+        "component_name": "Polea motriz y de cola"
+      },
+      {
+        "component_type_id": "CMP_PROTECCIONES_Y_ENCLAVAMIENTOS",
+        "component_name": "Protecciones y enclavamientos"
+      },
+      {
+        "component_type_id": "CMP_PUNTOS_DE_INSPECCIÓN",
+        "component_name": "Puntos de inspección"
+      },
+      {
+        "component_type_id": "CMP_RASPADORES_Y_LIMPIADORES",
+        "component_name": "Raspadores y limpiadores"
+      },
+      {
+        "component_type_id": "CMP_RESORTES_AISLADORES",
+        "component_name": "Resortes / aisladores"
+      },
+      {
+        "component_type_id": "CMP_RESORTES_O_AISLADORES",
+        "component_name": "Resortes o aisladores"
+      },
+      {
+        "component_type_id": "CMP_REVESTIMIENTOS_ANTIDESGASTE",
+        "component_name": "Revestimientos antidesgaste"
+      },
+      {
+        "component_type_id": "CMP_RODILLOS_Y_ESTACIONES",
+        "component_name": "Rodillos y estaciones"
+      },
+      {
+        "component_type_id": "CMP_SELLOS_CONTRA_POLVO",
+        "component_name": "Sellos contra polvo"
+      },
+      {
+        "component_type_id": "CMP_SENSORES_DE_PRESIÓN_DIFERENCIAL",
+        "component_name": "Sensores de presión diferencial"
+      },
+      {
+        "component_type_id": "CMP_SISTEMA_DE_ACCIONAMIENTO_Y_MOTOR",
+        "component_name": "Sistema de accionamiento y motor"
+      },
+      {
+        "component_type_id": "CMP_SISTEMA_DE_AJUSTE_CSS",
+        "component_name": "Sistema de ajuste CSS"
+      },
+      {
+        "component_type_id": "CMP_SISTEMA_DE_LIMPIEZA_DE_FILTROS",
+        "component_name": "Sistema de limpieza de filtros"
+      },
+      {
+        "component_type_id": "CMP_SISTEMA_TENSOR",
+        "component_name": "Sistema tensor"
+      },
+      {
+        "component_type_id": "CMP_TABLERO_DE_CONTROL",
+        "component_name": "Tablero de control"
+      },
+      {
+        "component_type_id": "CMP_TABLERO_E_INSTRUMENTACIÓN",
+        "component_name": "Tablero e instrumentación"
+      },
+      {
+        "component_type_id": "CMP_TENSOR_DE_BANDA",
+        "component_name": "Tensor de banda"
+      },
+      {
+        "component_type_id": "CMP_TOLVA_DE_DESCARGA",
+        "component_name": "Tolva de descarga"
+      },
+      {
+        "component_type_id": "CMP_VENTILADOR_Y_MOTOR",
+        "component_name": "Ventilador y motor"
+      },
+      {
+        "component_type_id": "CMP_VOLANTE_S",
+        "component_name": "Volante(s)"
+      },
+      {
+        "component_type_id": "CMP_VÁLVULAS_Y_MANIFOLD",
+        "component_name": "Válvulas y manifold"
+      },
+      {
+        "component_type_id": "CMP_VÁLVULAS_Y_TUBERÍAS",
+        "component_name": "Válvulas y tuberías"
+      },
+      {
+        "component_type_id": "CMP_VÁLVULA_ROTATIVA_SI_APLICA",
+        "component_name": "Válvula rotativa (si aplica)"
+      }
+    ],
+    "asset_type_components": [
+      {
+        "asset_type_id": "JAW_CRUSHER",
+        "component_type_id": "CMP_BASTIDOR_Y_CARCASA",
+        "display_order": 1
+      },
+      {
+        "asset_type_id": "JAW_CRUSHER",
+        "component_type_id": "CMP_MANDÍBULA_FIJA",
+        "display_order": 2
+      },
+      {
+        "asset_type_id": "JAW_CRUSHER",
+        "component_type_id": "CMP_MANDÍBULA_MÓVIL",
+        "display_order": 3
+      },
+      {
+        "asset_type_id": "JAW_CRUSHER",
+        "component_type_id": "CMP_PLACAS_DE_DESGASTE_BLINDAJES",
+        "display_order": 4
+      },
+      {
+        "asset_type_id": "JAW_CRUSHER",
+        "component_type_id": "CMP_EJE_EXCÉNTRICO_Y_RODAMIENTOS",
+        "display_order": 5
+      },
+      {
+        "asset_type_id": "JAW_CRUSHER",
+        "component_type_id": "CMP_SISTEMA_DE_ACCIONAMIENTO_Y_MOTOR",
+        "display_order": 6
+      },
+      {
+        "asset_type_id": "JAW_CRUSHER",
+        "component_type_id": "CMP_VOLANTE_S",
+        "display_order": 7
+      },
+      {
+        "asset_type_id": "JAW_CRUSHER",
+        "component_type_id": "CMP_SISTEMA_DE_AJUSTE_CSS",
+        "display_order": 8
+      },
+      {
+        "asset_type_id": "JAW_CRUSHER",
+        "component_type_id": "CMP_PROTECCIONES_Y_ENCLAVAMIENTOS",
+        "display_order": 9
+      },
+      {
+        "asset_type_id": "MAIN_CONVEYOR",
+        "component_type_id": "CMP_BANDA_TRANSPORTADORA",
+        "display_order": 1
+      },
+      {
+        "asset_type_id": "MAIN_CONVEYOR",
+        "component_type_id": "CMP_POLEA_MOTRIZ_Y_DE_COLA",
+        "display_order": 2
+      },
+      {
+        "asset_type_id": "MAIN_CONVEYOR",
+        "component_type_id": "CMP_RODILLOS_Y_ESTACIONES",
+        "display_order": 3
+      },
+      {
+        "asset_type_id": "MAIN_CONVEYOR",
+        "component_type_id": "CMP_MOTORREDUCTOR_Y_ACOPLAMIENTO",
+        "display_order": 4
+      },
+      {
+        "asset_type_id": "MAIN_CONVEYOR",
+        "component_type_id": "CMP_TENSOR_DE_BANDA",
+        "display_order": 5
+      },
+      {
+        "asset_type_id": "MAIN_CONVEYOR",
+        "component_type_id": "CMP_RASPADORES_Y_LIMPIADORES",
+        "display_order": 6
+      },
+      {
+        "asset_type_id": "MAIN_CONVEYOR",
+        "component_type_id": "CMP_CHUTE_DE_TRANSFERENCIA",
+        "display_order": 7
+      },
+      {
+        "asset_type_id": "MAIN_CONVEYOR",
+        "component_type_id": "CMP_GUARDAS_Y_PARADAS_DE_EMERGENCIA",
+        "display_order": 8
+      },
+      {
+        "asset_type_id": "REJECT_SCREEN",
+        "component_type_id": "CMP_CAJA_DE_CRIBA",
+        "display_order": 1
+      },
+      {
+        "asset_type_id": "REJECT_SCREEN",
+        "component_type_id": "CMP_MECANISMO_VIBRATORIO_EXCITADORES",
+        "display_order": 2
+      },
+      {
+        "asset_type_id": "REJECT_SCREEN",
+        "component_type_id": "CMP_MALLAS_O_PANELES_DE_CRIBADO",
+        "display_order": 3
+      },
+      {
+        "asset_type_id": "REJECT_SCREEN",
+        "component_type_id": "CMP_RESORTES_O_AISLADORES",
+        "display_order": 4
+      },
+      {
+        "asset_type_id": "REJECT_SCREEN",
+        "component_type_id": "CMP_MOTOR_Y_TRANSMISIÓN",
+        "display_order": 5
+      },
+      {
+        "asset_type_id": "REJECT_SCREEN",
+        "component_type_id": "CMP_BASTIDOR_DE_SOPORTE",
+        "display_order": 6
+      },
+      {
+        "asset_type_id": "REJECT_SCREEN",
+        "component_type_id": "CMP_CHUTES_DE_ALIMENTACIÓN_Y_DESCARGA",
+        "display_order": 7
+      },
+      {
+        "asset_type_id": "REJECT_SCREEN",
+        "component_type_id": "CMP_GUARDAS_Y_SENSORES",
+        "display_order": 8
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CONVEYOR",
+        "component_type_id": "CMP_BANDA_TRANSPORTADORA",
+        "display_order": 1
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CONVEYOR",
+        "component_type_id": "CMP_POLEA_MOTRIZ_Y_DE_COLA",
+        "display_order": 2
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CONVEYOR",
+        "component_type_id": "CMP_RODILLOS_Y_ESTACIONES",
+        "display_order": 3
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CONVEYOR",
+        "component_type_id": "CMP_MOTORREDUCTOR_Y_ACOPLAMIENTO",
+        "display_order": 4
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CONVEYOR",
+        "component_type_id": "CMP_SISTEMA_TENSOR",
+        "display_order": 5
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CONVEYOR",
+        "component_type_id": "CMP_RASPADORES_Y_LIMPIADORES",
+        "display_order": 6
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CONVEYOR",
+        "component_type_id": "CMP_CHUTE_DE_TRANSFERENCIA",
+        "display_order": 7
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CONVEYOR",
+        "component_type_id": "CMP_GUARDAS_Y_PARADAS_DE_EMERGENCIA",
+        "display_order": 8
+      },
+      {
+        "asset_type_id": "GRIZZLY_FEEDER",
+        "component_type_id": "CMP_BANDEJA_O_ARTESA",
+        "display_order": 1
+      },
+      {
+        "asset_type_id": "GRIZZLY_FEEDER",
+        "component_type_id": "CMP_BARRAS_GRIZZLY",
+        "display_order": 2
+      },
+      {
+        "asset_type_id": "GRIZZLY_FEEDER",
+        "component_type_id": "CMP_MECANISMO_VIBRATORIO",
+        "display_order": 3
+      },
+      {
+        "asset_type_id": "GRIZZLY_FEEDER",
+        "component_type_id": "CMP_MOTORES_Y_TRANSMISIÓN",
+        "display_order": 4
+      },
+      {
+        "asset_type_id": "GRIZZLY_FEEDER",
+        "component_type_id": "CMP_RESORTES_AISLADORES",
+        "display_order": 5
+      },
+      {
+        "asset_type_id": "GRIZZLY_FEEDER",
+        "component_type_id": "CMP_BASTIDOR_Y_SOPORTES",
+        "display_order": 6
+      },
+      {
+        "asset_type_id": "GRIZZLY_FEEDER",
+        "component_type_id": "CMP_CHUTE_DE_DESCARGA",
+        "display_order": 7
+      },
+      {
+        "asset_type_id": "GRIZZLY_FEEDER",
+        "component_type_id": "CMP_GUARDAS_Y_SENSORES",
+        "display_order": 8
+      },
+      {
+        "asset_type_id": "CRUSHER_LUBRICATION",
+        "component_type_id": "CMP_DEPÓSITO_DE_LUBRICANTE",
+        "display_order": 1
+      },
+      {
+        "asset_type_id": "CRUSHER_LUBRICATION",
+        "component_type_id": "CMP_BOMBAS_DE_LUBRICACIÓN",
+        "display_order": 2
+      },
+      {
+        "asset_type_id": "CRUSHER_LUBRICATION",
+        "component_type_id": "CMP_FILTROS",
+        "display_order": 3
+      },
+      {
+        "asset_type_id": "CRUSHER_LUBRICATION",
+        "component_type_id": "CMP_ENFRIADOR_INTERCAMBIADOR_SI_APLICA",
+        "display_order": 4
+      },
+      {
+        "asset_type_id": "CRUSHER_LUBRICATION",
+        "component_type_id": "CMP_VÁLVULAS_Y_TUBERÍAS",
+        "display_order": 5
+      },
+      {
+        "asset_type_id": "CRUSHER_LUBRICATION",
+        "component_type_id": "CMP_INSTRUMENTOS_DE_PRESIÓN_Y_TEMPERATURA",
+        "display_order": 6
+      },
+      {
+        "asset_type_id": "CRUSHER_LUBRICATION",
+        "component_type_id": "CMP_ALARMAS_E_INTERBLOQUEOS",
+        "display_order": 7
+      },
+      {
+        "asset_type_id": "CRUSHER_LUBRICATION",
+        "component_type_id": "CMP_TABLERO_DE_CONTROL",
+        "display_order": 8
+      },
+      {
+        "asset_type_id": "HYDRAULIC_ADJUSTMENT_UNIT",
+        "component_type_id": "CMP_DEPÓSITO_HIDRÁULICO",
+        "display_order": 1
+      },
+      {
+        "asset_type_id": "HYDRAULIC_ADJUSTMENT_UNIT",
+        "component_type_id": "CMP_BOMBA_Y_MOTOR_ELÉCTRICO",
+        "display_order": 2
+      },
+      {
+        "asset_type_id": "HYDRAULIC_ADJUSTMENT_UNIT",
+        "component_type_id": "CMP_FILTROS",
+        "display_order": 3
+      },
+      {
+        "asset_type_id": "HYDRAULIC_ADJUSTMENT_UNIT",
+        "component_type_id": "CMP_VÁLVULAS_Y_MANIFOLD",
+        "display_order": 4
+      },
+      {
+        "asset_type_id": "HYDRAULIC_ADJUSTMENT_UNIT",
+        "component_type_id": "CMP_CILINDROS_ACTUADORES",
+        "display_order": 5
+      },
+      {
+        "asset_type_id": "HYDRAULIC_ADJUSTMENT_UNIT",
+        "component_type_id": "CMP_MANGUERAS_Y_TUBERÍAS",
+        "display_order": 6
+      },
+      {
+        "asset_type_id": "HYDRAULIC_ADJUSTMENT_UNIT",
+        "component_type_id": "CMP_MANÓMETROS_Y_SENSORES",
+        "display_order": 7
+      },
+      {
+        "asset_type_id": "HYDRAULIC_ADJUSTMENT_UNIT",
+        "component_type_id": "CMP_TABLERO_DE_CONTROL",
+        "display_order": 8
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CHUTE",
+        "component_type_id": "CMP_CUERPO_DEL_CHUTE",
+        "display_order": 1
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CHUTE",
+        "component_type_id": "CMP_REVESTIMIENTOS_ANTIDESGASTE",
+        "display_order": 2
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CHUTE",
+        "component_type_id": "CMP_BRIDAS_Y_SOPORTES",
+        "display_order": 3
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CHUTE",
+        "component_type_id": "CMP_COMPUERTAS_SI_APLICA",
+        "display_order": 4
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CHUTE",
+        "component_type_id": "CMP_PUNTOS_DE_INSPECCIÓN",
+        "display_order": 5
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CHUTE",
+        "component_type_id": "CMP_SELLOS_CONTRA_POLVO",
+        "display_order": 6
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CHUTE",
+        "component_type_id": "CMP_ESTRUCTURA_DE_SOPORTE",
+        "display_order": 7
+      },
+      {
+        "asset_type_id": "PRIMARY_DUST_COLLECTOR",
+        "component_type_id": "CMP_CAMPANA_Y_DUCTOS_DE_CAPTACIÓN",
+        "display_order": 1
+      },
+      {
+        "asset_type_id": "PRIMARY_DUST_COLLECTOR",
+        "component_type_id": "CMP_CARCASA_DEL_COLECTOR",
+        "display_order": 2
+      },
+      {
+        "asset_type_id": "PRIMARY_DUST_COLLECTOR",
+        "component_type_id": "CMP_MANGAS_O_CARTUCHOS_FILTRANTES",
+        "display_order": 3
+      },
+      {
+        "asset_type_id": "PRIMARY_DUST_COLLECTOR",
+        "component_type_id": "CMP_SISTEMA_DE_LIMPIEZA_DE_FILTROS",
+        "display_order": 4
+      },
+      {
+        "asset_type_id": "PRIMARY_DUST_COLLECTOR",
+        "component_type_id": "CMP_VENTILADOR_Y_MOTOR",
+        "display_order": 5
+      },
+      {
+        "asset_type_id": "PRIMARY_DUST_COLLECTOR",
+        "component_type_id": "CMP_TOLVA_DE_DESCARGA",
+        "display_order": 6
+      },
+      {
+        "asset_type_id": "PRIMARY_DUST_COLLECTOR",
+        "component_type_id": "CMP_VÁLVULA_ROTATIVA_SI_APLICA",
+        "display_order": 7
+      },
+      {
+        "asset_type_id": "PRIMARY_DUST_COLLECTOR",
+        "component_type_id": "CMP_SENSORES_DE_PRESIÓN_DIFERENCIAL",
+        "display_order": 8
+      },
+      {
+        "asset_type_id": "PRIMARY_DUST_COLLECTOR",
+        "component_type_id": "CMP_TABLERO_E_INSTRUMENTACIÓN",
+        "display_order": 9
+      },
+      {
+        "asset_type_id": "PRIMARY_DUST_COLLECTOR",
+        "component_type_id": "CMP_CHIMENEA_SALIDA_DE_AIRE",
+        "display_order": 10
+      }
+    ],
+    "measurement_units": [
+      {
+        "unit_code": "t",
+        "unit_name": "tonelada"
+      },
+      {
+        "unit_code": "t/h",
+        "unit_name": "toneladas por hora"
+      },
+      {
+        "unit_code": "m3",
+        "unit_name": "metro cúbico"
+      },
+      {
+        "unit_code": "mm",
+        "unit_name": "milímetro"
+      },
+      {
+        "unit_code": "kW",
+        "unit_name": "kilovatio"
+      },
+      {
+        "unit_code": "rpm",
+        "unit_name": "revoluciones por minuto"
+      },
+      {
+        "unit_code": "m/s",
+        "unit_name": "metros por segundo"
+      },
+      {
+        "unit_code": "m",
+        "unit_name": "metro"
+      },
+      {
+        "unit_code": "bar",
+        "unit_name": "bar"
+      },
+      {
+        "unit_code": "L",
+        "unit_name": "litro"
+      },
+      {
+        "unit_code": "Pa",
+        "unit_name": "pascal"
+      },
+      {
+        "unit_code": "m2",
+        "unit_name": "metro cuadrado"
+      },
+      {
+        "unit_code": "%",
+        "unit_name": "porcentaje"
+      },
+      {
+        "unit_code": "V",
+        "unit_name": "voltio"
+      },
+      {
+        "unit_code": "Hz",
+        "unit_name": "hercio"
+      },
+      {
+        "unit_code": "m3/h",
+        "unit_name": "metros cúbicos por hora"
+      },
+      {
+        "unit_code": "°C",
+        "unit_name": "grado Celsius"
+      },
+      {
+        "unit_code": "mm/s",
+        "unit_name": "milímetros por segundo"
+      },
+      {
+        "unit_code": "dB(A)",
+        "unit_name": "decibelios ponderados A"
+      },
+      {
+        "unit_code": "L/min",
+        "unit_name": "litros por minuto"
+      },
+      {
+        "unit_code": "µm",
+        "unit_name": "micrómetro"
+      },
+      {
+        "unit_code": "°",
+        "unit_name": "grado"
+      }
+    ],
+    "technical_parameters": [
+      {
+        "parameter_code": "AIRFLOW_M3H",
+        "parameter_name": "Caudal de aire",
+        "unit_code": "m3/h"
+      },
+      {
+        "parameter_code": "BELT_SPEED_MS",
+        "parameter_name": "Velocidad de banda",
+        "unit_code": "m/s"
+      },
+      {
+        "parameter_code": "BELT_TENSION",
+        "parameter_name": "Tensión / clase de banda",
+        "unit_code": null
+      },
+      {
+        "parameter_code": "BELT_WIDTH_MM",
+        "parameter_name": "Ancho de banda",
+        "unit_code": "mm"
+      },
+      {
+        "parameter_code": "CAPACITY_TPH",
+        "parameter_name": "Capacidad de diseño",
+        "unit_code": "t/h"
+      },
+      {
+        "parameter_code": "CHUTE_ANGLE_DEG",
+        "parameter_name": "Ángulo de inclinación",
+        "unit_code": "°"
+      },
+      {
+        "parameter_code": "CHUTE_LENGTH_M",
+        "parameter_name": "Longitud del chute",
+        "unit_code": "m"
+      },
+      {
+        "parameter_code": "CHUTE_WIDTH_M",
+        "parameter_name": "Ancho del chute",
+        "unit_code": "m"
+      },
+      {
+        "parameter_code": "CONVEYOR_LENGTH_M",
+        "parameter_name": "Longitud entre centros",
+        "unit_code": "m"
+      },
+      {
+        "parameter_code": "CSS_MM",
+        "parameter_name": "Ajuste CSS",
+        "unit_code": "mm"
+      },
+      {
+        "parameter_code": "DIFFERENTIAL_PRESSURE_PA",
+        "parameter_name": "Presión diferencial",
+        "unit_code": "Pa"
+      },
+      {
+        "parameter_code": "ECCENTRIC_SPEED_RPM",
+        "parameter_name": "Velocidad del eje excéntrico",
+        "unit_code": "rpm"
+      },
+      {
+        "parameter_code": "FAN_POWER_KW",
+        "parameter_name": "Potencia del ventilador",
+        "unit_code": "kW"
+      },
+      {
+        "parameter_code": "FEEDER_LENGTH_M",
+        "parameter_name": "Longitud útil",
+        "unit_code": "m"
+      },
+      {
+        "parameter_code": "FEEDER_WIDTH_MM",
+        "parameter_name": "Ancho útil",
+        "unit_code": "mm"
+      },
+      {
+        "parameter_code": "FEED_OPENING_MM",
+        "parameter_name": "Abertura de alimentación",
+        "unit_code": "mm"
+      },
+      {
+        "parameter_code": "FILTER_AREA_M2",
+        "parameter_name": "Área filtrante",
+        "unit_code": "m2"
+      },
+      {
+        "parameter_code": "FILTER_EFFICIENCY_PCT",
+        "parameter_name": "Eficiencia de filtración",
+        "unit_code": "%"
+      },
+      {
+        "parameter_code": "FILTER_RATING_UM",
+        "parameter_name": "Grado de filtración",
+        "unit_code": "µm"
+      },
+      {
+        "parameter_code": "FILTER_TYPE",
+        "parameter_name": "Tipo de filtro",
+        "unit_code": null
+      },
+      {
+        "parameter_code": "GRIZZLY_GAP_MM",
+        "parameter_name": "Separación entre barras",
+        "unit_code": "mm"
+      },
+      {
+        "parameter_code": "HYD_FLOW_LPM",
+        "parameter_name": "Caudal hidráulico",
+        "unit_code": "L/min"
+      },
+      {
+        "parameter_code": "HYD_FLUID_TYPE",
+        "parameter_name": "Tipo de fluido hidráulico",
+        "unit_code": null
+      },
+      {
+        "parameter_code": "HYD_PRESSURE_BAR",
+        "parameter_name": "Presión hidráulica nominal",
+        "unit_code": "bar"
+      },
+      {
+        "parameter_code": "HYD_TANK_L",
+        "parameter_name": "Capacidad del depósito",
+        "unit_code": "L"
+      },
+      {
+        "parameter_code": "LINER_MATERIAL",
+        "parameter_name": "Material de revestimiento",
+        "unit_code": null
+      },
+      {
+        "parameter_code": "LINER_THICKNESS_MM",
+        "parameter_name": "Espesor del revestimiento",
+        "unit_code": "mm"
+      },
+      {
+        "parameter_code": "LUBE_FLOW_LPM",
+        "parameter_name": "Caudal de lubricación",
+        "unit_code": "L/min"
+      },
+      {
+        "parameter_code": "LUBE_PRESSURE_BAR",
+        "parameter_name": "Presión de lubricación",
+        "unit_code": "bar"
+      },
+      {
+        "parameter_code": "MAX_FEED_MM",
+        "parameter_name": "Tamaño máximo de alimentación",
+        "unit_code": "mm"
+      },
+      {
+        "parameter_code": "MOTOR_POWER_KW",
+        "parameter_name": "Potencia del motor",
+        "unit_code": "kW"
+      },
+      {
+        "parameter_code": "OIL_TANK_L",
+        "parameter_name": "Capacidad del depósito",
+        "unit_code": "L"
+      },
+      {
+        "parameter_code": "OIL_TEMP_C",
+        "parameter_name": "Temperatura de aceite",
+        "unit_code": "°C"
+      },
+      {
+        "parameter_code": "SCREEN_APERTURE_MM",
+        "parameter_name": "Abertura de malla",
+        "unit_code": "mm"
+      },
+      {
+        "parameter_code": "SCREEN_AREA_M2",
+        "parameter_name": "Área de cribado",
+        "unit_code": "m2"
+      },
+      {
+        "parameter_code": "SCREEN_DECKS",
+        "parameter_name": "Número de pisos",
+        "unit_code": null
+      },
+      {
+        "parameter_code": "STATIC_PRESSURE_PA",
+        "parameter_name": "Presión estática",
+        "unit_code": "Pa"
+      },
+      {
+        "parameter_code": "VIBRATION_RPM",
+        "parameter_name": "Frecuencia / velocidad vibratoria",
+        "unit_code": "rpm"
+      }
+    ],
+    "asset_type_parameter_requirements": [
+      {
+        "asset_type_id": "JAW_CRUSHER",
+        "parameter_code": "CAPACITY_TPH",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "JAW_CRUSHER",
+        "parameter_code": "FEED_OPENING_MM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "JAW_CRUSHER",
+        "parameter_code": "CSS_MM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "JAW_CRUSHER",
+        "parameter_code": "MOTOR_POWER_KW",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "JAW_CRUSHER",
+        "parameter_code": "ECCENTRIC_SPEED_RPM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "JAW_CRUSHER",
+        "parameter_code": "MAX_FEED_MM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "MAIN_CONVEYOR",
+        "parameter_code": "BELT_WIDTH_MM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "MAIN_CONVEYOR",
+        "parameter_code": "CONVEYOR_LENGTH_M",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "MAIN_CONVEYOR",
+        "parameter_code": "BELT_SPEED_MS",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "MAIN_CONVEYOR",
+        "parameter_code": "CAPACITY_TPH",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "MAIN_CONVEYOR",
+        "parameter_code": "MOTOR_POWER_KW",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "MAIN_CONVEYOR",
+        "parameter_code": "BELT_TENSION",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "REJECT_SCREEN",
+        "parameter_code": "SCREEN_AREA_M2",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "REJECT_SCREEN",
+        "parameter_code": "SCREEN_DECKS",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "REJECT_SCREEN",
+        "parameter_code": "SCREEN_APERTURE_MM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "REJECT_SCREEN",
+        "parameter_code": "VIBRATION_RPM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "REJECT_SCREEN",
+        "parameter_code": "MOTOR_POWER_KW",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "REJECT_SCREEN",
+        "parameter_code": "CAPACITY_TPH",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CONVEYOR",
+        "parameter_code": "BELT_WIDTH_MM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CONVEYOR",
+        "parameter_code": "CONVEYOR_LENGTH_M",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CONVEYOR",
+        "parameter_code": "BELT_SPEED_MS",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CONVEYOR",
+        "parameter_code": "CAPACITY_TPH",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CONVEYOR",
+        "parameter_code": "MOTOR_POWER_KW",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "GRIZZLY_FEEDER",
+        "parameter_code": "CAPACITY_TPH",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "GRIZZLY_FEEDER",
+        "parameter_code": "GRIZZLY_GAP_MM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "GRIZZLY_FEEDER",
+        "parameter_code": "FEEDER_WIDTH_MM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "GRIZZLY_FEEDER",
+        "parameter_code": "FEEDER_LENGTH_M",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "GRIZZLY_FEEDER",
+        "parameter_code": "VIBRATION_RPM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "GRIZZLY_FEEDER",
+        "parameter_code": "MOTOR_POWER_KW",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "CRUSHER_LUBRICATION",
+        "parameter_code": "LUBE_FLOW_LPM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "CRUSHER_LUBRICATION",
+        "parameter_code": "LUBE_PRESSURE_BAR",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "CRUSHER_LUBRICATION",
+        "parameter_code": "OIL_TANK_L",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "CRUSHER_LUBRICATION",
+        "parameter_code": "OIL_TEMP_C",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "CRUSHER_LUBRICATION",
+        "parameter_code": "FILTER_RATING_UM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "CRUSHER_LUBRICATION",
+        "parameter_code": "MOTOR_POWER_KW",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "HYDRAULIC_ADJUSTMENT_UNIT",
+        "parameter_code": "HYD_PRESSURE_BAR",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "HYDRAULIC_ADJUSTMENT_UNIT",
+        "parameter_code": "HYD_FLOW_LPM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "HYDRAULIC_ADJUSTMENT_UNIT",
+        "parameter_code": "HYD_TANK_L",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "HYDRAULIC_ADJUSTMENT_UNIT",
+        "parameter_code": "MOTOR_POWER_KW",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "HYDRAULIC_ADJUSTMENT_UNIT",
+        "parameter_code": "HYD_FLUID_TYPE",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CHUTE",
+        "parameter_code": "CHUTE_LENGTH_M",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CHUTE",
+        "parameter_code": "CHUTE_WIDTH_M",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CHUTE",
+        "parameter_code": "CHUTE_ANGLE_DEG",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CHUTE",
+        "parameter_code": "LINER_MATERIAL",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CHUTE",
+        "parameter_code": "LINER_THICKNESS_MM",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "PRIMARY_DISCHARGE_CHUTE",
+        "parameter_code": "CAPACITY_TPH",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "PRIMARY_DUST_COLLECTOR",
+        "parameter_code": "AIRFLOW_M3H",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "PRIMARY_DUST_COLLECTOR",
+        "parameter_code": "STATIC_PRESSURE_PA",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "PRIMARY_DUST_COLLECTOR",
+        "parameter_code": "FILTER_AREA_M2",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "PRIMARY_DUST_COLLECTOR",
+        "parameter_code": "FILTER_TYPE",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "PRIMARY_DUST_COLLECTOR",
+        "parameter_code": "FAN_POWER_KW",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "PRIMARY_DUST_COLLECTOR",
+        "parameter_code": "DIFFERENTIAL_PRESSURE_PA",
+        "required_for_fur": true
+      },
+      {
+        "asset_type_id": "PRIMARY_DUST_COLLECTOR",
+        "parameter_code": "FILTER_EFFICIENCY_PCT",
+        "required_for_fur": true
+      }
+    ],
+    "asset_specifications": [],
+    "data_quality_flags": [
+      {
+        "flag_id": "DQ-REV2-E02-012-013",
+        "asset_id": "REV2-E02-003",
+        "field_name": "TAG_ACTIVO",
+        "issue_detail": "El listado maestro visible asigna SC-001 tanto a la cinta transportadora principal (fila 12) como a la criba de rechazo (fila 13). Se preserva el valor fuente y se marca para cotejo con el archivo editable.",
+        "resolution_status": "PENDIENTE"
+      },
+      {
+        "flag_id": "DQ-REV2-E02-014-019",
+        "asset_id": "REV2-E02-004",
+        "field_name": "TAG_ACTIVO",
+        "issue_detail": "En las filas 14–19, los TAG visibles CAND-02-03 a CAND-02-08 no siguen de forma directa la secuencia de activos de las filas 11–13. Se preservan los valores transcritos; validar contra fuente editable antes de migración productiva.",
+        "resolution_status": "PENDIENTE"
+      }
+    ]
+  }
+}

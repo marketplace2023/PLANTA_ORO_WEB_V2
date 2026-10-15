@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Put, Query, Req } from '@nestjs/common'
 import type { AppRequest, AuthUser, PlantRow } from '../../common/types'
 import { ZodValidationPipe } from '../../common/zod-validation.pipe'
@@ -13,6 +14,9 @@ import {
   updateAssetSchema,
 } from './assets.schemas'
 import { AssetsService } from './assets.service'
+
+/** `network`: cuenta solo los activos de esa red transversal (la vista de Procesos usa FUR-PROC). */
+const summaryQuerySchema = z.object({ network: z.string().trim().toUpperCase().regex(/^FUR-[A-Z]{2,16}$/, 'Código de red inválido (p. ej. FUR-PROC)').optional() })
 
 @Controller('plants/:plantId/assets')
 export class AssetsController {
@@ -31,8 +35,12 @@ export class AssetsController {
   /** Conteos por estado, criticidad, etapa y red (geoportal). Declarada antes de `:assetId`. */
   @Public()
   @Get('summary')
-  summary(@Param('plantId') plantId: string, @CurrentUser() user?: AuthUser) {
-    return this.assets.summary(plantId, user)
+  summary(
+    @Param('plantId') plantId: string,
+    @Query(new ZodValidationPipe(summaryQuerySchema)) query: z.infer<typeof summaryQuerySchema>,
+    @CurrentUser() user?: AuthUser,
+  ) {
+    return this.assets.summary(plantId, user, query.network)
   }
 
   @RequirePermission('asset.create')

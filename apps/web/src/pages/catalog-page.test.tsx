@@ -253,7 +253,7 @@ describe('Catálogo global', () => {
       { id: 'v4', code: 'MATERIAL', label: 'Material de fabricación', unit: null, valueType: 'TEXT', group: null, isKey: false, sortOrder: 4, networkCodes: [], stageCodes: [], assetTypeCodes: [], value: 'Acero', defaultValue: null },
     ]
 
-    it('al pulsar un modelo abre su ficha: identificación y variables por red, con «Por determinar» si no hay valor', async () => {
+    it('al pulsar un modelo abre su ficha: identificación y parámetros en una sola tabla, con «Por determinar» si no hay valor', async () => {
       setup()
       mockApiWithVariables(VARIABLES)
       renderWithProviders(<CatalogPage />, { route: '/catalog' })
@@ -268,26 +268,76 @@ describe('Catálogo global', () => {
       expect(within(dialog).getAllByText('Metso · FI').length).toBeGreaterThan(0)
       expect(within(dialog).getByText('D06')).toBeInTheDocument()
 
-      // Variables por red: potencia con valor propio y general; proceso sin valor; generales
-      expect(await within(dialog).findByText(/Potencia Eléctrica \(FUR-PTE\)/)).toBeInTheDocument()
+      // Todos los parámetros en una sola tabla «Parámetros técnicos», sin repartirlos por red
+      expect(await within(dialog).findByText('Parámetros técnicos', { exact: false })).toBeInTheDocument()
+      expect(within(dialog).getAllByRole('table')).toHaveLength(1)
+      expect(within(dialog).queryByText(/FUR-PTE\)/)).not.toBeInTheDocument()
+      expect(within(dialog).getByText('Potencia nominal')).toBeInTheDocument()
       expect(within(dialog).getByText('3000 kW')).toBeInTheDocument()
       expect(within(dialog).getByText('4160 V')).toBeInTheDocument()
       expect(within(dialog).getByText('(general)')).toBeInTheDocument()
       expect(within(dialog).getByText('Capacidad de proceso')).toBeInTheDocument()
-      expect(within(dialog).getByText('Por determinar')).toBeInTheDocument()
-      expect(within(dialog).getByText(/Parámetros generales/)).toBeInTheDocument()
+      expect(within(dialog).getAllByText('Por determinar').length).toBeGreaterThanOrEqual(2) // el parámetro sin valor y los componentes sin registrar
+      expect(within(dialog).getByText('Material de fabricación')).toBeInTheDocument()
+      // Misma estructura para todos: componentes y fabricantes aparecen aunque no haya datos
+      expect(within(dialog).getByRole('heading', { name: /Componentes principales/ })).toBeInTheDocument()
+      expect(within(dialog).getByRole('heading', { name: /Fabricantes de referencia/ })).toBeInTheDocument()
       expect(within(dialog).getByText('Acero')).toBeInTheDocument()
-      expect(within(dialog).getByText('Nota técnica')).toBeInTheDocument()
+      expect(within(dialog).getByText(/Nota técnica/)).toBeInTheDocument()
     })
 
-    it('un tipo sin variables lo dice, y la ficha se cierra', async () => {
+    it('muestra la identificación, los componentes y los fabricantes de referencia que vienen del inventario', async () => {
+      const withInventory = {
+        ...MODELS[0],
+        type: { ...MODELS[0].type, description: 'Reduce el tamaño del mineral mediante molienda.' },
+        technicalData: {
+          identificacion: {
+            'N.° de inventario': '7',
+            'TAG activo': 'CAND-02-01',
+            'TAG mapa': 'Sin alias documentado',
+            'Código FUR': 'FUR-PROC-E02-001',
+            Criticidad: 'Alta',
+            'Estado de la ficha': 'Registro documental referencial — pendiente de validación en planta',
+          },
+          componentes: ['Cuerpo y bastidor', 'Placa obturadora'],
+          fabricantesReferencia: [
+            { nombre: 'Metso', alcance: 'Trituración primaria', sitioWeb: 'https://www.metso.com/' },
+            { nombre: 'Sin enlace', alcance: null, sitioWeb: 'javascript:alert(1)' },
+          ],
+          fuente: 'REVEMIN II / Etapa 02',
+        },
+      }
+      setup(page([withInventory], 1, 1, 24))
+      mockApiWithVariables([])
+      renderWithProviders(<CatalogPage />, { route: '/catalog' })
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Ver la ficha técnica de Bolas 16.5x24 ft' }))
+      const dialog = await screen.findByRole('dialog')
+
+      // El número de inventario no se muestra en la ficha.
+      expect(within(dialog).queryByTitle('N.° de inventario')).not.toBeInTheDocument()
+      expect(within(dialog).queryByText('N.° de inventario')).not.toBeInTheDocument()
+      expect(within(dialog).getByText('Reduce el tamaño del mineral mediante molienda.')).toBeInTheDocument()
+      expect(within(dialog).getByText('CAND-02-01')).toBeInTheDocument()
+      expect(within(dialog).getByText('FUR-PROC-E02-001')).toBeInTheDocument()
+      expect(within(dialog).getByText('Registro documental referencial — pendiente de validación en planta')).toBeInTheDocument()
+      expect(within(dialog).getByText('Placa obturadora')).toBeInTheDocument()
+      expect(within(dialog).getByRole('link', { name: /metso\.com/ })).toHaveAttribute('href', 'https://www.metso.com/')
+      // Un sitio que no es http(s) no se enlaza.
+      expect(within(dialog).getByText('javascript:alert(1)')).toBeInTheDocument()
+      expect(within(dialog).queryByRole('link', { name: /alert/ })).not.toBeInTheDocument()
+      expect(within(dialog).getByText('Fuente: REVEMIN II / Etapa 02')).toBeInTheDocument()
+    })
+
+    it('un tipo sin parámetros lo dice, mantiene las mismas secciones, y la ficha se cierra', async () => {
       setup()
       mockApiWithVariables([])
       renderWithProviders(<CatalogPage />, { route: '/catalog' })
 
       await userEvent.click(await screen.findByRole('button', { name: 'Ver la ficha técnica de Motor 4.0 MW 6 polos' }))
       const dialog = await screen.findByRole('dialog')
-      expect(await within(dialog).findByText('Este tipo de activo aún no tiene variables definidas.')).toBeInTheDocument()
+      expect(await within(dialog).findByText('Este tipo de activo aún no tiene parámetros técnicos definidos.')).toBeInTheDocument()
+      expect(within(dialog).getByText('Sin fabricantes de referencia registrados')).toBeInTheDocument()
       expect(within(dialog).getAllByText('Sin asignar')).toHaveLength(2) // etapas y redes
 
       await userEvent.click(within(dialog).getByRole('button', { name: 'Cerrar' }))

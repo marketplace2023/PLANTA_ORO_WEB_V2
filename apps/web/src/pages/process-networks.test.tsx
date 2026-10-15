@@ -97,76 +97,90 @@ afterEach(() => vi.unstubAllGlobals())
 describe('Procesos', () => {
   const P = '/plants/revemin-ii/processes'
 
-  it('mapa: etapas agrupadas por grupo, con activos, atención, OT y flujo en texto', async () => {
-    setup({ 'GET /plants/revemin-ii/process': { body: overview() } })
-    renderAt(P)
-    expect(await screen.findByRole('heading', { name: /Molienda y clasificación/ })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: /^Lixiviación$/, level: 2 })).toBeInTheDocument() // grupo
-    const card = screen.getByText('Molienda Primaria').closest('[data-slot="card"]') as HTMLElement
-    expect(within(card).getByRole('link', { name: /3 activos/ })).toHaveAttribute('href', '/plants/revemin-ii/assets?stage=D06')
-    expect(within(card).getByText('1 requieren atención')).toBeInTheDocument()
-    expect(within(card).getByText('2 OT abiertas')).toBeInTheDocument()
-    expect(within(card).getByText('2 Operativo · 1 En reparación')).toBeInTheDocument()
-    expect(within(card).getByText(/Envía a:/).closest('p')).toHaveTextContent('D07')
-    // el flujo de retorno se anuncia como texto accesible
-    const sec = screen.getByText('Molienda Secundaria').closest('[data-slot="card"]') as HTMLElement
-    expect(within(sec).getByText(/Envía a:/).closest('p')).toHaveTextContent('D06retorno')
-    expect(within(sec).getByText(/Envía a:/).closest('p')).toHaveTextContent('D11 (solución)')
+  // La vista de Procesos es el geoportal con solo la red de Procesos disponible.
+  const PROC_NETWORKS = [
+    { id: 'n0', code: 'FUR-PROC', name: 'Procesos', colorToken: 'network-proc', isEnabled: true, isPublic: true },
+    { id: 'n1', code: 'FUR-IOT', name: 'IoT / Instrumentación', colorToken: 'network-iot', isEnabled: true, isPublic: true },
+    { id: 'n2', code: 'FUR-PTE', name: 'Potencia Eléctrica', colorToken: 'network-pte', isEnabled: true, isPublic: false },
+  ]
+  const GEO_STAGES = [
+    { id: 's6', code: 'D06', name: 'Molienda Primaria', displayName: 'Molienda Primaria', stageGroup: 'MOLIENDA', colorToken: 'blue', sequence: 6, isEnabled: true, isPublic: true, mapPosition: null },
+    { id: 's7', code: 'D07', name: 'Molienda Secundaria', displayName: 'Molienda Secundaria', stageGroup: 'MOLIENDA', colorToken: 'blue', sequence: 7, isEnabled: true, isPublic: true, mapPosition: null },
+  ]
+  const PROC_SUMMARY = { total: 4, byStatus: { OPERATIVE: 2, REPAIR: 1, CRITICAL: 1 }, byCriticality: { CRITICAL: 1 }, byStage: { D06: 3, D07: 1 }, byNetwork: { 'FUR-PROC': 4 } }
+  const geoRoutes = (extra: Record<string, Reply> = {}): Record<string, Reply> => ({
+    'GET /plants/revemin-ii/process': { body: overview() },
+    'GET /plants/revemin-ii/stages': { body: GEO_STAGES },
+    'GET /plants/revemin-ii/networks': { body: PROC_NETWORKS },
+    'GET /plants/revemin-ii/assets/summary': { body: PROC_SUMMARY },
+    'GET /plants/revemin-ii/assets': { body: { items: [], total: 0, page: 1, pageSize: 100 } },
+    ...extra,
   })
 
-  it('indicadores globales y estado sin activos', async () => {
-    setup({ 'GET /plants/revemin-ii/process': { body: overview() } })
+  it('se ve como el geoportal de activos: etapas, mapa, etapa destacada y redes, con indicadores de la red de procesos', async () => {
+    const m = setup(geoRoutes())
     renderAt(P)
-    const kpi = (t: string) => screen.getByText(t, { selector: 'p' }).closest('[data-slot="card"]') as HTMLElement
+
+    expect(await screen.findByRole('heading', { name: 'Procesos', level: 1 })).toBeInTheDocument()
+    expect(screen.getByText('Listado de etapas del proceso')).toBeInTheDocument()
+    expect(screen.getByText('Etapa destacada')).toBeInTheDocument()
+    const kpi = (t: string) => screen.getByText(t).closest('li') as HTMLElement
     expect(await screen.findByText('Activos en proceso')).toBeInTheDocument()
-    expect(kpi('Etapas habilitadas')).toHaveTextContent('3')
-    expect(kpi('Activos en proceso')).toHaveTextContent('4')
-    expect(kpi('Requieren atención')).toHaveTextContent('1')
-    const empty = screen.getByText('Lixiviación', { selector: 'h3' }).closest('[data-slot="card"]') as HTMLElement
-    expect(within(empty).getByText('Sin activos')).toBeInTheDocument()
+    expect(kpi('Etapas habilitadas')).toHaveTextContent('2')
+    await waitFor(() => expect(kpi('Activos en proceso')).toHaveTextContent('4'))
+    expect(kpi('Requieren atención')).toHaveTextContent('2') // reparación + crítico
+    expect(kpi('Redes disponibles de 3')).toHaveTextContent('1')
+    // Los conteos salen del resumen de la red de procesos, no de toda la planta.
+    expect(calls(m, '/plants/revemin-ii/assets/summary')[0].query.get('network')).toBe('FUR-PROC')
+    // Y el listado de activos de la etapa también se limita a esa red.
+    await waitFor(() => expect(calls(m, '/plants/revemin-ii/assets').length).toBeGreaterThan(0))
+    expect(calls(m, '/plants/revemin-ii/assets').at(-1)!.query.get('network')).toBe('FUR-PROC')
   })
 
-  it('la lista tabular vive en la URL (?view=list)', async () => {
-    setup({ 'GET /plants/revemin-ii/process': { body: overview() } })
-    renderAt(`${P}?view=list`)
-    const row = (await screen.findByText('Molienda Primaria')).closest('tr')!
-    expect(within(row).getByText('Molienda y clasificación')).toBeInTheDocument()
-    expect(within(row).getByRole('link', { name: '3' })).toHaveAttribute('href', '/plants/revemin-ii/assets?stage=D06')
-    expect(screen.getByRole('tab', { name: 'Lista de etapas' })).toHaveAttribute('aria-selected', 'true')
-    await userEvent.click(screen.getByRole('tab', { name: 'Mapa de proceso' }))
-    expect(await screen.findByRole('heading', { name: /Molienda y clasificación/ })).toBeInTheDocument()
-  })
-
-  it('visitante: sin activos publicados dice "no publicados" (no "0") y sin KPIs', async () => {
-    setup({
-      'GET /plants/revemin-ii/process': {
-        body: overview({ stages: [stage({ assetCount: null, statusCounts: null, attentionAssets: null, criticalAssets: null, openWorkOrders: null })], connections: [], totals: null }),
-      },
-    })
+  it('solo la red de Procesos está disponible: las demás aparecen bloqueadas y no se pueden elegir', async () => {
+    setup(geoRoutes())
     renderAt(P)
-    expect(await screen.findByText('Activos no publicados')).toBeInTheDocument()
-    expect(screen.queryByText('Activos en proceso')).not.toBeInTheDocument()
-    expect(screen.queryByText(/OT abiertas/)).not.toBeInTheDocument()
+
+    const networks = await screen.findByRole('list', { name: 'Redes' })
+    const proc = within(networks).getByRole('button', { name: /FUR-PROC/ })
+    expect(proc).toBeEnabled()
+    expect(within(proc).getByText('Activa')).toBeInTheDocument()
+    for (const name of [/FUR-IOT .*bloqueada/, /FUR-PTE .*bloqueada/]) {
+      expect(within(networks).getByRole('button', { name })).toBeDisabled()
+    }
+    // Pulsar la red activa no la quita.
+    await userEvent.click(proc)
+    expect(within(networks).getByRole('button', { name: /FUR-PROC/ })).toBeEnabled()
+    expect(within(networks).getByText('Activa')).toBeInTheDocument()
   })
 
-  it('planta sin proceso publicado: estado vacío; error con reintentar', async () => {
-    setup({ 'GET /plants/revemin-ii/process': { body: { stages: [], connections: [], totals: null } } })
-    const { unmount } = renderAt(P)
-    expect(await screen.findByText('No hay etapas para mostrar')).toBeInTheDocument()
-    unmount()
-    setup({ 'GET /plants/revemin-ii/process': { status: 500, body: { message: 'x' } } })
+  it('la etapa elegida muestra de dónde recibe y a dónde envía (flujo del proceso)', async () => {
+    setup(geoRoutes())
+    renderAt(`${P}?stage=D07`)
+
+    expect(await screen.findByText('Flujo del proceso · Etapa 07')).toBeInTheDocument()
+    const panel = screen.getByText('Flujo del proceso · Etapa 07').closest('section') as HTMLElement
+    const recibe = within(panel).getByText('Recibe de').closest('div') as HTMLElement
+    expect(within(recibe).getByText('Molienda Primaria')).toBeInTheDocument()
+    const envia = within(panel).getByText('Envía a').closest('div') as HTMLElement
+    expect(within(envia).getByText('Molienda Primaria')).toBeInTheDocument() // retorno
+    expect(within(envia).getByText('retorno')).toBeInTheDocument()
+  })
+
+  it('error del servidor: ofrece reintentar', async () => {
+    setup(geoRoutes({ 'GET /plants/revemin-ii/assets': { status: 500, body: { message: 'x' } } }))
     renderAt(P)
     expect(await screen.findByRole('button', { name: /Reintentar/ })).toBeInTheDocument()
   })
 
   it('editar conexiones solo con plant.configure', async () => {
-    setup({ 'GET /plants/revemin-ii/process': { body: overview() } })
+    setup(geoRoutes())
     const { unmount } = renderAt(P)
     await screen.findByText('Activos en proceso')
     expect(screen.queryByRole('button', { name: /Editar conexiones/ })).not.toBeInTheDocument()
     unmount()
     state.permissions = ['plant.configure']
-    setup({ 'GET /plants/revemin-ii/process': { body: overview() } })
+    setup(geoRoutes())
     renderAt(P)
     expect(await screen.findByRole('button', { name: /Editar conexiones/ })).toBeInTheDocument()
   })

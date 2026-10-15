@@ -1,4 +1,4 @@
-import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { ConflictException, ForbiddenException, Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { eq } from 'drizzle-orm'
 import type { AppRequest, AuthUser, PlantRow } from '../../common/types'
 import { DB, type Database } from '../../database/database.module'
@@ -62,6 +62,20 @@ export class PlantsService {
     if (!plant) throw new NotFoundException('Planta no encontrada')
     const access = await this.authz.access(user, plant.id)
     if (!this.authz.canView(user, plant, access)) throw new NotFoundException('Planta no encontrada')
+    return plant
+  }
+
+  /**
+   * Datos de la planta (activos, procesos, redes, documentos…): solo para quien pertenece a ella (o el administrador del ecosistema).
+   * Sin sesión: 401, para que la web pida iniciar sesión. Con sesión pero sin pertenecer: 403, para que ofrezca solicitar acceso.
+   * La visibilidad de la planta (PUBLIC/AUTHENTICATED/PRIVATE) solo decide quién puede descubrirla y pedir acceso.
+   */
+  async getForMember(ref: string, user: AuthUser | undefined): Promise<PlantRow> {
+    if (!this.authz.membersOnly) return this.getVisible(ref, user)
+    if (!user) throw new UnauthorizedException('Inicia sesión para ver esta información')
+    const plant = await this.getVisible(ref, user)
+    const access = await this.authz.access(user, plant.id)
+    if (!access.isMember) throw new ForbiddenException('No perteneces a esta planta. Solicita acceso para ver su información.')
     return plant
   }
 

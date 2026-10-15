@@ -167,7 +167,7 @@ export class AssetsService {
   }
 
   async list(ref: string, q: ListAssetsQuery, user: AuthUser | undefined) {
-    const plant = await this.plants.getVisible(ref, user)
+    const plant = await this.plants.getForMember(ref, user)
     const { internal, publicAssets } = await this.scope(plant, user)
     if (!internal && !publicAssets) return pageOf([], 0, q.page, q.pageSize)
 
@@ -228,7 +228,7 @@ export class AssetsService {
    * (quien no tiene asset.read solo cuenta lo público) y sin los dados de baja.
    */
   async summary(ref: string, user: AuthUser | undefined) {
-    const plant = await this.plants.getVisible(ref, user)
+    const plant = await this.plants.getForMember(ref, user)
     const { internal, publicAssets } = await this.scope(plant, user)
     const empty = { total: 0, byStatus: {} as Record<string, number>, byCriticality: {} as Record<string, number>, byStage: {} as Record<string, number>, byNetwork: {} as Record<string, number> }
     if (!internal && !publicAssets) return empty
@@ -265,7 +265,7 @@ export class AssetsService {
   }
 
   private async findVisible(ref: string, assetId: string, user: AuthUser | undefined) {
-    const plant = await this.plants.getVisible(ref, user)
+    const plant = await this.plants.getForMember(ref, user)
     const { internal, publicAssets } = await this.scope(plant, user)
     const [row] = await this.selectRows().where(and(eq(assets.id, assetId), eq(assets.plantId, plant.id))).limit(1)
     // Un activo no público es indistinguible de uno inexistente para quien no tiene acceso interno.

@@ -1,4 +1,6 @@
+import { Lock } from 'lucide-react'
 import { Link, NavLink } from 'react-router-dom'
+import { useIsAnonymous } from '@/features/auth/auth-context'
 import { NAV_ITEMS, type NavItem } from '@/lib/nav'
 import { usePlant } from '@/features/plant/plant-context'
 import { cn } from '@/lib/utils'
@@ -20,6 +22,9 @@ type Props = {
 
 export function MainNavbar({ orientation = 'horizontal', onNavigate }: Props) {
   const target = useNavTarget()
+  const anonymous = useIsAnonymous()
+  /** Sin sesión solo la página principal y el catálogo están abiertos; el resto lleva candado. */
+  const locked = (item: NavItem) => anonymous && item.path !== '/' && item.path !== '/catalog'
   const { currentPlant } = usePlant()
   const vertical = orientation === 'vertical'
 
@@ -45,11 +50,13 @@ export function MainNavbar({ orientation = 'horizontal', onNavigate }: Props) {
           <Link key={item.label} to={target(item)} onClick={onNavigate} title="Elige una planta para abrir esta sección" className={classes(false)}>
             <item.icon className="size-4 shrink-0" />
             {item.label}
+            {locked(item) && <Lock className="size-3 shrink-0 opacity-70" aria-hidden />}
           </Link>
         ) : (
           <NavLink key={item.label} to={target(item)} end={item.path === '/'} onClick={onNavigate} className={({ isActive }) => classes(isActive)}>
             <item.icon className="size-4 shrink-0" />
             {item.label}
+            {locked(item) && <Lock className="size-3 shrink-0 opacity-70" aria-hidden />}
           </NavLink>
         ),
       )}

@@ -185,19 +185,12 @@ export async function runSeed(url: string) {
   const db = drizzle(pool)
 
   try {
-    // Idempotente: re-ejecutar actualiza nombres/grupos sin duplicar (clave: code).
+    // Idempotente (clave: code): solo crea las etapas base que falten. No pisa lo que el administrador edite en /masters
+    // (nombre, grupo, color, orden, descripción, imagen), igual que las redes.
     await db
       .insert(stageMaster)
       .values(STAGES.map(([code, name, stageGroup, colorToken], i) => ({ code, name, stageGroup, colorToken, sequenceDefault: i + 1 })))
-      .onConflictDoUpdate({
-        target: stageMaster.code,
-        set: {
-          name: sql`excluded.name`,
-          stageGroup: sql`excluded.stage_group`,
-          colorToken: sql`excluded.color_token`,
-          sequenceDefault: sql`excluded.sequence_default`,
-        },
-      })
+      .onConflictDoNothing({ target: stageMaster.code })
 
     // Las redes se administran desde el panel (crear, editar, eliminar): el seed solo crea las que faltan y no pisa
     // lo que el administrador haya cambiado.

@@ -5,6 +5,7 @@ import { ErrorState } from '@/components/base/error-state'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ApiError } from '@/lib/api'
+import { PlantAccessGate } from '@/components/plant/plant-access-gate'
 import { usePlantDetail, type PlantDetail } from '@/features/plant/use-plant-data'
 
 /**
@@ -39,6 +40,9 @@ export function PlantRoute() {
     )
   }
   if (error || !data) return <ErrorState onRetry={() => void refetch()} />
+
+  // Sin rol en la planta (y no es administrador del ecosistema) no se muestra ningún dato: solo la opción de pedir acceso.
+  if (data.access.roles.length === 0) return <PlantAccessGate plantName={data.name} plantSlug={data.slug} />
 
   return <Outlet context={data satisfies PlantDetail} />
 }

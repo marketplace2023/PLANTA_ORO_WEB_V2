@@ -15,3 +15,5 @@ process.env.AUTH_RATE_LIMIT_PER_MINUTE = '1000'
 // Documentos: carpeta temporal propia de las pruebas y tope pequeño para probar el límite de tamaño.
 process.env.STORAGE_DIR = path.join(os.tmpdir(), 'fur-e2e-storage')
 process.env.MAX_UPLOAD_MB = '1'
+// Las pruebas de visibilidad cubren el modo abierto; el modo `members` (producción) tiene su propia prueba.
+process.env.ACCESS_MODE = 'open'

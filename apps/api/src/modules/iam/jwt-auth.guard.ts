@@ -1,11 +1,13 @@
 import { type CanActivate, type ExecutionContext, Inject, Injectable, UnauthorizedException } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import { Reflector } from '@nestjs/core'
 import { JwtService } from '@nestjs/jwt'
 import { and, eq } from 'drizzle-orm'
 import type { AppRequest } from '../../common/types'
 import { DB, type Database } from '../../database/database.module'
 import { users } from '../../database/schema'
-import { IS_PUBLIC } from './decorators'
+import type { Env } from '../../config/env'
+import { IS_OPEN_ACCESS, IS_PUBLIC } from './decorators'
 
 /**
  * Guard global. Sin token: solo pasa en rutas @Public (anónimo).
@@ -17,10 +19,14 @@ export class JwtAuthGuard implements CanActivate {
     private readonly reflector: Reflector,
     private readonly jwt: JwtService,
     @Inject(DB) private readonly db: Database,
+    private readonly config: ConfigService<Env, true>,
   ) {}
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
-    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC, [ctx.getHandler(), ctx.getClass()])
+    const targets = [ctx.getHandler(), ctx.getClass()]
+    const isPublic =
+      !!this.reflector.getAllAndOverride<boolean>(IS_PUBLIC, targets) ||
+      (!!this.reflector.getAllAndOverride<boolean>(IS_OPEN_ACCESS, targets) && this.config.get('ACCESS_MODE', { infer: true }) === 'open')
     const req = ctx.switchToHttp().getRequest<AppRequest>()
 
     const header = req.headers.authorization

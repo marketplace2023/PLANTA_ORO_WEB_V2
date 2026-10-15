@@ -38,6 +38,14 @@ function setup(models: unknown = page(MODELS, 2, 1, 24)) {
     'GET /networks/catalog': { body: NETWORKS },
   })
 }
+/** Añade la ruta de variables del modelo a la simulación de la API (la última ruta registrada gana en `mockApi`). */
+function mockApiWithVariables(variables: unknown[]) {
+  const previous = vi.mocked(globalThis.fetch) as unknown as (url: string | URL, init?: RequestInit) => Promise<Response>
+  vi.stubGlobal('fetch', async (url: string | URL, init?: RequestInit) => {
+    if (new URL(String(url)).pathname.endsWith('/variables')) return new Response(JSON.stringify(variables), { status: 200, headers: { 'Content-Type': 'application/json' } })
+    return previous(url, init)
+  })
+}
 const modelCalls = (mock: ReturnType<typeof setup>) => mock.calls.filter((c) => c.path === '/catalog/assets')
 
 describe('Catálogo global', () => {
@@ -235,6 +243,55 @@ describe('Catálogo global', () => {
       await userEvent.click(await screen.findByRole('button', { name: 'Ampliar el mapa de REVEMIN II' }))
       const dialog = await screen.findByRole('dialog')
       expect(within(dialog).getByAltText('Mapa de REVEMIN II')).toBeInTheDocument()
+    })
+  })
+  describe('ficha técnica del modelo', () => {
+    const VARIABLES = [
+      { id: 'v1', code: 'POTENCIA_NOMINAL', label: 'Potencia nominal', unit: 'kW', valueType: 'NUMBER', group: 'Potencia', isKey: true, sortOrder: 1, networkCodes: ['FUR-PTE'], stageCodes: [], assetTypeCodes: [], value: 3000, defaultValue: null },
+      { id: 'v2', code: 'TENSION', label: 'Tensión de alimentación', unit: 'V', valueType: 'NUMBER', group: 'Potencia', isKey: false, sortOrder: 2, networkCodes: ['FUR-PTE'], stageCodes: [], assetTypeCodes: [], value: null, defaultValue: 4160 },
+      { id: 'v3', code: 'CAPACIDAD', label: 'Capacidad de proceso', unit: 't/h', valueType: 'NUMBER', group: 'Proceso', isKey: false, sortOrder: 3, networkCodes: ['FUR-PROC'], stageCodes: ['D06'], assetTypeCodes: [], value: null, defaultValue: null },
+      { id: 'v4', code: 'MATERIAL', label: 'Material de fabricación', unit: null, valueType: 'TEXT', group: null, isKey: false, sortOrder: 4, networkCodes: [], stageCodes: [], assetTypeCodes: [], value: 'Acero', defaultValue: null },
+    ]
+
+    it('al pulsar un modelo abre su ficha: identificación y variables por red, con «Por determinar» si no hay valor', async () => {
+      setup()
+      mockApiWithVariables(VARIABLES)
+      renderWithProviders(<CatalogPage />, { route: '/catalog' })
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Ver la ficha técnica de Bolas 16.5x24 ft' }))
+      const dialog = await screen.findByRole('dialog')
+      expect(within(dialog).getByText('Ficha técnica del activo físico')).toBeInTheDocument()
+      expect(within(dialog).getByText(/Catálogo FUR \| Molinos — Molino de bolas/)).toBeInTheDocument()
+
+      // Identificación del modelo (no de un activo de planta)
+      expect(within(dialog).getByText('Identificación del activo', { exact: false })).toBeInTheDocument()
+      expect(within(dialog).getAllByText('Metso · FI').length).toBeGreaterThan(0)
+      expect(within(dialog).getByText('D06')).toBeInTheDocument()
+
+      // Variables por red: potencia con valor propio y general; proceso sin valor; generales
+      expect(await within(dialog).findByText(/Potencia Eléctrica \(FUR-PTE\)/)).toBeInTheDocument()
+      expect(within(dialog).getByText('3000 kW')).toBeInTheDocument()
+      expect(within(dialog).getByText('4160 V')).toBeInTheDocument()
+      expect(within(dialog).getByText('(general)')).toBeInTheDocument()
+      expect(within(dialog).getByText('Capacidad de proceso')).toBeInTheDocument()
+      expect(within(dialog).getByText('Por determinar')).toBeInTheDocument()
+      expect(within(dialog).getByText(/Parámetros generales/)).toBeInTheDocument()
+      expect(within(dialog).getByText('Acero')).toBeInTheDocument()
+      expect(within(dialog).getByText('Nota técnica')).toBeInTheDocument()
+    })
+
+    it('un tipo sin variables lo dice, y la ficha se cierra', async () => {
+      setup()
+      mockApiWithVariables([])
+      renderWithProviders(<CatalogPage />, { route: '/catalog' })
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Ver la ficha técnica de Motor 4.0 MW 6 polos' }))
+      const dialog = await screen.findByRole('dialog')
+      expect(await within(dialog).findByText('Este tipo de activo aún no tiene variables definidas.')).toBeInTheDocument()
+      expect(within(dialog).getAllByText('Sin asignar')).toHaveLength(2) // etapas y redes
+
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Cerrar' }))
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     })
   })
 })

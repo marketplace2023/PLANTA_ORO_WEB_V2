@@ -119,7 +119,7 @@ export class DocumentsService {
   }
 
   async list(ref: string, q: ListDocumentsQuery, user: AuthUser | undefined) {
-    const plant = await this.plants.getVisible(ref, user)
+    const plant = await this.plants.getForMember(ref, user)
     return this.listForPlant(plant, q, user)
   }
 
@@ -174,7 +174,7 @@ export class DocumentsService {
 
   /** Un documento al que no tienes acceso es indistinguible de uno inexistente. */
   private async findAccessible(ref: string, documentId: string, user: AuthUser | undefined) {
-    const plant = await this.plants.getVisible(ref, user)
+    const plant = await this.plants.getForMember(ref, user)
     const scope = await this.scope(plant, user)
     const [row] = await this.selectRows().where(and(eq(documents.id, documentId), eq(documents.plantId, plant.id))).limit(1)
     const visible =

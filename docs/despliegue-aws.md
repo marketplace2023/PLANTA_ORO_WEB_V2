@@ -30,7 +30,7 @@ La base **no es pública para nadie más**: su grupo de seguridad `fur-rds` solo
 
 ## Variables de la API en App Runner
 
-`NODE_ENV=production`, `PORT=3000`, `STORAGE_DRIVER=s3`, `S3_BUCKET`, `S3_REGION`, `COOKIE_SAMESITE=lax`, `TRUST_PROXY_HOPS=2` (CloudFront + App Runner), `CORS_ORIGINS`, y desde Secrets Manager `JWT_ACCESS_SECRET` y `DATABASE_URL` (con `sslmode=no-verify`). Al arrancar, el contenedor aplica las migraciones pendientes (`dist/database/migrate.js`).
+`NODE_ENV=production`, `PORT=3000`, `ACCESS_MODE=members` (valor por defecto: sin sesión solo Página principal y Catálogo), `STORAGE_DRIVER=s3`, `S3_BUCKET`, `S3_REGION`, `COOKIE_SAMESITE=lax`, `TRUST_PROXY_HOPS=2` (CloudFront + App Runner), `CORS_ORIGINS`, y desde Secrets Manager `JWT_ACCESS_SECRET` y `DATABASE_URL` (con `sslmode=no-verify`). Al arrancar, el contenedor aplica las migraciones pendientes (`dist/database/migrate.js`).
 
 ## Publicar cambios
 

@@ -19,7 +19,8 @@ export const STAGE_COLORS: Record<string, string> = {
 export const FLOW_TYPES = ['MATERIAL', 'SOLUTION', 'WATER', 'REAGENT'] as const
 export const FLOW_LABELS: Record<string, string> = { MATERIAL: 'Material', SOLUTION: 'Solución', WATER: 'Agua', REAGENT: 'Reactivo' }
 
-export const stageGroupLabel = (g: string) => STAGE_GROUP_LABELS[g] ?? g
+const humanizeGroup = (g: string) => g.charAt(0) + g.slice(1).toLowerCase().replaceAll('_', ' ')
+export const stageGroupLabel = (g: string) => STAGE_GROUP_LABELS[g] ?? humanizeGroup(g)
 export const flowLabel = (f: string) => FLOW_LABELS[f] ?? f
 
 /** Color de una red transversal (los tokens vienen como `network-iot` y existen como variables CSS). */

@@ -132,7 +132,7 @@ export function StagesTab({ slug }: { slug: string }) {
                     <span className="font-medium">{s?.displayName ?? m.name}</span>
                     {s && s.displayName !== m.name && <span className="ml-2 text-xs text-fur-gray-600">({m.name})</span>}
                   </TableCell>
-                  <TableCell>{GROUP_LABELS[m.stageGroup] ?? m.stageGroup}</TableCell>
+                  <TableCell>{GROUP_LABELS[m.stageGroup] ?? m.stageGroup.charAt(0) + m.stageGroup.slice(1).toLowerCase()}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="bg-card font-medium text-foreground">
                       {enabled ? 'Habilitada' : 'No habilitada'}

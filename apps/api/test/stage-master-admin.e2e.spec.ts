@@ -1,7 +1,7 @@
 import type { INestApplication } from '@nestjs/common'
 import { and, eq } from 'drizzle-orm'
 import request from 'supertest'
-import { auditEvents, stageMaster } from '../src/database/schema'
+import { auditEvents, plantStages, stageMaster } from '../src/database/schema'
 import { bearer, createApp, login, type Session, TestDb } from './helpers'
 
 describe('Maestro de etapas: descripción e imagen del layout (e2e)', () => {
@@ -11,6 +11,7 @@ describe('Maestro de etapas: descripción e imagen del layout (e2e)', () => {
   let admin: Session
   let pa: Session
   let stageId: string
+  let plant: Awaited<ReturnType<TestDb['plant']>>
 
   const S = '/api/v1/stages/catalog'
   const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from('layout-png-de-prueba')])
@@ -30,7 +31,7 @@ describe('Maestro de etapas: descripción e imagen del layout (e2e)', () => {
     app = await createApp()
     t = new TestDb()
     await t.cleanup()
-    const plant = await t.plant('stg1', 'PUBLIC')
+    plant = await t.plant('stg1', 'PUBLIC')
     const [, paU] = await Promise.all([t.user('admin', { isGlobalAdmin: true }), t.user('pa')])
     await t.assign(paU.id, plant.id, 'PLANT_ADMIN')
     ;[admin, pa] = await Promise.all(['admin', 'pa'].map((n) => login(app, n)))
@@ -87,10 +88,69 @@ describe('Maestro de etapas: descripción e imagen del layout (e2e)', () => {
       await patch(stageId, admin, { description: 'x'.repeat(2001) }).expect(400)
       await patch(stageId, admin, {}).expect(400)
       const before = await stage()
-      await patch(stageId, admin, { description: 'ok', code: 'D99', name: 'Otra' }).expect(200)
+      await patch(stageId, admin, { description: 'ok', code: 'D99' }).expect(200)
       const after = await stage()
       expect(after.code).toBe(before.code)
       expect(after.name).toBe(before.name)
+    })
+  })
+
+  describe('nombre, grupo, color y orden', () => {
+    it('se editan y el código se conserva; valida el color y el orden', async () => {
+      const before = await stage()
+      const res = await patch(stageId, admin, { name: 'Relaves (editada)', stageGroup: ' relaves y agua ', colorToken: 'cyan', sequenceDefault: 25 }).expect(200)
+      expect(res.body).toMatchObject({ code: 'D19', name: 'Relaves (editada)', stageGroup: 'RELAVES Y AGUA', colorToken: 'cyan', sequenceDefault: 25 })
+      await patch(stageId, admin, { colorToken: 'rosa-fuerte' }).expect(400)
+      await patch(stageId, admin, { sequenceDefault: 0 }).expect(400)
+      await patch(stageId, admin, { name: before.name, stageGroup: before.stageGroup, colorToken: before.colorToken, sequenceDefault: before.sequenceDefault }).expect(200)
+    })
+  })
+
+  describe('crear y eliminar etapas', () => {
+    let createdId: string
+
+    it('crea una etapa nueva al final, con el grupo en mayúsculas; el código no se repite', async () => {
+      const maxBefore = Math.max(...(await http().get(S).expect(200)).body.map((x: { sequenceDefault: number }) => x.sequenceDefault))
+      const res = await http().post(S).set('Authorization', bearer(admin)).send({ code: 'd88', name: 'Flotación de prueba', stageGroup: 'flotación', colorToken: 'purple' }).expect(201)
+      createdId = res.body.id
+      expect(res.body).toMatchObject({ code: 'D88', name: 'Flotación de prueba', stageGroup: 'FLOTACIÓN', colorToken: 'purple', sequenceDefault: maxBefore + 1, layoutImageUrl: null })
+      await http().post(S).set('Authorization', bearer(admin)).send({ code: 'D88', name: 'Otra', stageGroup: 'X1' }).expect(409)
+    })
+
+    it('valida el formato del código, el nombre y el color; solo el administrador crea', async () => {
+      const post = (body: object, s: Session | null = admin) => {
+        const r = http().post(S)
+        return (s ? r.set('Authorization', bearer(s)) : r).send(body)
+      }
+      await post({ code: 'E01', name: 'Mala', stageGroup: 'GRUPO' }).expect(400)
+      await post({ code: 'D5', name: 'Mala', stageGroup: 'GRUPO' }).expect(400)
+      await post({ code: 'D87', name: 'x', stageGroup: 'GRUPO' }).expect(400)
+      await post({ code: 'D87', name: 'Buena', stageGroup: 'GRUPO', colorToken: 'rojo' }).expect(400)
+      await post({ code: 'D87', name: 'Buena', stageGroup: 'GRUPO' }, null).expect(401)
+      await post({ code: 'D87', name: 'Buena', stageGroup: 'GRUPO' }, pa).expect(403)
+    })
+
+    it('la etapa nueva aparece en el catálogo público y en el uso', async () => {
+      expect((await http().get(S).expect(200)).body.some((x: { id: string }) => x.id === createdId)).toBe(true)
+      const usage = await http().get(`${S}/usage`).set('Authorization', bearer(admin)).expect(200)
+      expect(usage.body.find((u: { id: string }) => u.id === createdId)).toMatchObject({ plants: 0, assets: 0, types: 0 })
+      await http().get(`${S}/usage`).set('Authorization', bearer(pa)).expect(403)
+    })
+
+    it('una etapa sin uso se elimina; usada en una planta pide confirmación (409) y con force se quita de ella', async () => {
+      const used = await http().post(S).set('Authorization', bearer(admin)).send({ code: 'D87', name: 'Etapa usada', stageGroup: 'GRUPO' }).expect(201)
+      await t.db.insert(plantStages).values({ plantId: plant.id, stageMasterId: used.body.id, sequence: 99 })
+
+      const blocked = await http().delete(`${S}/${used.body.id}`).set('Authorization', bearer(admin)).expect(409)
+      expect(blocked.body.message).toMatch(/habilitada en 1 planta/)
+      await http().delete(`${S}/${used.body.id}?force=true`).set('Authorization', bearer(admin)).expect(204)
+      expect((await http().get(S).expect(200)).body.some((x: { id: string }) => x.id === used.body.id)).toBe(false)
+
+      await http().delete(`${S}/${createdId}`).set('Authorization', bearer(pa)).expect(403)
+      await http().delete(`${S}/${createdId}`).set('Authorization', bearer(admin)).expect(204)
+      await http().delete(`${S}/${createdId}`).set('Authorization', bearer(admin)).expect(404)
+      const audit = await t.db.select().from(auditEvents).where(and(eq(auditEvents.entityId, used.body.id), eq(auditEvents.action, 'deleted')))
+      expect(audit).toHaveLength(1)
     })
   })
 

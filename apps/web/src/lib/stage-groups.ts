@@ -7,5 +7,7 @@ const STAGE_GROUPS: Record<string, string> = {
   RELAVES: 'Relaves y soluciones',
 }
 
-/** Nombre legible del grupo de etapas («TRITURACION» → «Trituración»). */
-export const stageGroupLabel = (group: string) => STAGE_GROUPS[group] ?? group
+const humanizeGroup = (g: string) => g.charAt(0) + g.slice(1).toLowerCase().replaceAll('_', ' ')
+
+/** Nombre legible del grupo de etapas («TRITURACION» → «Trituración»); un grupo nuevo se muestra en minúsculas con inicial mayúscula. */
+export const stageGroupLabel = (group: string) => STAGE_GROUPS[group] ?? humanizeGroup(group)

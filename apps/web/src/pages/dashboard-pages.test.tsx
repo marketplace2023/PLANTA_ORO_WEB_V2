@@ -40,7 +40,7 @@ const plantDetail = (permissions: string[]) => ({
   logoUrl: null,
   heroImageUrl: null,
   settings: null,
-  access: { roles: permissions.length ? ['PLANT_ADMIN'] : [], permissions },
+  access: { roles: permissions.length ? ['PLANT_ADMIN'] : ['CONSUMER'], permissions },
 })
 const maintenance = (over: Partial<MaintenanceDashboard> = {}) =>
   ({ open: 7, backlog: 2, inProgress: 3, overdue: 0, completedLast30Days: 5, byStatus: {}, openByType: {}, mttrHours: null, preventiveCompliancePct: null, partsCostLast30Days: 0, currency: 'USD', mtbfHours: null, overdueWorkOrders: [], ...over }) as MaintenanceDashboard
@@ -131,10 +131,10 @@ describe('Dashboard de planta: resumen operacional y alertas', () => {
     }
   })
 
-  it('visitante sin permisos y sin datos visibles: no hay resumen ni alertas', async () => {
+  it('miembro sin permisos y sin datos visibles: no hay resumen ni alertas', async () => {
     setupPlant([], { [`GET ${P}/process`]: { body: { stages: [], connections: [], totals: null } } })
     renderPlant()
-    await screen.findByText(/solo lectura/)
+    await screen.findByRole('heading', { name: 'REVEMIN II' })
     await waitFor(() => expect(screen.queryByRole('heading', { name: 'Resumen operacional' })).not.toBeInTheDocument())
     expect(screen.queryByRole('heading', { name: 'Alertas' })).not.toBeInTheDocument()
   })

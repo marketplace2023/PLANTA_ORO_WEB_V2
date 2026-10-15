@@ -52,16 +52,15 @@ describe('Dashboard de planta', () => {
   })
   afterEach(() => vi.unstubAllGlobals())
 
-  it('visitante: lectura natural, sin herramientas de gestión, solo etapas habilitadas', async () => {
+  it('miembro sin permisos: lectura natural, sin herramientas de gestión, solo etapas habilitadas', async () => {
     mockApi({
-      'GET /plants/revemin-ii': { body: detail([], []) },
+      'GET /plants/revemin-ii': { body: detail(['CONSUMER'], []) },
       'GET /plants/revemin-ii/stages': { body: stages },
       'GET /plants/revemin-ii/networks': { body: networks },
     })
     renderDashboard()
 
     expect(await screen.findByRole('heading', { name: 'REVEMIN II' })).toBeInTheDocument()
-    expect(screen.getByText('Estás viendo esta planta en modo solo lectura.')).toBeInTheDocument()
     expect(await screen.findByText('Molino SAG')).toBeInTheDocument() // usa el nombre propio de la planta
     expect(screen.getByText('D06')).toBeInTheDocument()
     expect(screen.queryByText('D11')).not.toBeInTheDocument() // deshabilitada
@@ -147,7 +146,7 @@ describe('Dashboard de planta', () => {
   it('error del servidor: ofrece reintentar y se recupera', async () => {
     let fail = true
     mockApi({
-      'GET /plants/revemin-ii': () => (fail ? { status: 500, body: { message: 'boom' } } : { body: detail([], []) }),
+      'GET /plants/revemin-ii': () => (fail ? { status: 500, body: { message: 'boom' } } : { body: detail(['CONSUMER'], []) }),
       'GET /plants/revemin-ii/stages': { body: [] },
       'GET /plants/revemin-ii/networks': { body: [] },
     })

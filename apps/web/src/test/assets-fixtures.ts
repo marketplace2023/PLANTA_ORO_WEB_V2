@@ -15,7 +15,8 @@ export const PLANT = {
   settings: null,
 }
 
-export const plantDetail = (roles: string[] = [], permissions: string[] = []) => ({ ...PLANT, access: { roles, permissions } })
+/** Por defecto es un miembro sin permisos (p. ej. consumidor): quien no pertenece a la planta no ve sus datos. */
+export const plantDetail = (roles: string[] = ['CONSUMER'], permissions: string[] = []) => ({ ...PLANT, access: { roles, permissions } })
 
 export const STAGES = [
   { id: 's6', code: 'D06', name: 'Molienda Primaria', displayName: 'Molienda Primaria', stageGroup: 'MOLIENDA', colorToken: 'blue', sequence: 6, isEnabled: true, isPublic: true },

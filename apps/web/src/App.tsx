@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/app-layout'
 import { AuthLayout } from '@/components/layout/auth-layout'
+import { RequireAuth } from '@/components/layout/require-auth'
 import { AdminCatalogPage } from '@/pages/admin-catalog-page'
 import { ApuEditorPage } from '@/pages/apu-editor-page'
 import { AssetFurPage } from '@/pages/asset-fur-page'
@@ -46,39 +47,41 @@ export default function App() {
 
       <Route element={<AppLayout />}>
         <Route index element={<HomePage />} />
-        <Route path="plants" element={<PlantsPage />} />
         <Route path="catalog" element={<CatalogPage />} />
-        <Route path="admin/catalog" element={<AdminCatalogPage />} />
-        <Route path="marketplace" element={<MarketplacePage />} />
-        <Route path="courses" element={<CoursesPage />} />
-        <Route path="courses/mine" element={<MyLearningPage />} />
-        <Route path="courses/manage" element={<CourseManagePage />} />
-        <Route path="courses/:id" element={<CoursePage />} />
-        <Route path="courses/:id/edit" element={<CourseEditPage />} />
-        <Route path="certificates/:code" element={<CertificatePage />} />
-        <Route path="providers" element={<ProvidersPage />} />
-        <Route path="providers/:id/manage" element={<ProviderManagePage />} />
-        <Route path="professionals" element={<ProfessionalsPage />} />
-        <Route path="contractors/:id/manage" element={<ContractorManagePage />} />
+        <Route element={<RequireAuth />}>
+          <Route path="plants" element={<PlantsPage />} />
+          <Route path="admin/catalog" element={<AdminCatalogPage />} />
+          <Route path="marketplace" element={<MarketplacePage />} />
+          <Route path="courses" element={<CoursesPage />} />
+          <Route path="courses/mine" element={<MyLearningPage />} />
+          <Route path="courses/manage" element={<CourseManagePage />} />
+          <Route path="courses/:id" element={<CoursePage />} />
+          <Route path="courses/:id/edit" element={<CourseEditPage />} />
+          <Route path="certificates/:code" element={<CertificatePage />} />
+          <Route path="providers" element={<ProvidersPage />} />
+          <Route path="providers/:id/manage" element={<ProviderManagePage />} />
+          <Route path="professionals" element={<ProfessionalsPage />} />
+          <Route path="contractors/:id/manage" element={<ContractorManagePage />} />
 
-        <Route path="plants/:plantSlug" element={<PlantRoute />}>
-          <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<PlantDashboardPage />} />
-          <Route path="assets" element={<AssetsPage />} />
-          <Route path="assets/:assetId" element={<AssetFurPage />} />
-          <Route path="admin" element={<PlantAdminPage />} />
-          <Route path="documents" element={<DocumentsPage />} />
-          <Route path="maintenance" element={<MaintenancePage />} />
-          <Route path="inventory" element={<InventoryPage />} />
-          <Route path="processes" element={<ProcessesPage />} />
-          <Route path="networks" element={<NetworksPage />} />
-          <Route path="networks/:code" element={<NetworkDashboardPage />} />
-          <Route path="budgets" element={<BudgetsPage />} />
-          <Route path="budgets/apus/:apuId" element={<ApuEditorPage />} />
-          <Route path="budgets/:budgetId" element={<BudgetEditorPage />} />
+          <Route path="plants/:plantSlug" element={<PlantRoute />}>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<PlantDashboardPage />} />
+            <Route path="assets" element={<AssetsPage />} />
+            <Route path="assets/:assetId" element={<AssetFurPage />} />
+            <Route path="admin" element={<PlantAdminPage />} />
+            <Route path="documents" element={<DocumentsPage />} />
+            <Route path="maintenance" element={<MaintenancePage />} />
+            <Route path="inventory" element={<InventoryPage />} />
+            <Route path="processes" element={<ProcessesPage />} />
+            <Route path="networks" element={<NetworksPage />} />
+            <Route path="networks/:code" element={<NetworkDashboardPage />} />
+            <Route path="budgets" element={<BudgetsPage />} />
+            <Route path="budgets/apus/:apuId" element={<ApuEditorPage />} />
+            <Route path="budgets/:budgetId" element={<BudgetEditorPage />} />
+          </Route>
+
+          <Route path="dashboards" element={<DashboardsPage />} />
         </Route>
-
-        <Route path="dashboards" element={<DashboardsPage />} />
         <Route path="*" element={<ModulePlaceholder title="Página no encontrada" />} />
       </Route>
     </Routes>

@@ -59,7 +59,7 @@ export class ProcessService {
   // ---------- Procesos ----------
 
   async overview(ref: string, user: AuthUser | undefined) {
-    const plant = await this.plants.getVisible(ref, user)
+    const plant = await this.plants.getForMember(ref, user)
     const scope = await this.scope(plant, user)
     const [settings] = await this.db.select().from(plantSettings).where(eq(plantSettings.plantId, plant.id)).limit(1)
     // Visitantes: solo si la planta publica sus procesos (misma regla que el listado de etapas).
@@ -220,7 +220,7 @@ export class ProcessService {
 
   /** Solo redes HABILITADAS (design.md §37), cada una con el resumen de sus activos. */
   async networks(ref: string, user: AuthUser | undefined) {
-    const plant = await this.plants.getVisible(ref, user)
+    const plant = await this.plants.getForMember(ref, user)
     const scope = await this.scope(plant, user)
     const nets = await this.networkRows(plant.id, scope)
     const ids = nets.map((n) => n.id)
@@ -248,7 +248,7 @@ export class ProcessService {
 
   /** Dashboard propio de una red (§34): estado, criticidad, etapas, activos que requieren atención y órdenes abiertas. */
   async networkDashboard(ref: string, code: string, user: AuthUser | undefined) {
-    const plant = await this.plants.getVisible(ref, user)
+    const plant = await this.plants.getForMember(ref, user)
     const scope = await this.scope(plant, user)
     const net = (await this.networkRows(plant.id, scope)).find((n) => n.code === code.toUpperCase())
     // Red no habilitada o no publicada para este visitante: indistinguible de inexistente.

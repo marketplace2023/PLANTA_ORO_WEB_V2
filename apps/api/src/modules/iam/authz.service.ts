@@ -1,6 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import { and, eq, gt, inArray, isNull, lte, or } from 'drizzle-orm'
 import type { AuthUser, PlantRow } from '../../common/types'
+import type { Env } from '../../config/env'
 import { DB, type Database } from '../../database/database.module'
 import { permissions, plants, rolePermissions, roles, userPlantOverrides, userPlantRoles } from '../../database/schema'
 import { PERMISSIONS } from './permissions.catalog'
@@ -20,7 +22,15 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  */
 @Injectable()
 export class AuthzService {
-  constructor(@Inject(DB) private readonly db: Database) {}
+  constructor(
+    @Inject(DB) private readonly db: Database,
+    private readonly config: ConfigService<Env, true>,
+  ) {}
+
+  /** Modo normal: los datos de una planta (y su descubrimiento) requieren sesión; los de planta, además, pertenecer a ella. */
+  get membersOnly(): boolean {
+    return this.config.get('ACCESS_MODE', { infer: true }) === 'members'
+  }
 
   /** Resuelve una planta por UUID o por slug. */
   async findPlant(ref: string): Promise<PlantRow | null> {
@@ -94,6 +104,7 @@ export class AuthzService {
   /** Visibilidad de la planta (core.plants.visibility): PUBLIC | AUTHENTICATED | PRIVATE. */
   canView(user: AuthUser | undefined, plant: PlantRow, access: PlantAccess): boolean {
     if (user?.isGlobalAdmin) return true
+    if (!user && this.membersOnly) return false
     if (plant.visibility === 'PUBLIC') return true
     if (plant.visibility === 'AUTHENTICATED') return !!user
     return access.isMember
@@ -102,7 +113,7 @@ export class AuthzService {
   /** Plantas que el usuario (o anónimo) puede ver. */
   async visiblePlants(user: AuthUser | undefined): Promise<PlantRow[]> {
     if (user?.isGlobalAdmin) return this.db.select().from(plants).orderBy(plants.name)
-    if (!user) return this.db.select().from(plants).where(eq(plants.visibility, 'PUBLIC')).orderBy(plants.name)
+    if (!user) return this.membersOnly ? [] : this.db.select().from(plants).where(eq(plants.visibility, 'PUBLIC')).orderBy(plants.name)
 
     const memberOf = [...(await this.accessByPlant(user.id)).keys()]
     return this.db

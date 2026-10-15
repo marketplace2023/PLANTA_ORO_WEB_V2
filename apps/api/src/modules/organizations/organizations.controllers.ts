@@ -4,7 +4,7 @@ import type { Response } from 'express'
 import type { AppRequest, AuthUser } from '../../common/types'
 import { ZodValidationPipe } from '../../common/zod-validation.pipe'
 import { setImageHeaders } from '../documents/image-upload'
-import { CurrentUser, Public } from '../iam/decorators'
+import { CurrentUser, OpenAccess, Public } from '../iam/decorators'
 import { ContractorsService } from './contractors.service'
 import { MarketplaceService } from './marketplace.service'
 import { OrgAccessService } from './org-access.service'
@@ -52,7 +52,7 @@ export class ProvidersController {
     private readonly access: OrgAccessService,
   ) {}
 
-  @Public()
+  @OpenAccess()
   @Get()
   list(@Query(new ZodValidationPipe(listProvidersQuerySchema)) q: ListProvidersQuery, @CurrentUser() user?: AuthUser) {
     return this.providers.list(q, user)
@@ -70,7 +70,7 @@ export class ProvidersController {
     return this.providers.create(dto, user, req)
   }
 
-  @Public()
+  @OpenAccess()
   @Get(':id')
   get(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user?: AuthUser) {
     return this.providers.get(id, user)
@@ -169,7 +169,7 @@ export class ProvidersController {
   }
 }
 
-@Public()
+@OpenAccess()
 @Controller('marketplace')
 export class MarketplaceController {
   constructor(private readonly market: MarketplaceService) {}
@@ -185,6 +185,7 @@ export class MarketplaceController {
   }
 
   /** Foto del producto (pública). */
+  @Public()
   @Get('listings/:id/image')
   async image(@Param('id', ParseUUIDPipe) id: string, @Res({ passthrough: true }) res: Response) {
     const { stream, mime } = await this.market.openImage(id)
@@ -200,7 +201,7 @@ export class ContractorsController {
     private readonly access: OrgAccessService,
   ) {}
 
-  @Public()
+  @OpenAccess()
   @Get()
   list(@Query(new ZodValidationPipe(listContractorsQuerySchema)) q: ListContractorsQuery, @CurrentUser() user?: AuthUser) {
     return this.contractors.list(q, user)
@@ -216,7 +217,7 @@ export class ContractorsController {
     return this.contractors.create(dto, user, req)
   }
 
-  @Public()
+  @OpenAccess()
   @Get(':id')
   get(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user?: AuthUser) {
     return this.contractors.get(id, user)
@@ -282,7 +283,7 @@ export class ContractorsController {
   }
 }
 
-@Public()
+@OpenAccess()
 @Controller('professional-services')
 export class ProfessionalServicesController {
   constructor(private readonly contractors: ContractorsService) {}

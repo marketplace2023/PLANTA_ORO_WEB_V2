@@ -8,6 +8,11 @@ export const REQUIRE_PERMISSION = 'fur:requirePermission'
 /** Ruta accesible sin sesión (un token presente pero inválido sigue siendo 401). */
 export const Public = () => SetMetadata(IS_PUBLIC, true)
 
+export const IS_OPEN_ACCESS = 'fur:isOpenAccess'
+
+/** Ruta pública solo con `ACCESS_MODE=open`; en el modo normal (`members`) exige sesión. */
+export const OpenAccess = () => SetMetadata(IS_OPEN_ACCESS, true)
+
 export type RequirePermissionMeta = { permission: PermissionCode; scope: 'plant' | 'global' }
 
 /**

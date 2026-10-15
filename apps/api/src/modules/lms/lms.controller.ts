@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query, Req } from '@nestjs/common'
 import type { AppRequest, AuthUser } from '../../common/types'
 import { ZodValidationPipe } from '../../common/zod-validation.pipe'
-import { CurrentUser, Public } from '../iam/decorators'
+import { CurrentUser, OpenAccess, Public } from '../iam/decorators'
 import { CoursesService } from './courses.service'
 import { LearningService } from './learning.service'
 import {
@@ -30,7 +30,7 @@ export class CoursesController {
     private readonly learning: LearningService,
   ) {}
 
-  @Public()
+  @OpenAccess()
   @Get()
   list(@Query(new ZodValidationPipe(listCoursesQuerySchema)) q: ListCoursesQuery, @CurrentUser() user?: AuthUser) {
     return this.courses.list(q, user)
@@ -52,7 +52,7 @@ export class CoursesController {
     return this.courses.create(dto, user, req)
   }
 
-  @Public()
+  @OpenAccess()
   @Get(':id')
   get(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user?: AuthUser) {
     return this.courses.get(id, user)

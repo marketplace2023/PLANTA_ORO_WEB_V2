@@ -19,6 +19,11 @@ export type Env = {
   /** Región del bucket; vacío = la del entorno (`AWS_REGION`). */
   S3_REGION: string
   MAX_UPLOAD_MB: number
+  /**
+   * `members` (por defecto): sin sesión solo se ve la página principal y el catálogo; los datos de una planta solo los ve quien
+   * pertenece a ella. `open`: modo abierto (plantas públicas visibles a visitantes), usado por las pruebas de visibilidad.
+   */
+  ACCESS_MODE: 'open' | 'members'
   /** Proxies de confianza delante de la API (Render: 1; CloudFront + App Runner: 2). Define qué IP es `req.ip`. */
   TRUST_PROXY_HOPS: number
 }
@@ -71,6 +76,9 @@ export function validateEnv(raw: Record<string, unknown>): Env {
   const refreshDays = intVar(raw.REFRESH_TOKEN_TTL_DAYS, 30, 'REFRESH_TOKEN_TTL_DAYS', 1, errors)
   const authRate = intVar(raw.AUTH_RATE_LIMIT_PER_MINUTE, 10, 'AUTH_RATE_LIMIT_PER_MINUTE', 1, errors)
 
+  const accessMode = String(raw.ACCESS_MODE ?? 'members')
+  if (!['open', 'members'].includes(accessMode)) errors.push('ACCESS_MODE debe ser members u open')
+
   const trustProxyHops = intVar(raw.TRUST_PROXY_HOPS, 1, 'TRUST_PROXY_HOPS', 0, errors)
   if (trustProxyHops > 5) errors.push('TRUST_PROXY_HOPS no puede superar 5')
 
@@ -100,5 +108,6 @@ export function validateEnv(raw: Record<string, unknown>): Env {
     STORAGE_DIR: String(raw.STORAGE_DIR ?? './.local/storage').trim() || './.local/storage',
     MAX_UPLOAD_MB: maxUploadMb,
     TRUST_PROXY_HOPS: trustProxyHops,
+    ACCESS_MODE: accessMode as Env['ACCESS_MODE'],
   }
 }

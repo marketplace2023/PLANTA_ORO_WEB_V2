@@ -44,7 +44,7 @@ export class PlantConfigService {
   }
 
   async listStages(ref: string, user: AuthUser | undefined) {
-    const plant = await this.plants.getVisible(ref, user)
+    const plant = await this.plants.getForMember(ref, user)
     const access = await this.authz.access(user, plant.id)
     const internal = access.permissions.has('plant.read')
 
@@ -156,7 +156,7 @@ export class PlantConfigService {
   }
 
   async listNetworks(ref: string, user: AuthUser | undefined) {
-    const plant = await this.plants.getVisible(ref, user)
+    const plant = await this.plants.getForMember(ref, user)
     const access = await this.authz.access(user, plant.id)
     const internal = access.permissions.has('plant.read')
 

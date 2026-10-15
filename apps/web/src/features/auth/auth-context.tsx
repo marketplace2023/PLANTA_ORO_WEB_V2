@@ -136,3 +136,9 @@ export function useAuth() {
   if (!ctx) throw new Error('useAuth debe usarse dentro de <AuthProvider>')
   return ctx
 }
+
+/** `true` solo con la sesión resuelta y sin usuario. No exige el proveedor: sin él (pruebas aisladas) nunca bloquea. */
+// eslint-disable-next-line react-refresh/only-export-components
+export function useIsAnonymous() {
+  return useContext(AuthContext)?.status === 'anonymous'
+}

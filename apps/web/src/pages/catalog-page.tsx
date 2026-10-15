@@ -5,6 +5,7 @@ import { EmptyState } from '@/components/base/empty-state'
 import { ErrorState } from '@/components/base/error-state'
 import { FilterChips, type Chip } from '@/components/data/filter-chips'
 import { FilterSelect } from '@/components/data/filter-select'
+import { ModelFichaDialog } from '@/components/catalog/model-ficha-dialog'
 import { PlantMap } from '@/components/industrial/plant-map'
 import { Pagination } from '@/components/data/pagination'
 import { PageHeader } from '@/components/layout/page-header'
@@ -14,7 +15,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { apiUrl } from '@/lib/api'
-import { useCatalogFamilies, useCatalogManufacturers, useCatalogModels, type CatalogFilters } from '@/features/assets/use-assets'
+import { useCatalogFamilies, useCatalogManufacturers, useCatalogModels, type CatalogFilters, type CatalogModel } from '@/features/assets/use-assets'
 import { useNetworkCatalog, useStageCatalog } from '@/features/catalog/use-catalog'
 import { useDebouncedValue } from '@/lib/use-debounced-value'
 
@@ -53,6 +54,7 @@ export function CatalogPage() {
   const families = useCatalogFamilies()
   const manufacturers = useCatalogManufacturers()
 
+  const [ficha, setFicha] = useState<CatalogModel | null>(null)
   const stages = useStageCatalog()
   const networks = useNetworkCatalog()
   const stageName = (code: string) => stages.data?.find((s) => s.code === code)?.name
@@ -147,7 +149,13 @@ export function CatalogPage() {
             <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {data.items.map((m) => (
                 <li key={m.id}>
-                  <Card className="h-full">
+                  <button
+                    type="button"
+                    onClick={() => setFicha(m)}
+                    aria-label={`Ver la ficha técnica de ${m.modelName}`}
+                    className="block h-full w-full rounded-xl text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                  >
+                  <Card className="h-full transition-shadow hover:shadow-md">
                     {m.imageUrl && (
                       <div className="overflow-hidden rounded-t-lg border-b border-border bg-white">
                         <img src={apiUrl(m.imageUrl)} alt={`Foto de ${m.modelName}`} loading="lazy" className="h-44 w-full object-contain" />
@@ -195,9 +203,11 @@ export function CatalogPage() {
                       )}
                     </CardContent>
                   </Card>
+                  </button>
                 </li>
               ))}
             </ul>
+            {ficha && <ModelFichaDialog model={ficha} stages={stages.data ?? []} networks={networks.data ?? []} onClose={() => setFicha(null)} />}
             <Pagination page={page} pageSize={PAGE_SIZE} total={data.total} onPageChange={(p) => setParam({ page: p > 1 ? String(p) : undefined }, true)} />
           </>
         )

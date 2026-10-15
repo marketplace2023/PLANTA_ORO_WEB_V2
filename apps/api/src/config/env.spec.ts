@@ -23,6 +23,7 @@ describe('validateEnv', () => {
       STORAGE_DIR: './.local/storage',
       MAX_UPLOAD_MB: 25,
       TRUST_PROXY_HOPS: 1,
+      ACCESS_MODE: 'members',
     })
   })
 
@@ -51,6 +52,12 @@ describe('validateEnv', () => {
     expect(() => validateEnv({ ...base, STORAGE_DRIVER: 's3', S3_BUCKET: 'Bucket_Malo' })).toThrow(/S3_BUCKET/)
     expect(() => validateEnv({ ...base, STORAGE_DRIVER: 'ftp' })).toThrow(/STORAGE_DRIVER/)
     expect(validateEnv({ ...base, STORAGE_DRIVER: 's3', S3_BUCKET: 'fur-archivos-123', AWS_REGION: 'us-east-1' })).toMatchObject({ STORAGE_DRIVER: 's3', S3_BUCKET: 'fur-archivos-123', S3_REGION: 'us-east-1' })
+  })
+
+  it('el modo de acceso es members por defecto y solo admite members u open', () => {
+    expect(validateEnv(base).ACCESS_MODE).toBe('members')
+    expect(validateEnv({ ...base, ACCESS_MODE: 'open' }).ACCESS_MODE).toBe('open')
+    expect(() => validateEnv({ ...base, ACCESS_MODE: 'publico' })).toThrow(/ACCESS_MODE/)
   })
 
   it('valida el almacenamiento de documentos', () => {

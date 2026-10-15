@@ -1,0 +1,26 @@
+# API del Ecosistema FUR (NestJS) para AWS (App Runner / ECS). Contexto de build: la raíz del monorepo.
+#   docker build -f Dockerfile.api -t fur-api .
+FROM node:22-slim AS build
+WORKDIR /app
+# Solo los manifiestos primero: la capa de dependencias se reutiliza mientras no cambien.
+COPY package.json package-lock.json ./
+COPY apps/api/package.json apps/api/
+RUN npm ci -w @fur/api --include=dev --ignore-scripts
+COPY apps/api apps/api
+RUN npm run build -w @fur/api
+
+FROM node:22-slim AS runtime
+ENV NODE_ENV=production
+WORKDIR /app
+COPY package.json package-lock.json ./
+COPY apps/api/package.json apps/api/
+# Dependencias de producción. El package-lock se generó en Windows y solo lista el binario nativo de argon2 para win32
+# (bug de npm con dependencias opcionales), así que el de Linux se instala aparte con la misma versión.
+RUN npm ci -w @fur/api --omit=dev --ignore-scripts  && ARGON2_VERSION=$(node -p "require('@node-rs/argon2/package.json').version")  && case "$(uname -m)" in aarch64) ARCH=arm64 ;; *) ARCH=x64 ;; esac  && npm install --no-save --no-package-lock --ignore-scripts --workspaces=false "@node-rs/argon2-linux-${ARCH}-gnu@${ARGON2_VERSION}"  && npm cache clean --force
+COPY --from=build /app/apps/api/dist apps/api/dist
+COPY apps/api/drizzle apps/api/drizzle
+WORKDIR /app/apps/api
+USER node
+EXPOSE 3000
+# Aplica las migraciones pendientes y arranca (apps/api/src/database/migrate.ts).
+CMD ["sh", "-c", "node dist/database/migrate.js && node dist/main.js"]

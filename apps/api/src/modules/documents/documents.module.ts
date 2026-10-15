@@ -6,7 +6,7 @@ import type { Env } from '../../config/env'
 import { PlantsModule } from '../plants/plants.module'
 import { DocumentsController } from './documents.controller'
 import { DocumentsService } from './documents.service'
-import { LocalStorageService, StorageService } from './storage.service'
+import { LocalStorageService, S3StorageService, StorageService } from './storage.service'
 
 @Module({
   imports: [
@@ -21,7 +21,15 @@ import { LocalStorageService, StorageService } from './storage.service'
     }),
   ],
   controllers: [DocumentsController],
-  providers: [DocumentsService, { provide: StorageService, useClass: LocalStorageService }],
+  providers: [
+    DocumentsService,
+    {
+      provide: StorageService,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService<Env, true>) =>
+        config.get('STORAGE_DRIVER', { infer: true }) === 's3' ? S3StorageService.fromConfig(config) : new LocalStorageService(config),
+    },
+  ],
   exports: [DocumentsService, StorageService],
 })
 export class DocumentsModule {}

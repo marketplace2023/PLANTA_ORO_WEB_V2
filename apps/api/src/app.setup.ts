@@ -13,9 +13,9 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 export function configureApp(app: INestApplication) {
   const config = app.get<ConfigService<Env, true>>(ConfigService)
 
-  // Detrás del proxy de Render, req.ip debe ser la IP real del cliente (rate limit y auditoría).
+  // Detrás de proxies (Render, o CloudFront + App Runner), req.ip debe ser la IP real del cliente (rate limit y auditoría).
   if (config.get('NODE_ENV', { infer: true }) === 'production') {
-    app.getHttpAdapter().getInstance().set('trust proxy', 1)
+    app.getHttpAdapter().getInstance().set('trust proxy', config.get('TRUST_PROXY_HOPS', { infer: true }))
   }
 
   // API versionada (arquitectura §29): /api/v1

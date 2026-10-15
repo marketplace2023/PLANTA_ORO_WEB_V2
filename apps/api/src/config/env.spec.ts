@@ -17,8 +17,12 @@ describe('validateEnv', () => {
       REFRESH_TOKEN_TTL_DAYS: 30,
       COOKIE_SAMESITE: 'lax',
       AUTH_RATE_LIMIT_PER_MINUTE: 10,
+      STORAGE_DRIVER: 'local',
+      S3_BUCKET: '',
+      S3_REGION: '',
       STORAGE_DIR: './.local/storage',
       MAX_UPLOAD_MB: 25,
+      TRUST_PROXY_HOPS: 1,
     })
   })
 
@@ -40,6 +44,13 @@ describe('validateEnv', () => {
   it('rechaza PORT y NODE_ENV inválidos y reporta todos los errores', () => {
     expect(() => validateEnv({ ...base, PORT: 'abc', NODE_ENV: 'staging' })).toThrow(/PORT[\s\S]*NODE_ENV/)
     expect(() => validateEnv({ ...base, PORT: '70000' })).toThrow(/PORT/)
+  })
+
+  it('el driver s3 exige un bucket válido y toma la región del entorno', () => {
+    expect(() => validateEnv({ ...base, STORAGE_DRIVER: 's3' })).toThrow(/S3_BUCKET/)
+    expect(() => validateEnv({ ...base, STORAGE_DRIVER: 's3', S3_BUCKET: 'Bucket_Malo' })).toThrow(/S3_BUCKET/)
+    expect(() => validateEnv({ ...base, STORAGE_DRIVER: 'ftp' })).toThrow(/STORAGE_DRIVER/)
+    expect(validateEnv({ ...base, STORAGE_DRIVER: 's3', S3_BUCKET: 'fur-archivos-123', AWS_REGION: 'us-east-1' })).toMatchObject({ STORAGE_DRIVER: 's3', S3_BUCKET: 'fur-archivos-123', S3_REGION: 'us-east-1' })
   })
 
   it('valida el almacenamiento de documentos', () => {

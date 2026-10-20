@@ -1,14 +1,14 @@
 import { randomUUID } from 'node:crypto'
 import { Body, ConflictException, Controller, Delete, HttpCode, Inject, NotFoundException, Param, ParseUUIDPipe, Patch, Post, Req, UploadedFile, UseInterceptors } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
-import { count, eq, inArray, type SQL } from 'drizzle-orm'
+import { and, count, eq, inArray, notInArray, type SQL } from 'drizzle-orm'
 import type { PgColumn, PgTable } from 'drizzle-orm/pg-core'
 import { validationError } from '../../common/errors'
 import { isUniqueViolation } from '../../common/db-errors'
 import type { AppRequest } from '../../common/types'
 import { ZodValidationPipe } from '../../common/zod-validation.pipe'
 import { DB, type Database } from '../../database/database.module'
-import { assetFamilies, assetModels, assets, assetTypeNetworks, assetTypes, assetTypeStages, items as inventoryItems, listings, manufacturers, networkMaster, stageMaster } from '../../database/schema'
+import { assetFamilies, assetModels, assetModelStages, assets, assetTypeNetworks, assetTypes, assetTypeStages, items as inventoryItems, listings, manufacturers, networkMaster, stageMaster } from '../../database/schema'
 import { AuditService } from '../audit/audit.service'
 import { StorageService } from '../documents/storage.service'
 import { GlobalAdminOnly } from '../iam/decorators'
@@ -118,6 +118,9 @@ export class CatalogAdminController {
       if (stageIds) {
         await tx.delete(assetTypeStages).where(eq(assetTypeStages.assetTypeId, typeId))
         if (stageIds.length > 0) await tx.insert(assetTypeStages).values(stageIds.map((stageMasterId) => ({ assetTypeId: typeId, stageMasterId })))
+        // Las etapas del tipo son las posibles: un modelo no puede conservar una que el tipo ya no admite.
+        const modelIds = tx.select({ id: assetModels.id }).from(assetModels).where(eq(assetModels.assetTypeId, typeId))
+        await tx.delete(assetModelStages).where(and(inArray(assetModelStages.assetModelId, modelIds), stageIds.length > 0 ? notInArray(assetModelStages.stageMasterId, stageIds) : undefined))
       }
       if (networkIds) {
         await tx.delete(assetTypeNetworks).where(eq(assetTypeNetworks.assetTypeId, typeId))
@@ -214,19 +217,62 @@ export class CatalogAdminController {
     if (!m) throw validationError('manufacturerId', 'El fabricante no existe')
   }
 
+  /**
+   * Etapas donde participa un modelo: deben ser un subconjunto de las posibles del tipo. Devuelve los ids a guardar; vacío =
+   * hereda todas las del tipo (también cuando se marcan todas, para que siga heredando si el tipo agrega etapas).
+   */
+  private async modelStageIds(typeId: string, codes: string[]): Promise<string[]> {
+    if (codes.length === 0) return []
+    const typeStages = await this.db
+      .select({ id: stageMaster.id, code: stageMaster.code })
+      .from(assetTypeStages)
+      .innerJoin(stageMaster, eq(stageMaster.id, assetTypeStages.stageMasterId))
+      .where(eq(assetTypeStages.assetTypeId, typeId))
+    const outside = codes.filter((c) => !typeStages.some((s) => s.code === c))
+    if (outside.length > 0) {
+      throw validationError('stageCodes', `Las etapas ${outside.join(', ')} no están entre las posibles del tipo (${typeStages.map((s) => s.code).join(', ') || 'ninguna'}). Agrégalas primero al tipo.`)
+    }
+    return codes.length === typeStages.length ? [] : typeStages.filter((s) => codes.includes(s.code)).map((s) => s.id)
+  }
+
+  private async replaceModelStages(modelId: string, stageIds: string[]) {
+    await this.db.transaction(async (tx) => {
+      await tx.delete(assetModelStages).where(eq(assetModelStages.assetModelId, modelId))
+      if (stageIds.length > 0) await tx.insert(assetModelStages).values(stageIds.map((stageMasterId) => ({ assetModelId: modelId, stageMasterId })))
+    })
+  }
+
+  /** Etapas efectivas del modelo (las suyas o, si no declaró, las del tipo) y si las hereda. */
+  private async stagesOf(modelId: string, typeId: string) {
+    const own = await this.db
+      .select({ code: stageMaster.code })
+      .from(assetModelStages)
+      .innerJoin(stageMaster, eq(stageMaster.id, assetModelStages.stageMasterId))
+      .where(eq(assetModelStages.assetModelId, modelId))
+    if (own.length > 0) return { stageCodes: own.map((s) => s.code).sort(), stageInherited: false }
+    const inherited = await this.db
+      .select({ code: stageMaster.code })
+      .from(assetTypeStages)
+      .innerJoin(stageMaster, eq(stageMaster.id, assetTypeStages.stageMasterId))
+      .where(eq(assetTypeStages.assetTypeId, typeId))
+    return { stageCodes: inherited.map((s) => s.code).sort(), stageInherited: true }
+  }
+
   @Post('models')
   async createModel(@Body(new ZodValidationPipe(createModelSchema)) dto: CreateModelDto, @Req() req: AppRequest) {
     const [type] = await this.db.select({ id: assetTypes.id }).from(assetTypes).where(eq(assetTypes.code, dto.typeCode))
     if (!type) throw validationError('typeCode', `El tipo ${dto.typeCode} no existe`)
     await this.assertManufacturer(dto.manufacturerId)
+    const stageIds = await this.modelStageIds(type.id, dto.stageCodes ?? []) // valida antes de crear nada
 
     const [row] = await this.db
       .insert(assetModels)
       .values({ assetTypeId: type.id, manufacturerId: dto.manufacturerId, modelName: dto.modelName, specifications: dto.specifications, technicalData: dto.technicalData })
       .returning()
       .catch((e) => (isUniqueViolation(e) ? this.conflict(`el modelo ${dto.modelName} para ese tipo y fabricante`) : Promise.reject(e)))
-    await this.record(req, 'asset_model', row.id, 'created', { new: { typeCode: dto.typeCode, modelName: dto.modelName, manufacturerId: dto.manufacturerId } })
-    return row
+    if (stageIds.length > 0) await this.replaceModelStages(row.id, stageIds)
+    await this.record(req, 'asset_model', row.id, 'created', { new: { typeCode: dto.typeCode, modelName: dto.modelName, manufacturerId: dto.manufacturerId, stageCodes: dto.stageCodes } })
+    return { ...row, ...(await this.stagesOf(row.id, type.id)) }
   }
 
   @Patch('models/:id')
@@ -234,17 +280,24 @@ export class CatalogAdminController {
     const [before] = await this.db.select().from(assetModels).where(eq(assetModels.id, id))
     if (!before) throw new NotFoundException('Modelo no encontrado')
     await this.assertManufacturer(dto.manufacturerId)
-    const [row] = await this.db
-      .update(assetModels)
-      .set(dto)
-      .where(eq(assetModels.id, id))
-      .returning()
-      .catch((e) => (isUniqueViolation(e) ? this.conflict(`el modelo ${dto.modelName} para ese tipo y fabricante`) : Promise.reject(e)))
+    const { stageCodes, ...fields } = dto
+    const stageIds = stageCodes ? await this.modelStageIds(before.assetTypeId, stageCodes) : undefined
+    // Si solo cambian las etapas no hay columnas que actualizar en el modelo.
+    const [row] =
+      Object.keys(fields).length === 0
+        ? [before]
+        : await this.db
+            .update(assetModels)
+            .set(fields)
+            .where(eq(assetModels.id, id))
+            .returning()
+            .catch((e) => (isUniqueViolation(e) ? this.conflict(`el modelo ${dto.modelName} para ese tipo y fabricante`) : Promise.reject(e)))
     await this.record(req, 'asset_model', id, dto.status && dto.status !== before.status ? `status.${dto.status.toLowerCase()}` : 'updated', {
       old: { modelName: before.modelName, status: before.status },
       new: dto,
     })
-    return row
+    if (stageIds) await this.replaceModelStages(id, stageIds)
+    return { ...row, ...(await this.stagesOf(id, before.assetTypeId)) }
   }
 
   @Delete('models/:id')

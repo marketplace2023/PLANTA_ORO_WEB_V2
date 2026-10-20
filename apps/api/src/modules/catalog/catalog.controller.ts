@@ -16,7 +16,7 @@ const modelsQuery = z.object({
   family: z.string().trim().min(1).optional(),
   type: z.string().trim().min(1).optional(),
   manufacturerId: z.uuid().optional(),
-  /** Código de etapa del proceso (D01–D19): tipos que se usan en esa etapa. */
+  /** Código de etapa del proceso (D01–D19): modelos que participan en esa etapa. */
   stage: z.string().trim().min(1).max(20).optional(),
   /** Código de red transversal (FUR-PTE…): tipos que pertenecen a esa red. */
   network: z.string().trim().min(1).max(20).optional(),
@@ -28,11 +28,22 @@ type ModelsQuery = z.infer<typeof modelsQuery>
 
 /** Códigos de las etapas en las que se usa el tipo (subconsulta; vacío = el tipo no está asignado a ninguna). */
 const typeStageCodes = sql<string[]>`coalesce((select array_agg(sm.code order by sm.code) from catalog.asset_type_stages ats join process.stage_master sm on sm.id = ats.stage_master_id where ats.asset_type_id = ${assetTypes.id}), '{}')`
+/**
+ * Etapas en las que participa el MODELO: las que declaró (`asset_model_stages`) o, si no declaró ninguna, todas las de su tipo.
+ * Las del tipo (`typeStageCodes`) son solo las posibles.
+ */
+const modelStageCodes = sql<string[]>`coalesce((select array_agg(sm.code order by sm.code) from catalog.asset_model_stages ams join process.stage_master sm on sm.id = ams.stage_master_id where ams.asset_model_id = ${assetModels.id}), ${typeStageCodes})`
+/** `true` si el modelo no declaró etapas propias y hereda las del tipo. */
+const modelStagesInherited = sql<boolean>`not exists (select 1 from catalog.asset_model_stages ams where ams.asset_model_id = ${assetModels.id})`
 /** Códigos de las redes transversales a las que pertenece el tipo. */
 const typeNetworkCodes = sql<string[]>`coalesce((select array_agg(nm.code order by nm.code) from catalog.asset_type_networks atn join plant.network_master nm on nm.id = atn.network_master_id where atn.asset_type_id = ${assetTypes.id}), '{}')`
 
 const typeInStage = (code: string) =>
   sql`exists (select 1 from catalog.asset_type_stages ats join process.stage_master sm on sm.id = ats.stage_master_id where ats.asset_type_id = ${assetTypes.id} and sm.code = ${code})`
+/** El modelo participa en la etapa: la declaró, o no declaró ninguna y su tipo la incluye. */
+const modelInStage = (code: string) =>
+  sql`(exists (select 1 from catalog.asset_model_stages ams join process.stage_master sm on sm.id = ams.stage_master_id where ams.asset_model_id = ${assetModels.id} and sm.code = ${code})
+    or (not exists (select 1 from catalog.asset_model_stages ams where ams.asset_model_id = ${assetModels.id}) and ${typeInStage(code)}))`
 const typeInNetwork = (code: string) =>
   sql`exists (select 1 from catalog.asset_type_networks atn join plant.network_master nm on nm.id = atn.network_master_id where atn.asset_type_id = ${assetTypes.id} and nm.code = ${code})`
 
@@ -84,6 +95,9 @@ export class CatalogController {
         technicalData: assetModels.technicalData,
         /** Ruta (relativa a la API) de la foto del modelo; null si no tiene. */
         imageUrl: sql<string | null>`case when ${assetModels.imageKey} is null then null else '/catalog/models/' || ${assetModels.id}::text || '/image?v=' || (extract(epoch from ${assetModels.imageUpdatedAt}) * 1000)::bigint::text end`,
+        /** Etapas donde participa el modelo (las suyas o, si no declaró, las del tipo) y si las hereda. */
+        stageCodes: modelStageCodes,
+        stageInherited: modelStagesInherited,
         type: { id: assetTypes.id, code: assetTypes.code, name: assetTypes.name, description: assetTypes.description, stageCodes: typeStageCodes, networkCodes: typeNetworkCodes },
         family: { id: assetFamilies.id, code: assetFamilies.code, name: assetFamilies.name, icon: assetFamilies.icon },
         manufacturer: { id: manufacturers.id, name: manufacturers.name, countryCode: manufacturers.countryCode },
@@ -103,7 +117,7 @@ export class CatalogController {
       q.family ? eq(assetFamilies.code, q.family) : undefined,
       q.type ? eq(assetTypes.code, q.type) : undefined,
       q.manufacturerId ? eq(assetModels.manufacturerId, q.manufacturerId) : undefined,
-      q.stage ? typeInStage(q.stage.toUpperCase()) : undefined,
+      q.stage ? modelInStage(q.stage.toUpperCase()) : undefined,
       q.network ? typeInNetwork(q.network.toUpperCase()) : undefined,
     ]
     if (q.search) {

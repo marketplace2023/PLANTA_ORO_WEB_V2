@@ -152,7 +152,7 @@ export function ModelFichaDialog({
   // Todos los parámetros del tipo en una sola tabla (como la ficha del activo): los que aplican a alguna de las etapas del
   // tipo, o a todas, en el orden en que se definieron.
   const defs = (variables.data ?? [])
-    .filter((d) => d.stageCodes.length === 0 || model.type.stageCodes.length === 0 || d.stageCodes.some((c) => model.type.stageCodes.includes(c)))
+    .filter((d) => d.stageCodes.length === 0 || model.stageCodes.length === 0 || d.stageCodes.some((c) => model.stageCodes.includes(c)))
     .sort((x, y) => x.sortOrder - y.sortOrder)
 
   const { identification, components, manufacturers, source, specs } = readTechnicalData(model.technicalData, model.specifications)
@@ -227,10 +227,10 @@ export function ModelFichaDialog({
                 ['Modelo', model.modelName],
                 ['Fabricante', manufacturer ?? <Pending>Genérico</Pending>],
                 [
-                  'Etapas donde aplica',
-                  model.type.stageCodes.length > 0 ? (
+                  'Etapas donde participa',
+                  model.stageCodes.length > 0 ? (
                     <ul className="flex flex-wrap gap-1.5">
-                      {model.type.stageCodes.map((c) => (
+                      {model.stageCodes.map((c) => (
                         <li key={c} className="rounded bg-fur-navy-900 px-1.5 py-0.5 text-xs text-white" title={stageName(c)}>
                           <span className="fur-code">{c}</span>
                           {stageName(c) && <span className="hidden sm:inline"> · {stageName(c)}</span>}

@@ -49,6 +49,23 @@ export const assetTypeStages = catalogSchema.table(
   (t) => [primaryKey({ columns: [t.assetTypeId, t.stageMasterId] })],
 )
 
+/**
+ * Etapas en las que participa realmente un MODELO. Las del tipo (`asset_type_stages`) solo son las posibles: un modelo
+ * puede declarar un subconjunto. Sin filas aquí, el modelo hereda todas las del tipo.
+ */
+export const assetModelStages = catalogSchema.table(
+  'asset_model_stages',
+  {
+    assetModelId: uuid('asset_model_id')
+      .notNull()
+      .references(() => assetModels.id, { onDelete: 'cascade' }),
+    stageMasterId: uuid('stage_master_id')
+      .notNull()
+      .references(() => stageMaster.id, { onDelete: 'cascade' }),
+  },
+  (t) => [primaryKey({ columns: [t.assetModelId, t.stageMasterId] })],
+)
+
 /** Redes transversales (potencia, IoT, procesos…) a las que pertenece un tipo de activo. */
 export const assetTypeNetworks = catalogSchema.table(
   'asset_type_networks',

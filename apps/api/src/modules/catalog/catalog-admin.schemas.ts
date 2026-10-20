@@ -38,6 +38,8 @@ export const updateManufacturerSchema = z
 
 export const createModelSchema = z.object({
   typeCode: code,
+  /** Etapas donde participa (subconjunto de las del tipo). Vacío o ausente = hereda todas las del tipo. */
+  stageCodes: masterCodes.optional(),
   manufacturerId: z.uuid().optional(),
   modelName: z.string().trim().min(1).max(200),
   specifications: json.default({}),
@@ -49,6 +51,8 @@ export const updateModelSchema = z
     manufacturerId: z.uuid().nullable(),
     specifications: json,
     technicalData: json,
+    /** Etapas donde participa (subconjunto de las del tipo). Vacío = vuelve a heredar todas las del tipo. */
+    stageCodes: masterCodes,
     /** Desactivar en vez de borrar: los activos de planta siguen referenciando el modelo. */
     status: z.enum(['ACTIVE', 'INACTIVE']),
   })

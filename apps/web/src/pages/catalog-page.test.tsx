@@ -131,8 +131,9 @@ describe('Catálogo global', () => {
     it('resume las etapas cuando son muchas: «Todas las etapas» o «+N etapas»', async () => {
       const codes = (n: number) => Array.from({ length: n }, (_, i) => `D${String(i + 1).padStart(2, '0')}`)
       const stages = codes(19).map((code, i) => ({ id: `s${i}`, code, name: `Etapa ${code}`, sequenceDefault: i + 1, description: null, stageGroup: 'X', colorToken: null }))
-      const all = { ...MODELS[0], id: 'mall', modelName: 'Modelo en todas', type: { ...MODELS[0].type, stageCodes: codes(19) } }
-      const many = { ...MODELS[1], id: 'mmany', modelName: 'Modelo en varias', type: { ...MODELS[1].type, stageCodes: codes(9), networkCodes: [] } }
+      // Las etapas que se muestran son las del modelo (donde participa), no las posibles del tipo.
+      const all = { ...MODELS[0], id: 'mall', modelName: 'Modelo en todas', stageCodes: codes(19), type: { ...MODELS[0].type, stageCodes: codes(19) } }
+      const many = { ...MODELS[1], id: 'mmany', modelName: 'Modelo en varias', stageCodes: codes(9), type: { ...MODELS[1].type, stageCodes: codes(19), networkCodes: [] } }
       mockApi({
         'GET /catalog/assets': { body: page([all, many], 2, 1, 24) },
         'GET /catalog/families': { body: FAMILIES },
@@ -148,6 +149,23 @@ describe('Catálogo global', () => {
       expect(within(manyCard).getByText('D06')).toBeInTheDocument()
       expect(within(manyCard).queryByText('D07')).not.toBeInTheDocument()
       expect(within(manyCard).getByText('+3 etapas')).toBeInTheDocument()
+    })
+
+    it('la tarjeta y la ficha muestran las etapas donde participa el modelo, no todas las posibles del tipo', async () => {
+      const partial = { ...MODELS[0], id: 'mpart', modelName: 'Modelo parcial', stageCodes: ['D07'], stageInherited: false }
+      setup(page([partial], 1, 1, 24))
+      mockApiWithVariables([])
+      renderWithProviders(<CatalogPage />, { route: '/catalog' })
+
+      const card = (await screen.findByRole('heading', { name: 'Modelo parcial' })).closest('li')!
+      expect(within(card).getByText('D07')).toBeInTheDocument()
+      expect(within(card).queryByText('D06')).not.toBeInTheDocument() // el tipo la admite, el modelo no participa
+
+      await userEvent.click(within(card).getByRole('button', { name: /Ver la ficha técnica de Modelo parcial/ }))
+      const dialog = await screen.findByRole('dialog')
+      expect(within(dialog).getByText('Etapas donde participa')).toBeInTheDocument()
+      expect(within(dialog).getByText('D07')).toBeInTheDocument()
+      expect(within(dialog).queryByText('D06')).not.toBeInTheDocument()
     })
 
     it('limpiar filtros quita también etapa y red', async () => {

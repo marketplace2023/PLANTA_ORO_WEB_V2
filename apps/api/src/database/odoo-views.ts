@@ -31,6 +31,7 @@ export const MAP: Entry[] = [
   { odoo: 'x_product_attribute_type', real: 'catalog.variable_types' },
   { odoo: 'product_template_attribute_value', real: 'catalog.model_variable_values', extra: `t.asset_model_id as product_tmpl_id, t.variable_id as attribute_id` },
   { odoo: 'x_product_type_stage', real: 'catalog.asset_type_stages' },
+  { odoo: 'x_product_model_stage', real: 'catalog.asset_model_stages' },
   { odoo: 'x_product_type_network', real: 'catalog.asset_type_networks' },
   { odoo: 'x_product_network_rel', real: 'asset.asset_networks' },
   { odoo: 'mail_tracking_value', real: 'asset.asset_status_history' },

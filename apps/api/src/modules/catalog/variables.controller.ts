@@ -109,7 +109,9 @@ class VariablesBase {
       not exists (select 1 from catalog.variable_stages vs where vs.variable_id = ${VD_ID})
       or exists (
         select 1 from catalog.variable_stages vs where vs.variable_id = ${VD_ID} and (
-          exists (select 1 from catalog.asset_type_stages ats where ats.asset_type_id = ${model.typeId} and ats.stage_master_id = vs.stage_master_id)
+          case when exists (select 1 from catalog.asset_model_stages ams where ams.asset_model_id = ${modelId})
+            then exists (select 1 from catalog.asset_model_stages ams where ams.asset_model_id = ${modelId} and ams.stage_master_id = vs.stage_master_id)
+            else exists (select 1 from catalog.asset_type_stages ats where ats.asset_type_id = ${model.typeId} and ats.stage_master_id = vs.stage_master_id) end
           or exists (select 1 from asset.assets a join process.plant_stages ps on ps.id = a.plant_stage_id
                      where a.asset_model_id = ${modelId} and a.status <> 'DECOMMISSIONED' and ps.stage_master_id = vs.stage_master_id)))
     )`

@@ -168,19 +168,19 @@ export function CatalogPage() {
                       </div>
                       <h3 className="text-lg font-semibold text-fur-navy-900">{m.modelName}</h3>
                       <p className="text-sm text-fur-gray-600">{m.manufacturer ? `${m.manufacturer.name}${m.manufacturer.countryCode ? ` · ${m.manufacturer.countryCode}` : ''}` : 'Genérico'}</p>
-                      {(m.type.stageCodes.length > 0 || m.type.networkCodes.length > 0) && (
+                      {(m.stageCodes.length > 0 || m.type.networkCodes.length > 0) && (
                         <ul className="flex flex-wrap gap-1 pt-1" aria-label="Etapas y redes del tipo">
-                          {stages.data && m.type.stageCodes.length === stages.data.length ? (
+                          {stages.data && m.stageCodes.length === stages.data.length ? (
                             <li><Badge variant="outline" className="font-normal">Todas las etapas</Badge></li>
                           ) : (
                             <>
-                              {m.type.stageCodes.slice(0, MAX_STAGE_BADGES).map((code) => (
+                              {m.stageCodes.slice(0, MAX_STAGE_BADGES).map((code) => (
                                 <li key={code}>
                                   <Badge variant="outline" className="fur-code font-normal" title={stageName(code)}>{code}</Badge>
                                 </li>
                               ))}
-                              {m.type.stageCodes.length > MAX_STAGE_BADGES && (
-                                <li><Badge variant="outline" className="font-normal" title={m.type.stageCodes.slice(MAX_STAGE_BADGES).join(', ')}>+{m.type.stageCodes.length - MAX_STAGE_BADGES} etapas</Badge></li>
+                              {m.stageCodes.length > MAX_STAGE_BADGES && (
+                                <li><Badge variant="outline" className="font-normal" title={m.stageCodes.slice(MAX_STAGE_BADGES).join(', ')}>+{m.stageCodes.length - MAX_STAGE_BADGES} etapas</Badge></li>
                               )}
                             </>
                           )}

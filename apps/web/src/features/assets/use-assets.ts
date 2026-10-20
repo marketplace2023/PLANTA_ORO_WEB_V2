@@ -261,7 +261,13 @@ export type CatalogModel = {
   technicalData: Record<string, unknown>
   /** Ruta (relativa a la API) de la foto del modelo; usar con `apiUrl`. null = sin foto. */
   imageUrl: string | null
-  /** `stageCodes` / `networkCodes`: etapas (D01…) y redes (FUR-PTE…) donde se usa el tipo; vacío = sin asignar. */
+  /**
+   * `stageCodes` del modelo: las etapas donde realmente participa (las que declaró o, si no declaró, todas las de su tipo).
+   * `type.stageCodes` / `type.networkCodes`: etapas (D01…) y redes (FUR-PTE…) posibles del tipo; vacío = sin asignar.
+   */
+  stageCodes: string[]
+  /** `true` si el modelo no declaró etapas propias y hereda las del tipo. */
+  stageInherited?: boolean
   type: { id: string; code: string; name: string; description?: string | null; stageCodes: string[]; networkCodes: string[] }
   family: { id: string; code: string; name: string; icon: string | null }
   manufacturer: { id: string; name: string; countryCode: string | null } | null

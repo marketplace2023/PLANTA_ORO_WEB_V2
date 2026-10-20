@@ -4,6 +4,15 @@ import readExcelFile, { type Sheet } from 'read-excel-file/node'
 
 export const CATALOG_IMPORT_MAX_BYTES = 5 * 1024 * 1024
 export const normalized = (s: string) => s.normalize('NFKC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('es')
+/** Quita notas entre paréntesis, incluidos varios bloques o paréntesis anidados. */
+export function cleanManufacturerName(value: string): string {
+  let name = value.normalize('NFKC'), previous: string
+  do {
+    previous = name
+    name = name.replace(/\([^()]*\)/g, ' ')
+  } while (name !== previous)
+  return name.replace(/\s+/g, ' ').trim()
+}
 export type ImportIssue = { sheet: string; row: number; message: string }
 export type MasterRow = {
   row: number; tag: string; name: string; categoryCode: string; family: string; type: string
@@ -68,13 +77,17 @@ export async function parseMasterWorkbook(buffer: Buffer): Promise<MasterWorkboo
   const rows: MasterRow[] = []
   for (const { row, values: v } of tables.get('Listado maestro') ?? []) {
     const tag = v['TAG ACTIVO'].toUpperCase(), categoryCode = ca(v['Código CA'])
-    for (const [field, max] of [['TAG ACTIVO', 100], ['Nombre', 200], ['Tipo', 160], ['Fabricante / modelo', 160], ['Denominación de etapa', 200]] as const) {
+    for (const [field, max] of [['TAG ACTIVO', 100], ['Nombre', 200], ['Tipo', 160], ['Denominación de etapa', 200]] as const) {
       if (!v[field] || v[field].length > max) issues.push({ sheet: 'Listado maestro', row, message: `«${field}» es obligatorio y admite hasta ${max} caracteres` })
+    }
+    const manufacturer = cleanManufacturerName(v['Fabricante / modelo'])
+    if (manufacturer.length < 2 || manufacturer.length > 160 || /[()]/.test(manufacturer)) {
+      issues.push({ sheet: 'Listado maestro', row, message: 'El fabricante debe tener entre 2 y 160 caracteres fuera de los paréntesis y las notas deben tener paréntesis balanceados' })
     }
     if (tags.has(tag)) issues.push({ sheet: 'Listado maestro', row, message: `TAG repetido: ${tag}` })
     if (!families.has(categoryCode)) issues.push({ sheet: 'Listado maestro', row, message: `Código CA ${categoryCode} ausente en «Categorías N4»` })
     tags.add(tag)
-    rows.push({ row, tag, name: v.Nombre, categoryCode, family: families.get(categoryCode) ?? '', type: v.Tipo, manufacturer: v['Fabricante / modelo'], stage: v['Denominación de etapa'], components: [], specifications: {} })
+    rows.push({ row, tag, name: v.Nombre, categoryCode, family: families.get(categoryCode) ?? '', type: v.Tipo, manufacturer, stage: v['Denominación de etapa'], components: [], specifications: {} })
   }
   if (!rows.length || rows.length > 2_000) issues.push({ sheet: 'Listado maestro', row: 1, message: 'El listado debe contener entre 1 y 2.000 activos' })
   const byTag = new Map(rows.map(r => [r.tag, r]))

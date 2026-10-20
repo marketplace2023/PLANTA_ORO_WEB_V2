@@ -9,7 +9,7 @@ La vista previa no guarda cambios. Muestra las altas y actualizaciones, el compo
 - `Listado maestro / Código CA` identifica la familia. Su nombre canónico se toma de `Categorías N4 / Categoría N4`; las variantes y comentarios de la categoría del listado no crean familias adicionales.
 - `Tipo` identifica el tipo dentro de su familia. Un mismo nombre puede pertenecer a familias distintas.
 - `Nombre` es el nombre del modelo.
-- `Fabricante / modelo` se conserva íntegramente como nombre del fabricante, incluidos «Pendiente», «No indicado» y anotaciones. No se infieren marcas.
+- `Fabricante / modelo` usa solo el texto fuera de paréntesis. Se eliminan notas, incluso varios grupos o paréntesis anidados, y se normalizan los espacios. Por ejemplo, `Releven (REV08 INV-060)` y `Releven (REV08 INV-062)` corresponden al mismo fabricante `Releven`. «Pendiente» y «No indicado» se conservan como nombres si aparecen fuera de los paréntesis. No se infieren marcas.
 - `Denominación de etapa` se resuelve contra el nombre de una etapa existente. Cada modelo recibe su etapa propia; el tipo agrupa las etapas posibles de sus modelos.
 - La red de los tipos incluidos se establece exclusivamente en `FUR-PROC` (Procesos).
 - `Características / Componentes principales` se almacena en `technicalData.componentes` como un solo elemento, sin dividir su texto.
@@ -26,9 +26,13 @@ Se rechazan TAG duplicados, referencias a TAG inexistentes, especificaciones rep
 
 La aplicación se ejecuta en una transacción y registra auditoría. La confirmación se vincula al archivo y al estado del catálogo revisado: si cambian, se debe analizar de nuevo. Un error revierte toda la carga.
 
+Al reimportar también se consolidan las variantes anteriores de los fabricantes presentes en el archivo. Sus modelos y activos físicos se reasignan al fabricante común antes de eliminar las variantes, conservando los IDs de los modelos y el país y sitio web del fabricante. La vista previa muestra cuántas variantes se unificarán. Si hay países o sitios web incompatibles, o la unificación produciría modelos duplicados, se bloquea para permitir revisar esa coincidencia.
+
 ## API y despliegue
 
 - `POST /api/v1/catalog/imports/preview`: multipart con `file`; devuelve `fingerprint`, `issues`, `summary` y `rows`.
 - `POST /api/v1/catalog/imports`: multipart con `file` y el `fingerprint` de la vista previa; devuelve el resultado y `imported`.
 
 Instala las dependencias con `npm ci` y aplica las migraciones con `npm run db:migrate` antes de arrancar la API actualizada. La migración `0032_catalog_master_import.sql` añade el Código CA de las familias y el TAG único de los modelos. En producción, el comando `start:prod` ya aplica las migraciones al arrancar.
+
+Los comandos normales `db:seed`, `db:seed:dev` y `setup:local` dejan el catálogo y los activos sin ejemplos de demostración. Para reiniciar toda la base local, detén la API y ejecuta `npm run db:reset-local -- --yes`: conserva la base anterior con un nombre de respaldo y deja una nueva lista para importar desde este panel. El reinicio no vuelve a cargar el Excel; debes seleccionarlo e importarlo nuevamente.

@@ -33,7 +33,7 @@ import * as s from './schema'
 import { uuidv7 } from './schema/common'
 
 /**
- * Datos de DEMOSTRACIÓN para desarrollo local. Nunca se ejecuta con NODE_ENV=production.
+ * Inicialización local sin datos operativos de demostración por defecto. Nunca se ejecuta con NODE_ENV=production.
  * Todos los usuarios comparten la contraseña de DEV_SEED_PASSWORD (por defecto, la de abajo).
  */
 export const DEV_PASSWORD = 'fur-local-2026'
@@ -111,11 +111,11 @@ const ASSIGNMENTS: Array<[string, string, string]> = [
   ['sosamendez@fur.local', 'mina-sosa-mendez', 'PLANT_ADMIN'],
 ]
 
-export async function runSeedDev(url: string, password = DEV_PASSWORD) {
+export async function runSeedDev(url: string, password = DEV_PASSWORD, { includeDemoAssets = false }: { includeDemoAssets?: boolean } = {}) {
   if (process.env.NODE_ENV === 'production') throw new Error('seed-dev no puede ejecutarse con NODE_ENV=production')
 
-  // El catálogo, los roles y los permisos son requisito.
-  await runSeed(url)
+  // Roles, permisos, etapas y redes son requisito; el catálogo de ejemplo solo se habilita explícitamente.
+  await runSeed(url, { includeDemoAssets })
 
   const pool = new Pool({ connectionString: url, connectionTimeoutMillis: 30_000 })
   const db = drizzle(pool, { schema: s })
@@ -176,7 +176,12 @@ export async function runSeedDev(url: string, password = DEV_PASSWORD) {
         .onConflictDoNothing()
     }
 
-    // Catálogo de demostración: fabricantes y modelos (global).
+    if (!includeDemoAssets) {
+      console.log(`Inicialización local OK: ${USERS.length} usuarios, ${PLANTS.length} plantas y configuración de etapas/redes. Datos de demostración desactivados; importa el catálogo desde Excel.`)
+      return
+    }
+
+    // Catálogo de demostración: fabricantes y modelos (global), solo por petición explícita desde pruebas.
     await db
       .insert(s.manufacturers)
       .values(MANUFACTURERS.map(([name, countryCode]) => ({ name, countryCode })))
@@ -683,7 +688,7 @@ if (require.main === module) {
   }
   runSeedDev(url, process.env.DEV_SEED_PASSWORD || DEV_PASSWORD)
     .then(() => {
-      console.log(`\nUsuarios de demo (contraseña: ${process.env.DEV_SEED_PASSWORD || DEV_PASSWORD}):`)
+      console.log(`\nUsuarios locales (contraseña: ${process.env.DEV_SEED_PASSWORD || DEV_PASSWORD}):`)
       for (const u of USERS) console.log(`  ${u.email}`)
     })
     .catch((err) => {

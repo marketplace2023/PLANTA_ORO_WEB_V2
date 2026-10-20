@@ -18,7 +18,8 @@
     "db:seed:dev": "tsx src/database/seed-dev.ts",
     "db:odoo": "tsx src/database/odoo-views.ts",
     "db:er": "tsx src/database/er-diagram.ts",
-    "db:reset-testing": "tsx src/database/reset-testing.ts"
+    "db:reset-testing": "tsx src/database/reset-testing.ts",
+    "db:reset-local": "tsx src/database/reset-local.ts"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.24",

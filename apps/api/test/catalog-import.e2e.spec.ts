@@ -2,16 +2,16 @@ import type { INestApplication } from '@nestjs/common'
 import ExcelJS from 'exceljs'
 import { eq, like } from 'drizzle-orm'
 import request from 'supertest'
-import { assetFamilies, assetModels, assetTypes, manufacturers } from '../src/database/schema'
+import { assetFamilies, assetModels, assetTypes, assets, manufacturers } from '../src/database/schema'
 import { bearer, createApp, login, type Session, TestDb } from './helpers'
 
-async function workbook(options: { duplicate?: boolean; orphan?: boolean; rename?: boolean; splitFamily?: boolean } = {}) {
+async function workbook(options: { duplicate?: boolean; orphan?: boolean; rename?: boolean; splitFamily?: boolean; makers?: [string, string] } = {}) {
   const book = new ExcelJS.Workbook()
   const master = book.addWorksheet('Listado maestro')
   master.addRows([
     ['TAG ACTIVO', 'Nombre', 'Código CA', 'Categoría N4', 'Tipo', 'Fabricante / modelo', 'Denominación de etapa'],
-    ['E2E-IMPORT-01', options.rename ? 'E2E Modelo renombrado' : 'E2E Modelo uno', '97', '97 — E2E familia (por verificar)', 'E2E Tipo maestro', 'E2E Fabricante', 'Molienda primaria'],
-    [options.duplicate ? 'E2E-IMPORT-01' : 'E2E-IMPORT-02', 'E2E Modelo dos', options.splitFamily ? '98' : '97', '97 — E2E familia', 'E2E Tipo maestro', 'E2E Fabricante', 'Molienda secundaria'],
+    ['E2E-IMPORT-01', options.rename ? 'E2E Modelo renombrado' : 'E2E Modelo uno', '97', '97 — E2E familia (por verificar)', 'E2E Tipo maestro', options.makers?.[0] ?? 'E2E Fabricante', 'Molienda primaria'],
+    [options.duplicate ? 'E2E-IMPORT-01' : 'E2E-IMPORT-02', 'E2E Modelo dos', options.splitFamily ? '98' : '97', '97 — E2E familia', 'E2E Tipo maestro', options.makers?.[1] ?? 'E2E Fabricante', 'Molienda secundaria'],
   ])
   book.addWorksheet('Categorías N4').addRows([['Código CA', 'Categoría N4'], ['97', options.rename ? 'E2E Familia renombrada' : 'E2E Familia canónica'], ['98', 'E2E Otra familia']])
   book.addWorksheet('Características').addRows([
@@ -111,5 +111,43 @@ describe('Importación del listado maestro del catálogo (e2e)', () => {
     expect(after.find(m => m.catalogTag === 'E2E-IMPORT-01')?.modelName).toBe('E2E Modelo renombrado')
     expect(after.find(m => m.catalogTag === 'E2E-IMPORT-02')?.specifications).toEqual({ 'Potencia del motor (kW)': '80–100' })
     expect((await t.db.select().from(assetFamilies).where(eq(assetFamilies.id, family.id)))[0].name).toBe('E2E Familia renombrada')
+  })
+  it('la vista previa agrupa notas distintas y rechaza nombres vacíos después de quitar paréntesis', async () => {
+    const p = await preview(await workbook({ makers: ['E2E Fabricante (INV-060)', 'E2E Fabricante (motor) (INV-062)'] })).expect(201)
+    expect(p.body.issues).toEqual([])
+    expect(p.body.rows.map((r: { manufacturer: string }) => r.manufacturer)).toEqual(['E2E Fabricante', 'E2E Fabricante'])
+    expect(p.body.summary.manufacturers).toEqual({ create: 0, update: 1, merged: 0 })
+    const bad = await preview(await workbook({ makers: ['(Solo una nota)', 'E2E Fabricante (sin cierre'] })).expect(201)
+    expect(bad.body.issues.filter((i: { message: string }) => i.message.includes('fabricante'))).toHaveLength(2)
+  })
+  it('consolida fabricantes anteriores y reasigna modelos y activos físicos sin cambiar sus IDs', async () => {
+    const before = await models()
+    const variants = await t.db.insert(manufacturers).values([{ name: 'E2E Fabricante (INV-060)', website: 'https://example.com/' }, { name: 'E2E Fabricante (INV-062)' }]).returning()
+    for (let i = 0; i < 2; i++) await t.db.update(assetModels).set({ manufacturerId: variants[i].id }).where(eq(assetModels.id, before[i].id))
+    const plant = await t.plant('import-makers', 'PUBLIC')
+    const [physical] = await t.db.insert(assets).values({ plantId: plant.id, assetModelId: before[0].id, manufacturerId: variants[1].id, furCode: 'E2E-IMPORT-MAKER-001', tag: 'E2E-MAKER', name: 'E2E Activo con fabricante' }).returning()
+    const file = await workbook({ makers: ['E2E Fabricante (INV-060)', 'E2E Fabricante (INV-062)'] })
+    const p = await preview(file).expect(201)
+    expect(p.body.issues).toEqual([])
+    expect(p.body.summary.manufacturers).toEqual({ create: 0, update: 1, merged: 2 })
+    // La vista previa no borra variantes ni cambia asociaciones.
+    expect((await t.db.select().from(assets).where(eq(assets.id, physical.id)))[0].manufacturerId).toBe(variants[1].id)
+    await apply(file, p.body.fingerprint).expect(201)
+    const makers = await t.db.select().from(manufacturers).where(like(manufacturers.name, 'E2E Fabricante%'))
+    expect(makers).toHaveLength(1)
+    expect(makers[0]).toMatchObject({ name: 'E2E Fabricante', website: 'https://example.com/' })
+    expect((await models()).map(m => m.id).sort()).toEqual(before.map(m => m.id).sort())
+    expect((await models()).every(m => m.manufacturerId === makers[0].id)).toBe(true)
+    expect((await t.db.select().from(assets).where(eq(assets.id, physical.id)))[0].manufacturerId).toBe(makers[0].id)
+    expect((await preview(file).expect(201)).body.summary.manufacturers).toEqual({ create: 0, update: 1, merged: 0 })
+  })
+  it('bloquea una unificación que causaría colisión entre dos modelos distintos', async () => {
+    const [variant] = await t.db.insert(manufacturers).values({ name: 'E2E Fabricante (otra nota)' }).returning()
+    const [model] = await models()
+    await t.db.insert(assetModels).values({ assetTypeId: model.assetTypeId, manufacturerId: variant.id, modelName: model.modelName })
+    const file = await workbook(), p = await preview(file).expect(201)
+    expect(p.body.issues.some((i: { message: string }) => i.message.includes('dos modelos distintos') || i.message.includes('Coincidencia ambigua'))).toBe(true)
+    await apply(file, p.body.fingerprint).expect(400)
+    expect(await t.db.select().from(manufacturers).where(eq(manufacturers.id, variant.id))).toHaveLength(1)
   })
 })

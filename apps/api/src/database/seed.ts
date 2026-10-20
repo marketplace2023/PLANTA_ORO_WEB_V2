@@ -180,7 +180,8 @@ const ROLES: Array<[code: string, name: string, scope: 'GLOBAL' | 'PLANT' | 'EXT
   ['CONSUMER', 'Usuario común / consumidor', 'EXTERNAL'],
 ]
 
-export async function runSeed(url: string) {
+/** El catálogo de ejemplo es optativo; la inicialización normal deja sus tablas vacías. */
+export async function runSeed(url: string, { includeDemoAssets = false }: { includeDemoAssets?: boolean } = {}) {
   const pool = new Pool({ connectionString: url, connectionTimeoutMillis: 30_000 })
   const db = drizzle(pool)
 
@@ -237,6 +238,11 @@ export async function runSeed(url: string) {
     }
 
     await db.insert(ecosystems).values({ code: 'FUR', name: 'Ecosistema FUR' }).onConflictDoNothing({ target: ecosystems.code })
+
+    if (!includeDemoAssets) {
+      console.log(`Seed base OK: ${STAGES.length} etapas, ${NETWORKS.length} redes, roles y permisos. Catálogo de ejemplo desactivado.`)
+      return
+    }
 
     // Catálogo base de activos (global). Idempotente por code.
     await db

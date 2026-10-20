@@ -20,6 +20,7 @@
     "db:odoo": "npm run db:odoo -w @fur/api",
     "db:er": "npm run db:er -w @fur/api",
     "db:reset-testing": "npm run db:reset-testing -w @fur/api",
+    "db:reset-local": "npm run db:reset-local -w @fur/api --",
     "setup:local": "npm run db:migrate && npm run db:seed:dev",
     "test": "npm run test -w @fur/api && npm run test -w @fur/web",
     "test:api": "npm run test -w @fur/api",

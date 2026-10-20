@@ -19,14 +19,16 @@ Requiere Node ≥ 20.19. No requiere Docker ni cuentas externas.
 ```bash
 npm install
 npm run db:local        # Terminal 1: Postgres local en :54320 (déjalo corriendo, Ctrl+C lo detiene)
-npm run setup:local     # Terminal 2 (una vez): migra y siembra catálogos, roles, permisos y datos de demo
+npm run setup:local     # Terminal 2 (una vez): migra e inicializa usuarios, plantas, etapas, redes y permisos
 npm run dev:app         # API en :3000 + web en :5173
 ```
 
 `npm run dev` levanta las tres cosas a la vez (Postgres + API + web) si prefieres una sola terminal.
 
 Los archivos `apps/api/.env` y `apps/web/.env` ya apuntan a local; no se versionan (usa los `.env.example` como plantilla).
-Los datos viven en `.local/pgdata` (ignorado por git). Para empezar de cero: detén `db:local`, borra `.local/` y repite `setup:local`.
+Los datos viven en `.local/pgdata` (ignorado por git). El catálogo, los fabricantes, las variables y los activos arrancan vacíos: se cargan desde el Excel en **Administración → Catálogo de activos → Importar Excel**. Los seeders normales no reponen ejemplos ni datos operativos de demostración. Las pruebas habilitan sus fixtures explícitamente en `fur_test`.
+
+Para empezar de cero, detén la API y ejecuta `npm run db:reset-local -- --yes`. El comando solo admite `fur_dev` en localhost:54320: prepara y verifica una base nueva, inicializa el acceso local y conserva la anterior completa como `fur_dev_backup_<fecha>`. Después vuelve a iniciar la API y a iniciar sesión. No borra el clúster, los archivos de almacenamiento ni `fur_test`, y no importa ningún Excel automáticamente.
 
 Comprobación: `http://localhost:3000/api/v1/health`.
 

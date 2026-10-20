@@ -17,5 +17,6 @@ export default async function globalSetup() {
   }
 
   await runMigrations(TEST_DATABASE_URL)
-  await runSeed(TEST_DATABASE_URL)
+  // Los ejemplos son fixtures solo de fur_test; nunca se reponen en la base local de trabajo.
+  await runSeed(TEST_DATABASE_URL, { includeDemoAssets: true })
 }

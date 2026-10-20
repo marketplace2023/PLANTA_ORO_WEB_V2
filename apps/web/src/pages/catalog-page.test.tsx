@@ -38,14 +38,6 @@ function setup(models: unknown = page(MODELS, 2, 1, 24)) {
     'GET /networks/catalog': { body: NETWORKS },
   })
 }
-/** Añade la ruta de variables del modelo a la simulación de la API (la última ruta registrada gana en `mockApi`). */
-function mockApiWithVariables(variables: unknown[]) {
-  const previous = vi.mocked(globalThis.fetch) as unknown as (url: string | URL, init?: RequestInit) => Promise<Response>
-  vi.stubGlobal('fetch', async (url: string | URL, init?: RequestInit) => {
-    if (new URL(String(url)).pathname.endsWith('/variables')) return new Response(JSON.stringify(variables), { status: 200, headers: { 'Content-Type': 'application/json' } })
-    return previous(url, init)
-  })
-}
 const modelCalls = (mock: ReturnType<typeof setup>) => mock.calls.filter((c) => c.path === '/catalog/assets')
 
 describe('Catálogo global', () => {
@@ -154,7 +146,6 @@ describe('Catálogo global', () => {
     it('la tarjeta y la ficha muestran las etapas donde participa el modelo, no todas las posibles del tipo', async () => {
       const partial = { ...MODELS[0], id: 'mpart', modelName: 'Modelo parcial', stageCodes: ['D07'], stageInherited: false }
       setup(page([partial], 1, 1, 24))
-      mockApiWithVariables([])
       renderWithProviders(<CatalogPage />, { route: '/catalog' })
 
       const card = (await screen.findByRole('heading', { name: 'Modelo parcial' })).closest('li')!
@@ -264,54 +255,37 @@ describe('Catálogo global', () => {
     })
   })
   describe('ficha técnica del modelo', () => {
-    const VARIABLES = [
-      { id: 'v1', code: 'POTENCIA_NOMINAL', label: 'Potencia nominal', unit: 'kW', valueType: 'NUMBER', group: 'Potencia', isKey: true, sortOrder: 1, networkCodes: ['FUR-PTE'], stageCodes: [], assetTypeCodes: [], value: 3000, defaultValue: null },
-      { id: 'v2', code: 'TENSION', label: 'Tensión de alimentación', unit: 'V', valueType: 'NUMBER', group: 'Potencia', isKey: false, sortOrder: 2, networkCodes: ['FUR-PTE'], stageCodes: [], assetTypeCodes: [], value: null, defaultValue: 4160 },
-      { id: 'v3', code: 'CAPACIDAD', label: 'Capacidad de proceso', unit: 't/h', valueType: 'NUMBER', group: 'Proceso', isKey: false, sortOrder: 3, networkCodes: ['FUR-PROC'], stageCodes: ['D06'], assetTypeCodes: [], value: null, defaultValue: null },
-      { id: 'v4', code: 'MATERIAL', label: 'Material de fabricación', unit: null, valueType: 'TEXT', group: null, isKey: false, sortOrder: 4, networkCodes: [], stageCodes: [], assetTypeCodes: [], value: 'Acero', defaultValue: null },
-    ]
-
-    it('al pulsar un modelo abre su ficha: identificación y parámetros en una sola tabla, con «Por determinar» si no hay valor', async () => {
+    it('muestra las especificaciones en la segunda sección, junto a componentes, sin parámetros técnicos', async () => {
       setup()
-      mockApiWithVariables(VARIABLES)
       renderWithProviders(<CatalogPage />, { route: '/catalog' })
 
       await userEvent.click(await screen.findByRole('button', { name: 'Ver la ficha técnica de Bolas 16.5x24 ft' }))
       const dialog = await screen.findByRole('dialog')
       expect(within(dialog).getByText('Ficha técnica del activo físico')).toBeInTheDocument()
       expect(within(dialog).getByText(/Catálogo FUR \| Molinos — Molino de bolas/)).toBeInTheDocument()
-
-      // Identificación del modelo (no de un activo de planta)
       expect(within(dialog).getByText('Identificación del activo', { exact: false })).toBeInTheDocument()
       expect(within(dialog).getAllByText('Metso · FI').length).toBeGreaterThan(0)
       expect(within(dialog).getByText('D06')).toBeInTheDocument()
 
-      // Todos los parámetros en una sola tabla «Parámetros técnicos», sin repartirlos por red
-      expect(await within(dialog).findByText('Parámetros técnicos', { exact: false })).toBeInTheDocument()
-      expect(within(dialog).getAllByRole('table')).toHaveLength(1)
-      expect(within(dialog).queryByText(/FUR-PTE\)/)).not.toBeInTheDocument()
-      expect(within(dialog).getByText('Potencia nominal')).toBeInTheDocument()
-      expect(within(dialog).getByText('3000 kW')).toBeInTheDocument()
-      expect(within(dialog).getByText('4160 V')).toBeInTheDocument()
-      expect(within(dialog).getByText('(general)')).toBeInTheDocument()
-      expect(within(dialog).getByText('Capacidad de proceso')).toBeInTheDocument()
-      expect(within(dialog).getAllByText('Por determinar').length).toBeGreaterThanOrEqual(2) // el parámetro sin valor y los componentes sin registrar
-      expect(within(dialog).getByText('Material de fabricación')).toBeInTheDocument()
-      // Misma estructura para todos: componentes y fabricantes aparecen aunque no haya datos
-      expect(within(dialog).getByRole('heading', { name: /Componentes principales/ })).toBeInTheDocument()
-      expect(within(dialog).getByRole('heading', { name: /Fabricantes de referencia/ })).toBeInTheDocument()
-      expect(within(dialog).getByText('Acero')).toBeInTheDocument()
-      expect(within(dialog).getByText(/Nota técnica/)).toBeInTheDocument()
+      const specs = within(dialog).getByRole('heading', { name: '2. Especificaciones Técnicas' }).closest('section')!
+      expect(within(specs).getByText('Power kw')).toBeInTheDocument()
+      expect(within(specs).getByText('3000')).toBeInTheDocument()
+      expect(within(dialog).queryByRole('heading', { name: /Parámetros técnicos|Especificaciones del modelo/ })).not.toBeInTheDocument()
+      const components = within(dialog).getByRole('heading', { name: /3. Componentes principales/ }).closest('section')!
+      expect(specs.parentElement).toBe(components.parentElement)
+      expect(specs.nextElementSibling).toBe(components)
+      expect(within(dialog).getByRole('heading', { name: /4. Fabricantes de referencia/ })).toBeInTheDocument()
+      expect(within(dialog).getByText('5. Nota técnica')).toBeInTheDocument()
     })
 
-    it('muestra la identificación, los componentes y los fabricantes de referencia que vienen del inventario', async () => {
+    it.each(['TAG activo', 'TAG ACTIVO'])('muestra identificación (%s), componentes y fabricantes del inventario', async (tagLabel) => {
       const withInventory = {
         ...MODELS[0],
         type: { ...MODELS[0].type, description: 'Reduce el tamaño del mineral mediante molienda.' },
         technicalData: {
           identificacion: {
             'N.° de inventario': '7',
-            'TAG activo': 'CAND-02-01',
+            [tagLabel]: 'CAND-02-01',
             'TAG mapa': 'Sin alias documentado',
             'Código FUR': 'FUR-PROC-E02-001',
             Criticidad: 'Alta',
@@ -326,7 +300,6 @@ describe('Catálogo global', () => {
         },
       }
       setup(page([withInventory], 1, 1, 24))
-      mockApiWithVariables([])
       renderWithProviders(<CatalogPage />, { route: '/catalog' })
 
       await userEvent.click(await screen.findByRole('button', { name: 'Ver la ficha técnica de Bolas 16.5x24 ft' }))
@@ -347,14 +320,13 @@ describe('Catálogo global', () => {
       expect(within(dialog).getByText('Fuente: REVEMIN II / Etapa 02')).toBeInTheDocument()
     })
 
-    it('un tipo sin parámetros lo dice, mantiene las mismas secciones, y la ficha se cierra', async () => {
-      setup()
-      mockApiWithVariables([])
+    it('un modelo sin especificaciones lo indica y permite cerrar la ficha', async () => {
+      setup(page([{ ...MODELS[1], specifications: {} }], 1, 1, 24))
       renderWithProviders(<CatalogPage />, { route: '/catalog' })
 
       await userEvent.click(await screen.findByRole('button', { name: 'Ver la ficha técnica de Motor 4.0 MW 6 polos' }))
       const dialog = await screen.findByRole('dialog')
-      expect(await within(dialog).findByText('Este tipo de activo aún no tiene parámetros técnicos definidos.')).toBeInTheDocument()
+      expect(await within(dialog).findByText('Sin especificaciones técnicas registradas.')).toBeInTheDocument()
       expect(within(dialog).getByText('Sin fabricantes de referencia registrados')).toBeInTheDocument()
       expect(within(dialog).getAllByText('Sin asignar')).toHaveLength(2) // etapas y redes
 

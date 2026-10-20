@@ -225,6 +225,13 @@
       "when": 1792440201940,
       "tag": "0031_model_stages",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1792516738996,
+      "tag": "0032_catalog_master_import",
+      "breakpoints": true
     }
   ]
 }

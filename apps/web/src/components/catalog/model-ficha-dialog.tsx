@@ -2,10 +2,8 @@ import { ClipboardList, ExternalLink, Factory, Info, ListChecks, Package, Settin
 import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
-import { Skeleton } from '@/components/ui/skeleton'
-import { useModelVariables, type CatalogModel, type ModelVariable } from '@/features/assets/use-assets'
+import type { CatalogModel } from '@/features/assets/use-assets'
 import { apiUrl } from '@/lib/api'
-import { formatVariableValue } from '@/lib/variable-value'
 
 type NamedCode = { code: string; name: string }
 
@@ -13,6 +11,8 @@ const PENDING = 'Por determinar'
 
 /** «diameterIn» → «Diameter in»; las claves de las especificaciones vienen en camelCase. */
 const humanizeKey = (key: string) => {
+  // Las etiquetas importadas ya tienen nombre y unidad legibles (p. ej. «Potencia (kW)»).
+  if (/\s|[()]/u.test(key)) return key
   const words = key.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/_/g, ' ').toLowerCase()
   return words.charAt(0).toUpperCase() + words.slice(1)
 }
@@ -79,59 +79,9 @@ function readTechnicalData(technicalData: Record<string, unknown>, specification
 /** Solo se enlazan direcciones http(s); cualquier otra cosa se muestra como texto. */
 const safeUrl = (url: string | null) => (url && /^https?:\/\//i.test(url) ? url : null)
 
-/** Un parámetro con su valor propio, el general de la variable o «Por determinar». */
-function ValueCell({ def }: { def: ModelVariable }) {
-  const own = def.value === null ? null : formatVariableValue(def.valueType, def.value, def.unit)
-  if (own !== null) return <span className="font-medium text-fur-navy-900">{own}</span>
-  const general = def.defaultValue === null || def.defaultValue === undefined ? null : formatVariableValue(def.valueType, def.defaultValue, def.unit)
-  if (general !== null)
-    return (
-      <span className="font-medium text-fur-navy-900">
-        {general} <span className="text-xs font-normal text-fur-gray-500">(general)</span>
-      </span>
-    )
-  return <Pending />
-}
-
-function ParametersTable({ defs }: { defs: ModelVariable[] }) {
-  const grouped = new Set(defs.map((d) => d.group ?? '')).size > 1
-  return (
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="border-b border-sky-100 text-left text-xs font-bold text-fur-navy-800">
-          <th className="px-3 py-1.5">Parámetro técnico</th>
-          <th className="w-24 px-3 py-1.5 text-center">Unidad</th>
-          <th className="w-[38%] px-3 py-1.5">Valor / estado</th>
-        </tr>
-      </thead>
-      <tbody>
-        {defs.map((d, i) => {
-          const header = grouped && (i === 0 || defs[i - 1].group !== d.group)
-          return [
-            header && (
-              <tr key={`g-${d.id}`} className="bg-sky-50">
-                <th colSpan={3} className="px-3 py-1 text-left text-[0.7rem] font-bold tracking-wide text-fur-navy-800/80 uppercase">
-                  {d.group ?? 'Otros datos'}
-                </th>
-              </tr>
-            ),
-            <tr key={d.id} className="border-b border-sky-50 last:border-0">
-              <td className="px-3 py-1.5 text-fur-gray-800">{d.label}</td>
-              <td className="px-3 py-1.5 text-center text-fur-gray-600">{d.unit ?? '—'}</td>
-              <td className="px-3 py-1.5">
-                <ValueCell def={d} />
-              </td>
-            </tr>,
-          ]
-        })}
-      </tbody>
-    </table>
-  )
-}
-
 /**
  * Ficha técnica preliminar de un MODELO del catálogo global, con la misma estructura para todos (la de la ficha del
- * activo físico): identificación, parámetros técnicos, componentes y fabricantes de referencia. Lo que aún no se
+ * activo físico): identificación, especificaciones técnicas, componentes y fabricantes de referencia. Lo que aún no se
  * conoce se muestra como «Por determinar». No es la ficha de un activo de una planta.
  */
 export function ModelFichaDialog({
@@ -145,27 +95,18 @@ export function ModelFichaDialog({
   networks: NamedCode[]
   onClose: () => void
 }) {
-  const variables = useModelVariables(model.id)
   const stageName = (code: string) => stages.find((s) => s.code === code)?.name
   const networkName = (code: string) => networks.find((n) => n.code === code)?.name ?? code
-
-  // Todos los parámetros del tipo en una sola tabla (como la ficha del activo): los que aplican a alguna de las etapas del
-  // tipo, o a todas, en el orden en que se definieron.
-  const defs = (variables.data ?? [])
-    .filter((d) => d.stageCodes.length === 0 || model.stageCodes.length === 0 || d.stageCodes.some((c) => model.stageCodes.includes(c)))
-    .sort((x, y) => x.sortOrder - y.sortOrder)
 
   const { identification, components, manufacturers, source, specs } = readTechnicalData(model.technicalData, model.specifications)
   const recordState = identification.find(([k]) => k === 'Estado de la ficha')?.[1]
   // Orden de la ficha de planta: proyecto, TAG activo, TAG mapa, FUR, etapa, clasificación, criticidad.
   const LEADING = ['Proyecto', 'TAG activo', 'TAG mapa', 'Código FUR', 'Etapa de proceso', 'Clasificación', 'Criticidad']
-  const leading = LEADING.flatMap((k) => identification.filter(([key]) => key === k))
+  const leading = LEADING.flatMap((k) => identification.filter(([key]) => key.toLocaleLowerCase('es') === k.toLocaleLowerCase('es')))
   const description = model.type.description?.trim() || null
   const imageUrl = model.imageUrl ? apiUrl(model.imageUrl) : null
   const manufacturer = model.manufacturer ? `${model.manufacturer.name}${model.manufacturer.countryCode ? ` · ${model.manufacturer.countryCode}` : ''}` : null
 
-  const specsNumber = 5
-  const noteNumber = specs.length > 0 ? 6 : 5
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent
@@ -256,17 +197,13 @@ export function ModelFichaDialog({
           </Section>
 
           <div className="grid items-start gap-3 lg:grid-cols-2">
-            {variables.isLoading ? (
-              <Skeleton className="h-40 rounded-lg" aria-busy="true" aria-label="Cargando parámetros" />
-            ) : (
-              <Section n={2} icon={Settings2} title="Parámetros técnicos" hint="(por confirmar)">
-                {defs.length > 0 ? (
-                  <ParametersTable defs={defs} />
-                ) : (
-                  <p className="px-3 py-3 text-sm text-fur-gray-600">Este tipo de activo aún no tiene parámetros técnicos definidos.</p>
-                )}
-              </Section>
-            )}
+            <Section n={2} icon={Settings2} title="Especificaciones Técnicas">
+              {specs.length > 0 ? (
+                <KeyValue rows={specs.map(([k, v]) => [humanizeKey(k), String(v)])} />
+              ) : (
+                <p className="px-3 py-3 text-sm text-fur-gray-600">Sin especificaciones técnicas registradas.</p>
+              )}
+            </Section>
 
             <Section n={3} icon={ListChecks} title="Componentes principales" hint="(verificar en campo)">
               {components.length > 0 ? (
@@ -285,12 +222,6 @@ export function ModelFichaDialog({
               )}
             </Section>
           </div>
-
-          {specs.length > 0 && (
-            <Section n={specsNumber} icon={Factory} title="Especificaciones del modelo">
-              <KeyValue rows={specs.map(([k, v]) => [humanizeKey(k), String(v)])} />
-            </Section>
-          )}
 
           <div className="grid items-start gap-3 lg:grid-cols-2">
             <Section n={4} icon={Factory} title="Fabricantes de referencia y web">
@@ -334,11 +265,10 @@ export function ModelFichaDialog({
             <aside className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-fur-gray-800">
               <Info className="mt-0.5 size-5 shrink-0 text-fur-navy-800" aria-hidden />
               <div className="space-y-1">
-                <p className="font-bold text-fur-navy-800 uppercase">{noteNumber}. Nota técnica</p>
+                <p className="font-bold text-fur-navy-800 uppercase">5. Nota técnica</p>
                 <p>
-                  Información preliminar y referencial del catálogo global: describe el modelo, no un equipo en particular. Los datos reales,
-                  componentes y mantenimiento de cada activo se registran en Activos Físicos de la planta y se validan con planos, manual del fabricante e
-                  inspección en campo. Los fabricantes son referencias comerciales, no marcas instaladas verificadas.
+                  Información preliminar y referencial del catálogo global: describe el modelo, no un equipo en particular. Los fabricantes son
+                  referencias comerciales, no marcas instaladas verificadas.
                 </p>
                 {source && <p className="text-xs text-fur-gray-600">Fuente: {source}</p>}
               </div>

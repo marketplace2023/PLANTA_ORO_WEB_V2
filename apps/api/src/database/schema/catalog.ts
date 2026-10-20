@@ -10,6 +10,8 @@ export const catalogSchema = pgSchema('catalog')
 export const assetFamilies = catalogSchema.table('asset_families', {
   id: pk(),
   code: varchar('code', { length: 40 }).notNull().unique(),
+  /** Código CA del maestro Excel; permite actualizar el nombre sin duplicar la familia. */
+  categoryCode: varchar('category_code', { length: 20 }).unique(),
   name: varchar('name', { length: 120 }).notNull(),
   parentId: uuid('parent_id'),
   description: text('description'),
@@ -89,6 +91,8 @@ export const assetModels = catalogSchema.table(
       .references(() => assetTypes.id),
     manufacturerId: uuid('manufacturer_id').references(() => manufacturers.id),
     modelName: varchar('model_name', { length: 200 }).notNull(),
+    /** Identificador del registro del catálogo importado; no es el TAG de un activo de planta. */
+    catalogTag: varchar('catalog_tag', { length: 100 }).unique(),
     specifications: jsonb('specifications').notNull().default({}),
     technicalData: jsonb('technical_data').notNull().default({}),
     /** Se enlazará a document.documents cuando exista el módulo de documentos. */

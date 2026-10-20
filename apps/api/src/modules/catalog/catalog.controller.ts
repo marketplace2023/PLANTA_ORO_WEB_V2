@@ -90,6 +90,7 @@ export class CatalogController {
       .select({
         id: assetModels.id,
         modelName: assetModels.modelName,
+        catalogTag: assetModels.catalogTag,
         status: assetModels.status,
         specifications: assetModels.specifications,
         technicalData: assetModels.technicalData,
@@ -122,7 +123,7 @@ export class CatalogController {
     ]
     if (q.search) {
       const like = `%${escapeLike(q.search)}%`
-      conditions.push(or(ilike(assetModels.modelName, like), ilike(assetTypes.name, like), ilike(manufacturers.name, like)))
+      conditions.push(or(ilike(assetModels.modelName, like), ilike(assetModels.catalogTag, like), ilike(assetTypes.name, like), ilike(manufacturers.name, like)))
     }
     const where = and(...conditions)
 

@@ -13,6 +13,8 @@ const PENDING = 'Por determinar'
 
 /** «diameterIn» → «Diameter in»; las claves de las especificaciones vienen en camelCase. */
 const humanizeKey = (key: string) => {
+  // Las etiquetas importadas ya tienen nombre y unidad legibles (p. ej. «Potencia (kW)»).
+  if (/\s|[()]/u.test(key)) return key
   const words = key.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/_/g, ' ').toLowerCase()
   return words.charAt(0).toUpperCase() + words.slice(1)
 }
@@ -159,7 +161,7 @@ export function ModelFichaDialog({
   const recordState = identification.find(([k]) => k === 'Estado de la ficha')?.[1]
   // Orden de la ficha de planta: proyecto, TAG activo, TAG mapa, FUR, etapa, clasificación, criticidad.
   const LEADING = ['Proyecto', 'TAG activo', 'TAG mapa', 'Código FUR', 'Etapa de proceso', 'Clasificación', 'Criticidad']
-  const leading = LEADING.flatMap((k) => identification.filter(([key]) => key === k))
+  const leading = LEADING.flatMap((k) => identification.filter(([key]) => key.toLocaleLowerCase('es') === k.toLocaleLowerCase('es')))
   const description = model.type.description?.trim() || null
   const imageUrl = model.imageUrl ? apiUrl(model.imageUrl) : null
   const manufacturer = model.manufacturer ? `${model.manufacturer.name}${model.manufacturer.countryCode ? ` · ${model.manufacturer.countryCode}` : ''}` : null

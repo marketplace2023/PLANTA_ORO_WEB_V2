@@ -304,14 +304,14 @@ describe('Catálogo global', () => {
       expect(within(dialog).getByText(/Nota técnica/)).toBeInTheDocument()
     })
 
-    it('muestra la identificación, los componentes y los fabricantes de referencia que vienen del inventario', async () => {
+    it.each(['TAG activo', 'TAG ACTIVO'])('muestra identificación (%s), componentes y fabricantes del inventario', async (tagLabel) => {
       const withInventory = {
         ...MODELS[0],
         type: { ...MODELS[0].type, description: 'Reduce el tamaño del mineral mediante molienda.' },
         technicalData: {
           identificacion: {
             'N.° de inventario': '7',
-            'TAG activo': 'CAND-02-01',
+            [tagLabel]: 'CAND-02-01',
             'TAG mapa': 'Sin alias documentado',
             'Código FUR': 'FUR-PROC-E02-001',
             Criticidad: 'Alta',

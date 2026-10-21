@@ -87,7 +87,7 @@ class VariablesBase {
   /**
    * Variables que aplican a un modelo.
    * - Si la variable lista tipos de activo, aplica a los modelos de esos tipos (asociación explícita).
-   * - Si no lista tipos, sus redes y etapas (vacío = todas) deben cumplirse por la clasificación del tipo del modelo **o**
+   * - Si no lista tipos, sus redes y etapas (vacío = todas) deben cumplirse por las redes propias y las etapas efectivas del modelo **o**
    *   porque algún activo de ese modelo ya está en esa red o etapa.
    * Una variable sin ninguna lista es general y aplica a todos.
    */
@@ -101,7 +101,7 @@ class VariablesBase {
       not exists (select 1 from catalog.variable_networks vn where vn.variable_id = ${VD_ID})
       or exists (
         select 1 from catalog.variable_networks vn where vn.variable_id = ${VD_ID} and (
-          exists (select 1 from catalog.asset_type_networks atn where atn.asset_type_id = ${model.typeId} and atn.network_master_id = vn.network_master_id)
+          exists (select 1 from catalog.asset_model_networks amn where amn.asset_model_id = ${modelId} and amn.network_master_id = vn.network_master_id)
           or exists (select 1 from asset.assets a join asset.asset_networks an on an.asset_id = a.id join plant.plant_networks pn on pn.id = an.plant_network_id
                      where a.asset_model_id = ${modelId} and a.status <> 'DECOMMISSIONED' and pn.network_master_id = vn.network_master_id)))
     )`

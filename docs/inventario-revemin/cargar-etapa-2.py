@@ -106,7 +106,7 @@ def main():
         log.append(f'tipo     + {code} «{t["asset_type_name"]}» ({fam})')
         if APPLY:
             call('POST', 'catalog/types', {'familyCode': fam, 'code': code, 'name': t['asset_type_name'],
-                                           'description': t['functional_description'], 'stageCodes': [STAGE], 'networkCodes': ['FUR-PROC']})
+                                           'description': t['functional_description'], 'stageCodes': [STAGE]})
         types.add(code)
 
     for m in d['manufacturers']:
@@ -126,7 +126,7 @@ def main():
             model_of[src_id] = found['id']
             continue
         log.append(f'modelo   + {name} → {code}')
-        model_of[src_id] = call('POST', 'catalog/models', {'typeCode': code, 'modelName': name})['id'] if APPLY else None
+        model_of[src_id] = call('POST', 'catalog/models', {'typeCode': code, 'modelName': name, 'networkCodes': ['FUR-PROC']})['id'] if APPLY else None
 
     ids = {}
     for i in d['asset_identifiers']:

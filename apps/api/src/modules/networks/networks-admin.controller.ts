@@ -38,14 +38,14 @@ export class NetworksAdminController {
     return row
   }
 
-  /** Dónde se usa cada red: plantas que la habilitan, activos vinculados y tipos del catálogo. */
+  /** Dónde se usa cada red: plantas que la habilitan, activos vinculados y modelos del catálogo. */
   private usageOf(id: string) {
     return this.db
-      .execute<{ plants: number; assets: number; types: number }>(
+      .execute<{ plants: number; assets: number; models: number }>(
         sql`select
           (select count(*)::int from plant.plant_networks where network_master_id = ${id}) as plants,
           (select count(*)::int from asset.asset_networks an join plant.plant_networks pn on pn.id = an.plant_network_id where pn.network_master_id = ${id}) as assets,
-          (select count(*)::int from catalog.asset_type_networks where network_master_id = ${id}) as types`,
+          (select count(*)::int from catalog.asset_model_networks where network_master_id = ${id}) as models`,
       )
       .then((r) => r.rows[0])
   }
@@ -59,7 +59,7 @@ export class NetworksAdminController {
         // Referencia calificada a mano: en un select de una sola tabla drizzle omite el prefijo y `id` se confundiría con el de la subconsulta.
         plants: sql<number>`(select count(*)::int from plant.plant_networks pn where pn.network_master_id = plant.network_master.id)`,
         assets: sql<number>`(select count(*)::int from asset.asset_networks an join plant.plant_networks pn on pn.id = an.plant_network_id where pn.network_master_id = plant.network_master.id)`,
-        types: sql<number>`(select count(*)::int from catalog.asset_type_networks atn where atn.network_master_id = plant.network_master.id)`,
+        models: sql<number>`(select count(*)::int from catalog.asset_model_networks atn where atn.network_master_id = plant.network_master.id)`,
       })
       .from(networkMaster)
       .orderBy(asc(networkMaster.sequence), asc(networkMaster.code))
@@ -134,7 +134,7 @@ export class NetworksAdminController {
 
   /**
    * Elimina la red. Si alguna planta la tiene habilitada se rechaza (409) con el detalle de uso, salvo `?force=true`: entonces
-   * también se quita de esas plantas y se desvincula de los activos. Los vínculos con tipos del catálogo caen en cascada.
+   * también se quita de esas plantas y se desvincula de los activos. Los vínculos con modelos del catálogo caen en cascada.
    */
   @Delete(':id')
   @HttpCode(204)
@@ -148,7 +148,7 @@ export class NetworksAdminController {
     }
     await this.db.transaction(async (tx) => {
       await tx.delete(plantNetworks).where(eq(plantNetworks.networkMasterId, id)) // los vínculos con activos caen en cascada
-      await tx.delete(networkMaster).where(eq(networkMaster.id, id)) // los vínculos con tipos del catálogo caen en cascada
+      await tx.delete(networkMaster).where(eq(networkMaster.id, id)) // los vínculos con modelos del catálogo caen en cascada
     })
     if (before.layoutImageKey) await this.storage.delete(before.layoutImageKey).catch(() => undefined)
     await this.audit.record(req, {
@@ -157,7 +157,7 @@ export class NetworksAdminController {
       entityId: id,
       action: 'deleted',
       oldData: { code: before.code, name: before.name },
-      newData: { removedFromPlants: usage.plants, unlinkedAssets: usage.assets, unlinkedTypes: usage.types },
+      newData: { removedFromPlants: usage.plants, unlinkedAssets: usage.assets, unlinkedModels: usage.models },
     })
   }
 }

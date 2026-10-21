@@ -184,7 +184,7 @@ export function ModelFichaDialog({
                 ],
                 [
                   'Redes transversales',
-                  model.type.networkCodes.length > 0 ? model.type.networkCodes.map(networkName).join(' · ') : <Pending>Sin asignar</Pending>,
+                  model.networkCodes.length > 0 ? model.networkCodes.map(networkName).join(' · ') : <Pending>Sin asignar</Pending>,
                 ],
                 [
                   'Estado de la ficha',

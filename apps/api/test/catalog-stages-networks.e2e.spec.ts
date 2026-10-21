@@ -2,7 +2,7 @@ import type { INestApplication } from '@nestjs/common'
 import request from 'supertest'
 import { bearer, createApp, login, type Session, TestDb } from './helpers'
 
-type ModelRow = { modelName: string; type: { code: string; stageCodes: string[]; networkCodes: string[] } }
+type ModelRow = { id: string; modelName: string; networkCodes: string[]; type: { code: string; stageCodes: string[] } }
 
 describe('Catálogo filtrado por etapa y red transversal (e2e)', () => {
   let app: INestApplication
@@ -28,14 +28,13 @@ describe('Catálogo filtrado por etapa y red transversal (e2e)', () => {
     await t.assign(paU.id, plant.id, 'PLANT_ADMIN')
     ;[admin, pa] = await Promise.all(['admin', 'pa'].map((n) => login(app, n)))
 
-    // Tipo A: molienda (D06) en la red de potencia; tipo B: espesamiento (D10) en procesos e IoT; tipo C: sin asignar.
-    const a = await send('post', '/api/v1/catalog/types', admin, { familyCode: 'MOLINOS', code: 'E2E_TIPO_A', name: 'E2E Tipo A', stageCodes: ['D06'], networkCodes: ['FUR-PTE'] }).expect(201)
-    const b = await send('post', '/api/v1/catalog/types', admin, { familyCode: 'ESPESADORES', code: 'E2E_TIPO_B', name: 'E2E Tipo B', stageCodes: ['d10', 'D06'], networkCodes: ['FUR-PROC', 'FUR-IOT'] }).expect(201)
+    const a = await send('post', '/api/v1/catalog/types', admin, { familyCode: 'MOLINOS', code: 'E2E_TIPO_A', name: 'E2E Tipo A', stageCodes: ['D06'] }).expect(201)
+    const b = await send('post', '/api/v1/catalog/types', admin, { familyCode: 'ESPESADORES', code: 'E2E_TIPO_B', name: 'E2E Tipo B', stageCodes: ['d10', 'D06'] }).expect(201)
     await send('post', '/api/v1/catalog/types', admin, { familyCode: 'MOLINOS', code: 'E2E_TIPO_C', name: 'E2E Tipo C' }).expect(201)
     typeA = a.body.id
     typeB = b.body.id
-    for (const [type, name] of [['E2E_TIPO_A', 'E2E Modelo A'], ['E2E_TIPO_B', 'E2E Modelo B'], ['E2E_TIPO_C', 'E2E Modelo C']]) {
-      await send('post', '/api/v1/catalog/models', admin, { typeCode: type, modelName: name }).expect(201)
+    for (const [type, name, networkCodes] of [['E2E_TIPO_A', 'E2E Modelo A', ['fur-pte', 'FUR-PTE']], ['E2E_TIPO_B', 'E2E Modelo B', ['FUR-PROC', 'FUR-IOT']], ['E2E_TIPO_C', 'E2E Modelo C', []]] as const) {
+      await send('post', '/api/v1/catalog/models', admin, { typeCode: type, modelName: name, networkCodes }).expect(201)
     }
   })
 
@@ -45,16 +44,19 @@ describe('Catálogo filtrado por etapa y red transversal (e2e)', () => {
     await app.close()
   })
 
-  it('el tipo guarda sus etapas y redes (códigos en mayúsculas, sin repetir) y se exponen en /catalog/types', async () => {
-    const types = (await http().get('/api/v1/catalog/types').expect(200)).body as Array<{ code: string; stageCodes: string[]; networkCodes: string[] }>
-    expect(types.find((x) => x.code === 'E2E_TIPO_A')).toMatchObject({ stageCodes: ['D06'], networkCodes: ['FUR-PTE'] })
-    expect(types.find((x) => x.code === 'E2E_TIPO_B')).toMatchObject({ stageCodes: ['D06', 'D10'], networkCodes: ['FUR-IOT', 'FUR-PROC'] })
-    expect(types.find((x) => x.code === 'E2E_TIPO_C')).toMatchObject({ stageCodes: [], networkCodes: [] })
+  it('los tipos solo exponen sus etapas posibles, sin redes', async () => {
+    const types = (await http().get('/api/v1/catalog/types').expect(200)).body as Array<{ code: string; stageCodes: string[] }>
+    expect(types.find((x) => x.code === 'E2E_TIPO_A')).toMatchObject({ stageCodes: ['D06'] })
+    expect(types.find((x) => x.code === 'E2E_TIPO_B')).toMatchObject({ stageCodes: ['D06', 'D10'] })
+    expect(types.find((x) => x.code === 'E2E_TIPO_C')).toMatchObject({ stageCodes: [] })
+    expect(types.every(type => !('networkCodes' in type))).toBe(true)
   })
 
-  it('cada modelo trae las etapas y redes de su tipo', async () => {
+  it('cada modelo trae sus propias redes normalizadas y las etapas posibles del tipo', async () => {
     const rows = await models('', 'E2E Modelo A')
-    expect(rows[0].type).toMatchObject({ code: 'E2E_TIPO_A', stageCodes: ['D06'], networkCodes: ['FUR-PTE'] })
+    expect(rows[0].type).toMatchObject({ code: 'E2E_TIPO_A', stageCodes: ['D06'] })
+    expect(rows[0].networkCodes).toEqual(['FUR-PTE'])
+    expect(rows[0].type).not.toHaveProperty('networkCodes')
   })
 
   it('filtra por etapa (primer filtro)', async () => {
@@ -81,17 +83,16 @@ describe('Catálogo filtrado por etapa y red transversal (e2e)', () => {
     expect(res.body.total).toBe(1)
   })
 
-  it('los tipos base ya vienen asignados por el seed: molino de bolas en molienda y potencia; el CCM en todas las etapas', async () => {
-    const types = (await http().get('/api/v1/catalog/types').expect(200)).body as Array<{ code: string; stageCodes: string[]; networkCodes: string[] }>
+  it('los tipos base conservan sus etapas posibles sin asignación de redes', async () => {
+    const types = (await http().get('/api/v1/catalog/types').expect(200)).body as Array<{ code: string; stageCodes: string[] }>
     const byCode = new Map(types.map((x) => [x.code, x]))
     expect(byCode.get('MOLINO_BOLAS')?.stageCodes).toEqual(expect.arrayContaining(['D05', 'D06']))
-    expect(byCode.get('MOLINO_BOLAS')?.networkCodes).toEqual(expect.arrayContaining(['FUR-PTE']))
     expect(byCode.get('HORNO_FUNDICION')?.stageCodes).toEqual(['D16'])
     expect(byCode.get('CCM')?.stageCodes).toHaveLength(19)
-    // ningún tipo base queda sin etapa ni red
+    // ningún tipo base queda sin etapa
     const base = types.filter((x) => !x.code.startsWith('E2E_'))
     expect(base.filter((x) => x.stageCodes.length === 0).map((x) => x.code)).toEqual([])
-    expect(base.filter((x) => x.networkCodes.length === 0).map((x) => x.code)).toEqual([])
+    expect(base.every(x => !('networkCodes' in x))).toBe(true)
   })
 
   describe('edición (solo el administrador del ecosistema)', () => {
@@ -102,7 +103,8 @@ describe('Catálogo filtrado por etapa y red transversal (e2e)', () => {
       // las redes no se enviaron: siguen igual
       expect(names(await models('&network=FUR-PTE'))).toEqual(['E2E Modelo A'])
 
-      await send('patch', `/api/v1/catalog/types/${typeA}`, admin, { networkCodes: [] }).expect(200)
+      const [modelA] = await models('', 'E2E Modelo A')
+      await send('patch', `/api/v1/catalog/models/${modelA.id}`, admin, { networkCodes: [] }).expect(200)
       expect(names(await models('&network=FUR-PTE'))).toEqual([])
       expect(names(await models('&stage=D08'))).toEqual(['E2E Modelo A'])
     })
@@ -115,7 +117,7 @@ describe('Catálogo filtrado por etapa y red transversal (e2e)', () => {
     it('rechaza etapas o redes que no existen y no deja el tipo a medias', async () => {
       const bad = await send('post', '/api/v1/catalog/types', admin, { familyCode: 'MOLINOS', code: 'E2E_TIPO_D', name: 'E2E Tipo D', stageCodes: ['D99'] }).expect(400)
       expect(JSON.stringify(bad.body)).toContain('D99')
-      await send('post', '/api/v1/catalog/types', admin, { familyCode: 'MOLINOS', code: 'E2E_TIPO_D', name: 'E2E Tipo D', networkCodes: ['FUR-NO'] }).expect(400)
+      await send('post', '/api/v1/catalog/types', admin, { familyCode: 'MOLINOS', code: 'E2E_TIPO_D', name: 'E2E Tipo D', networkCodes: ['FUR-PTE'] }).expect(400)
       const types = (await http().get('/api/v1/catalog/types').expect(200)).body as Array<{ code: string }>
       expect(types.some((x) => x.code === 'E2E_TIPO_D')).toBe(false)
       await send('patch', `/api/v1/catalog/types/${typeA}`, admin, { stageCodes: ['D99'] }).expect(400)
@@ -126,5 +128,22 @@ describe('Catálogo filtrado por etapa y red transversal (e2e)', () => {
       await send('patch', `/api/v1/catalog/types/${typeA}`, pa, { stageCodes: ['D01'] }).expect(403)
       await send('post', '/api/v1/catalog/types', pa, { familyCode: 'MOLINOS', code: 'E2E_TIPO_E', name: 'E2E Tipo E', stageCodes: ['D01'] }).expect(403)
     })
+  })
+
+  it('dos modelos del mismo tipo tienen redes independientes; vacío no hereda de su hermano', async () => {
+    const sibling = await send('post', '/api/v1/catalog/models', admin, { typeCode: 'E2E_TIPO_B', modelName: 'E2E Hermano B', networkCodes: ['FUR-PTE'] }).expect(201)
+    const original = (await models('', 'E2E Modelo B'))[0]
+    expect(original.networkCodes).toEqual(['FUR-IOT', 'FUR-PROC'])
+    expect((await models('&network=FUR-PTE', 'E2E Hermano B')).map(m => m.id)).toEqual([sibling.body.id])
+    const variableCodes = async (id: string) => (await http().get(`/api/v1/catalog/models/${id}/variables`).expect(200)).body.map((v: { code: string }) => v.code)
+    expect(await variableCodes(sibling.body.id)).toContain('POTENCIA_INSTALADA_TOTAL_PTE')
+    expect(await variableCodes(original.id)).not.toContain('POTENCIA_INSTALADA_TOTAL_PTE')
+    await send('patch', `/api/v1/catalog/models/${sibling.body.id}`, admin, { networkCodes: [] }).expect(200)
+    expect((await http().get(`/api/v1/catalog/assets/${sibling.body.id}`).expect(200)).body.networkCodes).toEqual([])
+    expect(await variableCodes(sibling.body.id)).not.toContain('POTENCIA_INSTALADA_TOTAL_PTE')
+    expect((await models('', 'E2E Modelo B'))[0].networkCodes).toEqual(original.networkCodes)
+    await send('patch', `/api/v1/catalog/models/${sibling.body.id}`, admin, { modelName: 'E2E Hermano B renombrado', networkCodes: ['FUR-NO'] }).expect(400)
+    expect((await http().get(`/api/v1/catalog/assets/${sibling.body.id}`).expect(200)).body.modelName).toBe('E2E Hermano B')
+    await send('patch', `/api/v1/catalog/models/${sibling.body.id}`, pa, { networkCodes: ['FUR-PTE'] }).expect(403)
   })
 })

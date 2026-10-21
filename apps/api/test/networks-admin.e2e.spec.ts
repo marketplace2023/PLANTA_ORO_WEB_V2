@@ -102,9 +102,10 @@ describe('Administración de redes transversales (e2e)', () => {
       await send('post', '/api/v1/networks/catalog', admin, { code: 'FUR-TSTMAL', name: 'Color malo', colorToken: 'rojo' }).expect(400)
     })
 
-    it('se puede asignar a un tipo del catálogo y habilitar en una planta', async () => {
-      const type = await send('post', '/api/v1/catalog/types', admin, { familyCode: 'BOMBAS', code: 'E2E_NETADM', name: 'E2E tipo de red', networkCodes: ['FUR-TSTAGUA'] }).expect(201)
-      expect(type.body.networkCodes).toEqual(['FUR-TSTAGUA'])
+    it('se puede asignar a un modelo del catálogo y habilitar en una planta', async () => {
+      const type = await send('post', '/api/v1/catalog/types', admin, { familyCode: 'BOMBAS', code: 'E2E_NETADM', name: 'E2E tipo de red' }).expect(201)
+      const model = await send('post', '/api/v1/catalog/models', admin, { typeCode: 'E2E_NETADM', modelName: 'E2E modelo de red', networkCodes: ['FUR-TSTAGUA'] }).expect(201)
+      expect(model.body.networkCodes).toEqual(['FUR-TSTAGUA'])
       await send('post', `/api/v1/plants/e2e-netadm/networks`, admin, { networkCode: 'FUR-TSTAGUA' }).expect((r) => expect([200, 201]).toContain(r.status))
     })
   })
@@ -126,9 +127,9 @@ describe('Administración de redes transversales (e2e)', () => {
   })
 
   describe('uso y eliminar', () => {
-    it('el uso cuenta plantas que la habilitan y tipos del catálogo', async () => {
-      const usage = (await http().get('/api/v1/networks/catalog/usage').set('Authorization', bearer(admin)).expect(200)).body as Array<{ id: string; plants: number; assets: number; types: number }>
-      expect(usage.find((u) => u.id === aguaId)).toEqual({ id: aguaId, plants: 1, assets: 0, types: 1 })
+    it('el uso cuenta plantas que la habilitan y modelos del catálogo', async () => {
+      const usage = (await http().get('/api/v1/networks/catalog/usage').set('Authorization', bearer(admin)).expect(200)).body as Array<{ id: string; plants: number; assets: number; models: number }>
+      expect(usage.find((u) => u.id === aguaId)).toEqual({ id: aguaId, plants: 1, assets: 0, models: 1 })
     })
 
     it('si una planta la habilita, eliminarla se rechaza explicando dónde se usa', async () => {
@@ -141,8 +142,8 @@ describe('Administración de redes transversales (e2e)', () => {
       await send('delete', `/api/v1/networks/catalog/${aguaId}?force=true`, admin).expect(204)
       expect((await catalog()).some((n) => n.id === aguaId)).toBe(false)
       expect(await t.db.select().from(plantNetworks).where(eq(plantNetworks.plantId, plantId))).toEqual([])
-      const types = (await http().get('/api/v1/catalog/types').expect(200)).body as Array<{ code: string; networkCodes: string[] }>
-      expect(types.find((x) => x.code === 'E2E_NETADM')?.networkCodes).toEqual([])
+      const models = (await http().get('/api/v1/catalog/assets?search=E2E%20modelo%20de%20red').expect(200)).body.items as Array<{ networkCodes: string[] }>
+      expect(models[0].networkCodes).toEqual([])
       await send('delete', `/api/v1/networks/catalog/${aguaId}`, admin).expect(404)
     })
 

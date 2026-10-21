@@ -93,18 +93,25 @@ describe('Importación del listado maestro del catálogo (e2e)', () => {
     const res = await http().get('/api/v1/catalog/assets?search=E2E-IMPORT&pageSize=100').expect(200)
     expect(res.body.total).toBe(2)
     const m = res.body.items.find((m: { catalogTag: string }) => m.catalogTag === 'E2E-IMPORT-02')
-    expect(m).toMatchObject({ specifications: { 'Potencia del motor (kW)': '7,5–75' }, technicalData: { componentes: ['Motor, tambor, corona. Un solo componente.'] }, stageCodes: ['D06'], imageUrl: null, type: { networkCodes: ['FUR-PROC'] } })
+    expect(m).toMatchObject({ specifications: { 'Potencia del motor (kW)': '7,5–75' }, technicalData: { componentes: ['Motor, tambor, corona. Un solo componente.'] }, stageCodes: ['D06'], imageUrl: null, networkCodes: ['FUR-PROC'] })
     // La misma vista previa ya no autoriza volver a aplicar sobre un catálogo diferente.
     await apply(file, p.body.fingerprint).expect(409)
   })
   it('actualiza por TAG y Código CA aunque cambien nombres, manteniendo los IDs', async () => {
     const before = await models()
+    const sibling = (await http().post('/api/v1/catalog/models').set('Authorization', bearer(admin)).send({
+      typeCode: (await t.db.select().from(assetTypes).where(eq(assetTypes.id, before[0].assetTypeId)))[0].code,
+      modelName: 'E2E Modelo fuera del Excel', networkCodes: ['FUR-PTE'],
+    }).expect(201)).body
+    await http().patch(`/api/v1/catalog/models/${before[0].id}`).set('Authorization', bearer(admin)).send({ networkCodes: ['FUR-IOT'] }).expect(200)
     await t.db.update(assetModels).set({ imageKey: 'catalog/e2e.png', technicalData: { identificacion: { Proyecto: 'E2E' }, fuente: 'Referencia previa' } }).where(eq(assetModels.id, before[0].id))
     const family = (await t.db.select().from(assetFamilies).where(eq(assetFamilies.categoryCode, '97')))[0]
     const file = await workbook({ rename: true }), p = await preview(file).expect(201)
     expect(p.body.summary.models).toEqual({ create: 0, update: 2 })
     expect(p.body.summary.families).toEqual({ create: 0, update: 1 })
     await apply(file, p.body.fingerprint).expect(201)
+    expect((await http().get(`/api/v1/catalog/assets/${sibling.id}`).expect(200)).body.networkCodes).toEqual(['FUR-PTE'])
+    expect((await http().get(`/api/v1/catalog/assets/${before[0].id}`).expect(200)).body.networkCodes).toEqual(['FUR-PROC'])
     const after = await models()
     expect(after.map(m => m.id).sort()).toEqual(before.map(m => m.id).sort())
     expect(after.find(m => m.id === before[0].id)).toMatchObject({ imageKey: 'catalog/e2e.png', technicalData: { identificacion: { Proyecto: 'E2E' }, fuente: 'Referencia previa' } })

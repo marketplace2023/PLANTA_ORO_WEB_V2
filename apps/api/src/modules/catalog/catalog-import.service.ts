@@ -4,7 +4,7 @@ import { eq, inArray, sql } from 'drizzle-orm'
 import type { AppRequest } from '../../common/types'
 import { DB, type Database } from '../../database/database.module'
 import { uuidv7 } from '../../database/schema/common'
-import { assetFamilies, assetModels, assetModelStages, assetTypeNetworks, assetTypes, assetTypeStages, assets, auditEvents, manufacturers, networkMaster, stageMaster } from '../../database/schema'
+import { assetFamilies, assetModels, assetModelStages, assetModelNetworks, assetTypes, assetTypeStages, assets, auditEvents, manufacturers, networkMaster, stageMaster } from '../../database/schema'
 import { cleanManufacturerName, normalized, parseMasterWorkbook, type ImportIssue, type MasterWorkbook } from './catalog-import.xlsx'
 
 type Connection = Pick<Database, 'select' | 'insert' | 'update' | 'delete' | 'execute'>
@@ -20,8 +20,8 @@ async function snapshot(db: Connection) {
   const networks = await db.select().from(networkMaster)
   const typeStages = await db.select().from(assetTypeStages)
   const modelStages = await db.select().from(assetModelStages)
-  const typeNetworks = await db.select().from(assetTypeNetworks)
-  return { families, types, makers, models, stages, networks, typeStages, modelStages, typeNetworks }
+  const modelNetworks = await db.select().from(assetModelNetworks)
+  return { families, types, makers, models, stages, networks, typeStages, modelStages, modelNetworks }
 }
 type State = Awaited<ReturnType<typeof snapshot>>
 type Action = 'create' | 'update'
@@ -135,7 +135,7 @@ export class CatalogImportService {
     return this.db.transaction(async tx => {
       await tx.execute(sql`select pg_advisory_xact_lock(hashtext('catalog-master-import'))`)
       // Bloquea también las altas/ediciones manuales mientras se revalida y aplica la carga.
-      await tx.execute(sql`lock table catalog.asset_families, catalog.asset_types, catalog.manufacturers, catalog.asset_models, catalog.asset_type_stages, catalog.asset_model_stages, catalog.asset_type_networks, process.stage_master, plant.network_master, asset.assets in share row exclusive mode`)
+      await tx.execute(sql`lock table catalog.asset_families, catalog.asset_types, catalog.manufacturers, catalog.asset_models, catalog.asset_type_stages, catalog.asset_model_stages, catalog.asset_model_networks, process.stage_master, plant.network_master, asset.assets in share row exclusive mode`)
       const state = await snapshot(tx)
       const p = plan(book, state)
       if (p.preview.issues.length) throw new BadRequestException({ message: 'Corrige los errores del Excel antes de importar', errors: p.preview.issues.map(i => ({ path: `${i.sheet}:${i.row}`, message: i.message })) })
@@ -163,14 +163,14 @@ export class CatalogImportService {
         }
         await tx.delete(assetTypeStages).where(eq(assetTypeStages.assetTypeId, row.id))
         await tx.insert(assetTypeStages).values([...stageIds].map(stageMasterId => ({ assetTypeId: row.id, stageMasterId })))
-        await tx.delete(assetTypeNetworks).where(eq(assetTypeNetworks.assetTypeId, row.id))
-        await tx.insert(assetTypeNetworks).values({ assetTypeId: row.id, networkMasterId: p.network!.id })
       }
       for (const { action, stageId, ...row } of p.models) {
         if (action === 'create') await tx.insert(assetModels).values(row)
         else await tx.update(assetModels).set(row).where(eq(assetModels.id, row.id))
         await tx.delete(assetModelStages).where(eq(assetModelStages.assetModelId, row.id))
         await tx.insert(assetModelStages).values({ assetModelId: row.id, stageMasterId: stageId })
+        await tx.delete(assetModelNetworks).where(eq(assetModelNetworks.assetModelId, row.id))
+        await tx.insert(assetModelNetworks).values({ assetModelId: row.id, networkMasterId: p.network!.id })
       }
       const mergedIds = p.makers.flatMap(m => m.aliases)
       const oldAssets = mergedIds.length ? await tx.select({ id: assets.id, manufacturerId: assets.manufacturerId }).from(assets).where(inArray(assets.manufacturerId, mergedIds)) : []

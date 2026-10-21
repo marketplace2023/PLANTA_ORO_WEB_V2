@@ -48,8 +48,8 @@ describe('Variables de la ficha técnica (datos del fabricante) (e2e)', () => {
     ;[admin, pa] = await Promise.all(['admin', 'pa'].map((n) => login(app, n)))
 
     const mk = async (code: string, stageCodes: string[], networkCodes: string[]) => {
-      await send('post', '/api/v1/catalog/types', admin, { familyCode: 'CRIBAS', code, name: code, stageCodes, networkCodes }).expect(201)
-      const m = await send('post', '/api/v1/catalog/models', admin, { typeCode: code, modelName: `E2E Modelo ${code}` }).expect(201)
+      await send('post', '/api/v1/catalog/types', admin, { familyCode: 'CRIBAS', code, name: code, stageCodes }).expect(201)
+      const m = await send('post', '/api/v1/catalog/models', admin, { typeCode: code, modelName: `E2E Modelo ${code}`, networkCodes }).expect(201)
       return m.body.id as string
     }
     procModel = await mk('E2E_VAR_PROC', ['D01'], ['FUR-PROC'])
@@ -163,9 +163,9 @@ describe('Variables de la ficha técnica (datos del fabricante) (e2e)', () => {
       expect((await forModel(powerModel)).find((d) => d.code === 'E2E_EXPLICITA')?.value).toBe(5)
     })
 
-    it('con varias redes basta con que el tipo esté en una de ellas', async () => {
+    it('con varias redes basta con que el modelo esté en una de ellas', async () => {
       await create({ code: 'E2E_VARIAS_REDES', label: 'E2E Varias redes', valueType: 'TEXT', networkCodes: ['FUR-IOT', 'FUR-PTE'] }).expect(201)
-      expect(codes(await forModel(powerModel))).toContain('E2E_VARIAS_REDES') // el tipo está en FUR-PTE
+      expect(codes(await forModel(powerModel))).toContain('E2E_VARIAS_REDES') // el modelo está en FUR-PTE
       expect(codes(await forModel(procModel))).not.toContain('E2E_VARIAS_REDES') // está en FUR-PROC, que no figura
     })
 
@@ -252,7 +252,7 @@ describe('Variables de la ficha técnica (datos del fabricante) (e2e)', () => {
     })
 
     it('el valor es por modelo: otro modelo del mismo contexto no lo hereda', async () => {
-      const other = await send('post', '/api/v1/catalog/models', admin, { typeCode: 'E2E_VAR_PROC', modelName: 'E2E Modelo hermano' }).expect(201)
+      const other = await send('post', '/api/v1/catalog/models', admin, { typeCode: 'E2E_VAR_PROC', modelName: 'E2E Modelo hermano', networkCodes: ['FUR-PROC'] }).expect(201)
       const byCode = Object.fromEntries((await forModel(other.body.id)).map((d) => [d.code, d.value]))
       expect(byCode.CAPACIDAD_NOMINAL_PROC_D01).toBeNull()
     })

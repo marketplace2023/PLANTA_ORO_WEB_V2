@@ -168,7 +168,7 @@ export function CatalogPage() {
                       </div>
                       <h3 className="text-lg font-semibold text-fur-navy-900">{m.modelName}</h3>
                       <p className="text-sm text-fur-gray-600">{m.manufacturer ? `${m.manufacturer.name}${m.manufacturer.countryCode ? ` · ${m.manufacturer.countryCode}` : ''}` : 'Genérico'}</p>
-                      {(m.stageCodes.length > 0 || m.type.networkCodes.length > 0) && (
+                      {(m.stageCodes.length > 0 || m.networkCodes.length > 0) && (
                         <ul className="flex flex-wrap gap-1 pt-1" aria-label="Etapas y redes del tipo">
                           {stages.data && m.stageCodes.length === stages.data.length ? (
                             <li><Badge variant="outline" className="font-normal">Todas las etapas</Badge></li>
@@ -184,7 +184,7 @@ export function CatalogPage() {
                               )}
                             </>
                           )}
-                          {m.type.networkCodes.map((code) => (
+                          {m.networkCodes.map((code) => (
                             <li key={code}>
                               <Badge variant="secondary" className="font-normal">{networkName(code)}</Badge>
                             </li>

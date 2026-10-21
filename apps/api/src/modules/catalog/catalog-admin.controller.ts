@@ -8,7 +8,7 @@ import { isUniqueViolation } from '../../common/db-errors'
 import type { AppRequest } from '../../common/types'
 import { ZodValidationPipe } from '../../common/zod-validation.pipe'
 import { DB, type Database } from '../../database/database.module'
-import { assetFamilies, assetModels, assetModelStages, assets, assetTypeNetworks, assetTypes, assetTypeStages, items as inventoryItems, listings, manufacturers, networkMaster, stageMaster } from '../../database/schema'
+import { assetFamilies, assetModels, assetModelStages, assetModelNetworks, assets, assetTypes, assetTypeStages, items as inventoryItems, listings, manufacturers, networkMaster, stageMaster } from '../../database/schema'
 import { AuditService } from '../audit/audit.service'
 import { StorageService } from '../documents/storage.service'
 import { GlobalAdminOnly } from '../iam/decorators'
@@ -110,10 +110,9 @@ export class CatalogAdminController {
     return rows.map((r) => r.id)
   }
 
-  /** Reemplaza las etapas y/o redes del tipo (lo que no viene en el cuerpo no se toca). */
-  private async replaceLinks(typeId: string, dto: { stageCodes?: string[]; networkCodes?: string[] }) {
+  /** Reemplaza las etapas posibles del tipo (lo que no viene en el cuerpo no se toca). */
+  private async replaceLinks(typeId: string, dto: { stageCodes?: string[] }) {
     const stageIds = dto.stageCodes ? await this.masterIds('stageCodes', dto.stageCodes) : undefined
-    const networkIds = dto.networkCodes ? await this.masterIds('networkCodes', dto.networkCodes) : undefined
     await this.db.transaction(async (tx) => {
       if (stageIds) {
         await tx.delete(assetTypeStages).where(eq(assetTypeStages.assetTypeId, typeId))
@@ -122,19 +121,14 @@ export class CatalogAdminController {
         const modelIds = tx.select({ id: assetModels.id }).from(assetModels).where(eq(assetModels.assetTypeId, typeId))
         await tx.delete(assetModelStages).where(and(inArray(assetModelStages.assetModelId, modelIds), stageIds.length > 0 ? notInArray(assetModelStages.stageMasterId, stageIds) : undefined))
       }
-      if (networkIds) {
-        await tx.delete(assetTypeNetworks).where(eq(assetTypeNetworks.assetTypeId, typeId))
-        if (networkIds.length > 0) await tx.insert(assetTypeNetworks).values(networkIds.map((networkMasterId) => ({ assetTypeId: typeId, networkMasterId })))
-      }
     })
   }
 
   @Post('types')
   async createType(@Body(new ZodValidationPipe(createTypeSchema)) dto: CreateTypeDto, @Req() req: AppRequest) {
     const familyId = await this.familyId(dto.familyCode)
-    // Valida los códigos antes de crear nada: un tipo no debe quedar a medias si una etapa o red no existe.
+    // Valida los códigos antes de crear nada.
     await this.masterIds('stageCodes', dto.stageCodes ?? [])
-    await this.masterIds('networkCodes', dto.networkCodes ?? [])
     const [row] = await this.db
       .insert(assetTypes)
       .values({ familyId, code: dto.code, name: dto.name, description: dto.description })
@@ -142,20 +136,19 @@ export class CatalogAdminController {
       .catch((e) => (isUniqueViolation(e) ? this.conflict(`un tipo con el código ${dto.code}`) : Promise.reject(e)))
     await this.replaceLinks(row.id, dto)
     await this.record(req, 'asset_type', row.id, 'created', { new: dto })
-    return { ...row, stageCodes: dto.stageCodes ?? [], networkCodes: dto.networkCodes ?? [] }
+    return { ...row, stageCodes: dto.stageCodes ?? [] }
   }
 
   @Patch('types/:id')
   async updateType(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(updateTypeSchema)) dto: UpdateTypeDto, @Req() req: AppRequest) {
     const [before] = await this.db.select().from(assetTypes).where(eq(assetTypes.id, id))
     if (!before) throw new NotFoundException('Tipo no encontrado')
-    const { familyCode, stageCodes, networkCodes, ...rest } = dto
+    const { familyCode, stageCodes, ...rest } = dto
     const familyId = familyCode ? await this.familyId(familyCode) : undefined
     await this.masterIds('stageCodes', stageCodes ?? [])
-    await this.masterIds('networkCodes', networkCodes ?? [])
     const fields = { ...rest, ...(familyId && { familyId }) }
     const [row] = Object.keys(fields).length > 0 ? await this.db.update(assetTypes).set(fields).where(eq(assetTypes.id, id)).returning() : [before]
-    await this.replaceLinks(id, { stageCodes, networkCodes })
+    await this.replaceLinks(id, { stageCodes })
     await this.record(req, 'asset_type', id, 'updated', { old: before, new: dto })
     return row
   }
@@ -168,7 +161,7 @@ export class CatalogAdminController {
     await this.assertUnused(`No se puede eliminar el tipo «${before.name}»:`, [
       { table: assetModels, column: assetModels.assetTypeId, id, text: (n) => `tiene ${n} modelo(s). Elimina esos modelos o cámbialos de tipo primero.` },
     ])
-    // Sus etapas, redes y la asociación con variables caen en cascada.
+    // Sus etapas y la asociación con variables caen en cascada.
     await this.db.delete(assetTypes).where(eq(assetTypes.id, id))
     await this.record(req, 'asset_type', id, 'deleted', { old: before })
   }
@@ -235,11 +228,22 @@ export class CatalogAdminController {
     return codes.length === typeStages.length ? [] : typeStages.filter((s) => codes.includes(s.code)).map((s) => s.id)
   }
 
-  private async replaceModelStages(modelId: string, stageIds: string[]) {
-    await this.db.transaction(async (tx) => {
+  private async replaceModelLinks(tx: Pick<Database, 'delete' | 'insert'>, modelId: string, stageIds?: string[], networkIds?: string[]) {
+    if (stageIds) {
       await tx.delete(assetModelStages).where(eq(assetModelStages.assetModelId, modelId))
       if (stageIds.length > 0) await tx.insert(assetModelStages).values(stageIds.map((stageMasterId) => ({ assetModelId: modelId, stageMasterId })))
-    })
+    }
+    if (networkIds) {
+      await tx.delete(assetModelNetworks).where(eq(assetModelNetworks.assetModelId, modelId))
+      if (networkIds.length > 0) await tx.insert(assetModelNetworks).values(networkIds.map((networkMasterId) => ({ assetModelId: modelId, networkMasterId })))
+    }
+  }
+
+  private async networksOf(modelId: string) {
+    const rows = await this.db.select({ code: networkMaster.code }).from(assetModelNetworks)
+      .innerJoin(networkMaster, eq(networkMaster.id, assetModelNetworks.networkMasterId))
+      .where(eq(assetModelNetworks.assetModelId, modelId))
+    return rows.map(row => row.code).sort()
   }
 
   /** Etapas efectivas del modelo (las suyas o, si no declaró, las del tipo) y si las hereda. */
@@ -264,15 +268,17 @@ export class CatalogAdminController {
     if (!type) throw validationError('typeCode', `El tipo ${dto.typeCode} no existe`)
     await this.assertManufacturer(dto.manufacturerId)
     const stageIds = await this.modelStageIds(type.id, dto.stageCodes ?? []) // valida antes de crear nada
+    const networkIds = await this.masterIds('networkCodes', dto.networkCodes ?? [])
 
-    const [row] = await this.db
-      .insert(assetModels)
-      .values({ assetTypeId: type.id, manufacturerId: dto.manufacturerId, modelName: dto.modelName, specifications: dto.specifications, technicalData: dto.technicalData })
-      .returning()
-      .catch((e) => (isUniqueViolation(e) ? this.conflict(`el modelo ${dto.modelName} para ese tipo y fabricante`) : Promise.reject(e)))
-    if (stageIds.length > 0) await this.replaceModelStages(row.id, stageIds)
-    await this.record(req, 'asset_model', row.id, 'created', { new: { typeCode: dto.typeCode, modelName: dto.modelName, manufacturerId: dto.manufacturerId, stageCodes: dto.stageCodes } })
-    return { ...row, ...(await this.stagesOf(row.id, type.id)) }
+    const row = await this.db.transaction(async tx => {
+      const [created] = await tx.insert(assetModels)
+        .values({ assetTypeId: type.id, manufacturerId: dto.manufacturerId, modelName: dto.modelName, specifications: dto.specifications, technicalData: dto.technicalData })
+        .returning()
+      await this.replaceModelLinks(tx, created.id, stageIds, networkIds)
+      return created
+    }).catch((e) => (isUniqueViolation(e) ? this.conflict(`el modelo ${dto.modelName} para ese tipo y fabricante`) : Promise.reject(e)))
+    await this.record(req, 'asset_model', row.id, 'created', { new: { typeCode: dto.typeCode, modelName: dto.modelName, manufacturerId: dto.manufacturerId, stageCodes: dto.stageCodes, networkCodes: dto.networkCodes ?? [] } })
+    return { ...row, ...(await this.stagesOf(row.id, type.id)), networkCodes: await this.networksOf(row.id) }
   }
 
   @Patch('models/:id')
@@ -280,24 +286,23 @@ export class CatalogAdminController {
     const [before] = await this.db.select().from(assetModels).where(eq(assetModels.id, id))
     if (!before) throw new NotFoundException('Modelo no encontrado')
     await this.assertManufacturer(dto.manufacturerId)
-    const { stageCodes, ...fields } = dto
+    const { stageCodes, networkCodes, ...fields } = dto
     const stageIds = stageCodes ? await this.modelStageIds(before.assetTypeId, stageCodes) : undefined
-    // Si solo cambian las etapas no hay columnas que actualizar en el modelo.
-    const [row] =
-      Object.keys(fields).length === 0
-        ? [before]
-        : await this.db
-            .update(assetModels)
-            .set(fields)
-            .where(eq(assetModels.id, id))
-            .returning()
-            .catch((e) => (isUniqueViolation(e) ? this.conflict(`el modelo ${dto.modelName} para ese tipo y fabricante`) : Promise.reject(e)))
+    const networkIds = networkCodes ? await this.masterIds('networkCodes', networkCodes) : undefined
+    const oldNetworkCodes = await this.networksOf(id)
+    const row = await this.db.transaction(async tx => {
+      // Serializa también las ediciones que cambian solo vínculos y ninguna columna del modelo.
+      const [current] = await tx.select().from(assetModels).where(eq(assetModels.id, id)).for('update')
+      if (!current) throw new NotFoundException('Modelo no encontrado')
+      const [updated] = Object.keys(fields).length ? await tx.update(assetModels).set(fields).where(eq(assetModels.id, id)).returning() : [current]
+      await this.replaceModelLinks(tx, id, stageIds, networkIds)
+      return updated
+    }).catch((e) => (isUniqueViolation(e) ? this.conflict(`el modelo ${dto.modelName} para ese tipo y fabricante`) : Promise.reject(e)))
     await this.record(req, 'asset_model', id, dto.status && dto.status !== before.status ? `status.${dto.status.toLowerCase()}` : 'updated', {
-      old: { modelName: before.modelName, status: before.status },
+      old: { modelName: before.modelName, status: before.status, networkCodes: oldNetworkCodes },
       new: dto,
     })
-    if (stageIds) await this.replaceModelStages(id, stageIds)
-    return { ...row, ...(await this.stagesOf(id, before.assetTypeId)) }
+    return { ...row, ...(await this.stagesOf(id, before.assetTypeId)), networkCodes: await this.networksOf(id) }
   }
 
   @Delete('models/:id')

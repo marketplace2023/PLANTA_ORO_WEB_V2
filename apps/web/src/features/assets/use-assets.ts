@@ -263,12 +263,13 @@ export type CatalogModel = {
   imageUrl: string | null
   /**
    * `stageCodes` del modelo: las etapas donde realmente participa (las que declaró o, si no declaró, todas las de su tipo).
-   * `type.stageCodes` / `type.networkCodes`: etapas (D01…) y redes (FUR-PTE…) posibles del tipo; vacío = sin asignar.
+   * `type.stageCodes`: etapas posibles del tipo. Las redes son propias del modelo; vacío = sin asignar.
    */
   stageCodes: string[]
   /** `true` si el modelo no declaró etapas propias y hereda las del tipo. */
   stageInherited?: boolean
-  type: { id: string; code: string; name: string; description?: string | null; stageCodes: string[]; networkCodes: string[] }
+  networkCodes: string[]
+  type: { id: string; code: string; name: string; description?: string | null; stageCodes: string[] }
   family: { id: string; code: string; name: string; icon: string | null }
   manufacturer: { id: string; name: string; countryCode: string | null } | null
 }

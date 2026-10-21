@@ -29,7 +29,7 @@ const KEEP_WHOLE = new Set([
   'catalog.manufacturers',
   'catalog.asset_type_stages',
   'catalog.asset_model_stages',
-  'catalog.asset_type_networks',
+  'catalog.asset_model_networks',
 ])
 /** Tablas que se filtran a mano (se conserva solo lo de la planta, el usuario o el activo elegidos). */
 const HANDLED = new Set([

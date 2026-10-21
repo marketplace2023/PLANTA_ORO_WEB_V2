@@ -125,7 +125,7 @@ describe('Catálogo global', () => {
       const stages = codes(19).map((code, i) => ({ id: `s${i}`, code, name: `Etapa ${code}`, sequenceDefault: i + 1, description: null, stageGroup: 'X', colorToken: null }))
       // Las etapas que se muestran son las del modelo (donde participa), no las posibles del tipo.
       const all = { ...MODELS[0], id: 'mall', modelName: 'Modelo en todas', stageCodes: codes(19), type: { ...MODELS[0].type, stageCodes: codes(19) } }
-      const many = { ...MODELS[1], id: 'mmany', modelName: 'Modelo en varias', stageCodes: codes(9), type: { ...MODELS[1].type, stageCodes: codes(19), networkCodes: [] } }
+      const many = { ...MODELS[1], id: 'mmany', modelName: 'Modelo en varias', stageCodes: codes(9), type: { ...MODELS[1].type, stageCodes: codes(19) } }
       mockApi({
         'GET /catalog/assets': { body: page([all, many], 2, 1, 24) },
         'GET /catalog/families': { body: FAMILIES },

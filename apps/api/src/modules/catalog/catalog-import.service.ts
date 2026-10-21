@@ -27,16 +27,22 @@ type State = Awaited<ReturnType<typeof snapshot>>
 type Action = 'create' | 'update'
 export type CatalogImportPreview = {
   fingerprint: string; issues: ImportIssue[]
+  networks: Array<{ code: string; name: string }>
   summary: { models: { create: number; update: number }; families: { create: number; update: number }; types: { create: number; update: number }; manufacturers: { create: number; update: number; merged: number }; specifications: number }
   rows: Array<{ tag: string; name: string; family: string; type: string; manufacturer: string; stages: string[]; components: string[]; specifications: Record<string, string>; action: Action }>
 }
 
-function plan(book: MasterWorkbook, state: State) {
+function plan(book: MasterWorkbook, state: State, networkCodes: string[]) {
+  const selectedNetworks = [...new Set(networkCodes)].sort().map(code => {
+    const network = state.networks.find(n => n.code === code)
+    if (!network) throw new BadRequestException(`La red ${code} no existe. Actualiza las redes y vuelve a analizar el Excel.`)
+    return network
+  })
   const issues = [...book.issues]
   const issue = (message: string, row = 1) => issues.push({ sheet: 'Listado maestro', row, message })
-  // El fingerprint ata la confirmación al archivo Y al estado del catálogo que el usuario revisó.
+  // La confirmación queda ligada al archivo, las redes elegidas y el estado del catálogo revisado.
   const stateKey = Object.values(state).map(rows => [...rows].map(r => JSON.stringify(r)).sort())
-  const fingerprint = createHash('sha256').update(book.fingerprint + JSON.stringify(stateKey)).digest('hex')
+  const fingerprint = createHash('sha256').update(book.fingerprint + JSON.stringify(stateKey) + JSON.stringify(selectedNetworks.map(n => n.code))).digest('hex')
   const unique = <T>(rows: T[], description: string): T | undefined => {
     if (rows.length > 1) issue(`Coincidencia ambigua en ${description}; corrige los duplicados antes de importar`)
     return rows[0]
@@ -44,8 +50,6 @@ function plan(book: MasterWorkbook, state: State) {
   const familyOps = new Map<string, { id: string; code: string; categoryCode: string; name: string; action: Action }>()
   const typeOps = new Map<string, { id: string; code: string; name: string; familyId: string; stageIds: Set<string>; action: Action }>()
   const makerOps = new Map<string, { id: string; name: string; countryCode: string | null; website: string | null; aliases: string[]; action: Action }>()
-  const network = unique(state.networks.filter(n => n.code === 'FUR-PROC' && normalized(n.name) === normalized('Procesos')), 'red Procesos')
-  if (!network) issue('Falta la red Procesos (FUR-PROC) en el catálogo de redes')
   const models: Array<{ id: string; catalogTag: string; modelName: string; assetTypeId: string; manufacturerId: string; specifications: Record<string, string>; technicalData: Record<string, unknown>; stageId: string; action: Action }> = []
   const previewRows: CatalogImportPreview['rows'] = []
   const typeFamilies = new Map<string, Set<string>>()
@@ -117,29 +121,30 @@ function plan(book: MasterWorkbook, state: State) {
     finalKeys.set(key, id)
   }
   const counts = (rows: Array<{ action: Action }>) => ({ create: rows.filter(r => r.action === 'create').length, update: rows.filter(r => r.action === 'update').length })
-  const preview: CatalogImportPreview = { fingerprint, issues, summary: { models: counts(models), families: counts([...familyOps.values()]), types: counts([...typeOps.values()]), manufacturers: { ...counts([...makerOps.values()]), merged: canonicalMaker.size }, specifications: book.specificationCount }, rows: previewRows }
-  return { preview, families: [...familyOps.values()], types: [...typeOps.values()], makers: [...makerOps.values()], models, network }
+  const preview: CatalogImportPreview = { fingerprint, issues, networks: selectedNetworks.map(({ code, name }) => ({ code, name })), summary: { models: counts(models), families: counts([...familyOps.values()]), types: counts([...typeOps.values()]), manufacturers: { ...counts([...makerOps.values()]), merged: canonicalMaker.size }, specifications: book.specificationCount }, rows: previewRows }
+  return { preview, families: [...familyOps.values()], types: [...typeOps.values()], makers: [...makerOps.values()], models, selectedNetworks }
 }
 
 @Injectable()
 export class CatalogImportService {
   constructor(@Inject(DB) private readonly db: Database) {}
 
-  async preview(buffer: Buffer) {
+  async preview(buffer: Buffer, networkCodes: string[]) {
     const book = await parseMasterWorkbook(buffer)
-    return plan(book, await snapshot(this.db)).preview
+    return plan(book, await snapshot(this.db), networkCodes).preview
   }
 
-  async apply(buffer: Buffer, fingerprint: string, req: AppRequest) {
+  async apply(buffer: Buffer, fingerprint: string, networkCodes: string[], req: AppRequest, allowMissingSpecifications = false) {
     const book = await parseMasterWorkbook(buffer)
     return this.db.transaction(async tx => {
       await tx.execute(sql`select pg_advisory_xact_lock(hashtext('catalog-master-import'))`)
       // Bloquea también las altas/ediciones manuales mientras se revalida y aplica la carga.
       await tx.execute(sql`lock table catalog.asset_families, catalog.asset_types, catalog.manufacturers, catalog.asset_models, catalog.asset_type_stages, catalog.asset_model_stages, catalog.asset_model_networks, process.stage_master, plant.network_master, asset.assets in share row exclusive mode`)
       const state = await snapshot(tx)
-      const p = plan(book, state)
-      if (p.preview.issues.length) throw new BadRequestException({ message: 'Corrige los errores del Excel antes de importar', errors: p.preview.issues.map(i => ({ path: `${i.sheet}:${i.row}`, message: i.message })) })
-      if (p.preview.fingerprint !== fingerprint) throw new ConflictException('El archivo o el catálogo cambiaron desde la vista previa. Vuelve a analizar el Excel.')
+      const p = plan(book, state, networkCodes)
+      const blockingIssues = p.preview.issues.filter(i => !allowMissingSpecifications || i.code !== 'MISSING_SPECIFICATIONS')
+      if (blockingIssues.length) throw new BadRequestException({ message: 'Corrige los errores del Excel antes de importar', errors: blockingIssues.map(i => ({ path: `${i.sheet}:${i.row}`, message: i.message })) })
+      if (p.preview.fingerprint !== fingerprint) throw new ConflictException('El archivo, las redes seleccionadas o el catálogo cambiaron desde la vista previa. Vuelve a analizar el Excel.')
       for (const { action, ...row } of p.families) {
         if (action === 'create') await tx.insert(assetFamilies).values(row)
         else await tx.update(assetFamilies).set({ name: row.name, categoryCode: row.categoryCode }).where(eq(assetFamilies.id, row.id))
@@ -170,7 +175,7 @@ export class CatalogImportService {
         await tx.delete(assetModelStages).where(eq(assetModelStages.assetModelId, row.id))
         await tx.insert(assetModelStages).values({ assetModelId: row.id, stageMasterId: stageId })
         await tx.delete(assetModelNetworks).where(eq(assetModelNetworks.assetModelId, row.id))
-        await tx.insert(assetModelNetworks).values({ assetModelId: row.id, networkMasterId: p.network!.id })
+        await tx.insert(assetModelNetworks).values(p.selectedNetworks.map(n => ({ assetModelId: row.id, networkMasterId: n.id })))
       }
       const mergedIds = p.makers.flatMap(m => m.aliases)
       const oldAssets = mergedIds.length ? await tx.select({ id: assets.id, manufacturerId: assets.manufacturerId }).from(assets).where(inArray(assets.manufacturerId, mergedIds)) : []
@@ -182,7 +187,7 @@ export class CatalogImportService {
       }
       await tx.insert(auditEvents).values({ module: 'catalog', entityType: 'master_import', action: 'imported', userId: req.user?.id,
         oldData: { models: state.models.filter(m => importedIds.has(m.id) || mergedIds.includes(m.manufacturerId ?? '')), manufacturers: state.makers.filter(m => p.makers.some(x => x.id === m.id || x.aliases.includes(m.id))), assets: oldAssets, families: state.families.filter(f => p.families.some(x => x.id === f.id)), types: state.types.filter(t => p.types.some(x => x.id === t.id)) },
-        newData: { fileHash: book.fingerprint, summary: p.preview.summary, tags: p.models.map(m => m.catalogTag) }, ipAddress: req.ip, userAgent: req.headers['user-agent'], correlationId: req.correlationId })
+        newData: { fileHash: book.fingerprint, networks: p.preview.networks, allowMissingSpecifications, summary: p.preview.summary, tags: p.models.map(m => m.catalogTag) }, ipAddress: req.ip, userAgent: req.headers['user-agent'], correlationId: req.correlationId })
       return { ...p.preview, imported: p.models.length }
     })
   }

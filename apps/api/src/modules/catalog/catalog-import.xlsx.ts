@@ -13,7 +13,7 @@ export function cleanManufacturerName(value: string): string {
   } while (name !== previous)
   return name.replace(/\s+/g, ' ').trim()
 }
-export type ImportIssue = { sheet: string; row: number; message: string }
+export type ImportIssue = { sheet: string; row: number; message: string; code?: 'MISSING_SPECIFICATIONS' }
 export type MasterRow = {
   row: number; tag: string; name: string; categoryCode: string; family: string; type: string
   manufacturer: string; stage: string; components: string[]; specifications: Record<string, string>
@@ -113,7 +113,7 @@ export async function parseMasterWorkbook(buffer: Buffer): Promise<MasterWorkboo
   }
   for (const r of rows) {
     if (!characteristics.has(r.tag)) issues.push({ sheet: 'Listado maestro', row: r.row, message: `${r.tag} no tiene fila en «Características»` })
-    if (!Object.keys(r.specifications).length) issues.push({ sheet: 'Listado maestro', row: r.row, message: `${r.tag} no tiene especificaciones` })
+    if (!Object.keys(r.specifications).length) issues.push({ sheet: 'Listado maestro', row: r.row, message: `${r.tag} no tiene especificaciones`, code: 'MISSING_SPECIFICATIONS' })
   }
   return { fingerprint: createHash('sha256').update(buffer).digest('hex'), rows, issues, specificationCount }
 }

@@ -8,6 +8,8 @@ import { CatalogVariablesAdminController, CatalogVariablesController } from './v
 import { MODEL_IMAGE_MAX_BYTES } from './model-image'
 import { CatalogImportController } from './catalog-import.controller'
 import { CatalogImportService } from './catalog-import.service'
+import { CatalogDeleteController } from './catalog-delete.controller'
+import { CatalogDeleteService } from './catalog-delete.service'
 
 @Module({
   imports: [
@@ -16,7 +18,7 @@ import { CatalogImportService } from './catalog-import.service'
     // En memoria porque se valida el contenido antes de escribir; el tope evita agotar la RAM del servidor.
     MulterModule.register({ storage: memoryStorage(), limits: { fileSize: MODEL_IMAGE_MAX_BYTES, files: 1, fields: 5 } }),
   ],
-  controllers: [CatalogController, CatalogAdminController, CatalogVariablesController, CatalogVariablesAdminController, CatalogImportController],
-  providers: [CatalogImportService],
+  controllers: [CatalogController, CatalogAdminController, CatalogVariablesController, CatalogVariablesAdminController, CatalogImportController, CatalogDeleteController],
+  providers: [CatalogImportService, CatalogDeleteService],
 })
 export class CatalogModule {}

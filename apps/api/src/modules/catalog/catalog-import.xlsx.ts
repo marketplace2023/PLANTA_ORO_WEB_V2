@@ -27,13 +27,16 @@ const requiredHeaders: Record<string, string[]> = {
 }
 
 /** Lee valores, nunca ejecuta fórmulas. El libro de entrada permanece intacto. */
-export async function parseMasterWorkbook(buffer: Buffer): Promise<MasterWorkbook> {
+export async function readCatalogWorkbook(buffer: Buffer): Promise<Sheet[]> {
   if (buffer.length > CATALOG_IMPORT_MAX_BYTES || buffer[0] !== 0x50 || buffer[1] !== 0x4b) {
     throw new BadRequestException('Adjunta un archivo .xlsx válido de hasta 5 MB')
   }
-  let book: Sheet[]
-  try { book = await readExcelFile(buffer) }
+  try { return await readExcelFile(buffer) }
   catch { throw new BadRequestException('No se pudo leer el Excel. Comprueba que sea un archivo .xlsx válido.') }
+}
+
+export async function parseMasterWorkbook(buffer: Buffer): Promise<MasterWorkbook> {
+  const book = await readCatalogWorkbook(buffer)
   const issues: ImportIssue[] = []
   const tables = new Map<string, Array<{ row: number; values: Record<string, string> }>>()
   for (const [name, headers] of Object.entries(requiredHeaders)) {

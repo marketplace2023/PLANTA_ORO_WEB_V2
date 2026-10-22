@@ -40,3 +40,15 @@ Cambiar las redes en el formulario invalida la vista previa: vuelve a analizar a
 Instala las dependencias con `npm ci` y aplica las migraciones con `npm run db:migrate` antes de arrancar la API actualizada. La migración `0033_model_networks.sql` mueve las redes de tipos a modelos conservando las asignaciones existentes. La migración `0032_catalog_master_import.sql` añade el Código CA de las familias y el TAG único de los modelos. En producción, el comando `start:prod` ya aplica las migraciones al arrancar.
 
 Los comandos normales `db:seed`, `db:seed:dev` y `setup:local` dejan el catálogo y los activos sin ejemplos de demostración. Para reiniciar toda la base local, detén la API y ejecuta `npm run db:reset-local -- --yes`: conserva la base anterior con un nombre de respaldo y deja una nueva lista para importar desde este panel. El reinicio no vuelve a cargar el Excel; debes seleccionarlo e importarlo nuevamente.
+
+
+## Eliminación masiva por Excel
+
+En **Catálogo de activos → Eliminar por Excel**, selecciona el mismo `.xlsx` y pulsa **Analizar eliminación**. Solo se usa `Listado maestro / TAG ACTIVO`; no se necesitan las otras hojas, componentes ni especificaciones. Se admiten archivos de hasta 5 MB y 2.000 TAG únicos. Los TAG se recortan y convierten a mayúsculas; solo se comparan con `catalog.asset_models.catalog_tag`, sin coincidencias por nombre.
+
+La vista previa muestra modelos por eliminar, TAG no encontrados y modelos bloqueados, junto con los conteos de uso en activos de planta, inventario y marketplace. Los TAG repetidos o inválidos deben corregirse. Los no encontrados se omiten.
+
+Escribe **ELIMINAR** para confirmar. Si algún modelo está en uso por activos de planta o inventario se bloquea todo el listado: no hay eliminación parcial. El archivo y el estado revisado se vuelven a comprobar dentro de una transacción; si cambian, debes analizar de nuevo. La operación elimina los modelos coincidentes y sus vínculos de etapas, redes y valores del fabricante, y registra una auditoría con los datos anteriores. Las fotos se eliminan después de confirmar la transacción. Las publicaciones del marketplace se conservan y quedan sin modelo; su cantidad se informa antes de confirmar. Las familias, tipos y fabricantes se conservan.
+
+- `POST /api/v1/catalog/deletions/preview`: multipart con `file`; devuelve `fingerprint`, `issues`, `summary` y `rows`, sin modificar datos.
+- `POST /api/v1/catalog/deletions`: multipart con el mismo `file`, `fingerprint` y `confirm=ELIMINAR`; devuelve el resultado con `deleted`. Solo lo puede ejecutar el administrador global.

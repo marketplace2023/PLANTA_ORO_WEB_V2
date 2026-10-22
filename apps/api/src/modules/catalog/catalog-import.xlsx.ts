@@ -13,7 +13,7 @@ export function cleanManufacturerName(value: string): string {
   } while (name !== previous)
   return name.replace(/\s+/g, ' ').trim()
 }
-export type ImportIssue = { sheet: string; row: number; message: string }
+export type ImportIssue = { sheet: string; row: number; message: string; code?: 'MISSING_SPECIFICATIONS' }
 export type MasterRow = {
   row: number; tag: string; name: string; categoryCode: string; family: string; type: string
   manufacturer: string; stage: string; components: string[]; specifications: Record<string, string>
@@ -27,13 +27,16 @@ const requiredHeaders: Record<string, string[]> = {
 }
 
 /** Lee valores, nunca ejecuta fórmulas. El libro de entrada permanece intacto. */
-export async function parseMasterWorkbook(buffer: Buffer): Promise<MasterWorkbook> {
+export async function readCatalogWorkbook(buffer: Buffer): Promise<Sheet[]> {
   if (buffer.length > CATALOG_IMPORT_MAX_BYTES || buffer[0] !== 0x50 || buffer[1] !== 0x4b) {
     throw new BadRequestException('Adjunta un archivo .xlsx válido de hasta 5 MB')
   }
-  let book: Sheet[]
-  try { book = await readExcelFile(buffer) }
+  try { return await readExcelFile(buffer) }
   catch { throw new BadRequestException('No se pudo leer el Excel. Comprueba que sea un archivo .xlsx válido.') }
+}
+
+export async function parseMasterWorkbook(buffer: Buffer): Promise<MasterWorkbook> {
+  const book = await readCatalogWorkbook(buffer)
   const issues: ImportIssue[] = []
   const tables = new Map<string, Array<{ row: number; values: Record<string, string> }>>()
   for (const [name, headers] of Object.entries(requiredHeaders)) {
@@ -113,7 +116,7 @@ export async function parseMasterWorkbook(buffer: Buffer): Promise<MasterWorkboo
   }
   for (const r of rows) {
     if (!characteristics.has(r.tag)) issues.push({ sheet: 'Listado maestro', row: r.row, message: `${r.tag} no tiene fila en «Características»` })
-    if (!Object.keys(r.specifications).length) issues.push({ sheet: 'Listado maestro', row: r.row, message: `${r.tag} no tiene especificaciones` })
+    if (!Object.keys(r.specifications).length) issues.push({ sheet: 'Listado maestro', row: r.row, message: `${r.tag} no tiene especificaciones`, code: 'MISSING_SPECIFICATIONS' })
   }
   return { fingerprint: createHash('sha256').update(buffer).digest('hex'), rows, issues, specificationCount }
 }

@@ -27,7 +27,7 @@ describe('Etapas por modelo del catálogo (e2e)', () => {
     await Promise.all([t.user('admin', { isGlobalAdmin: true }), t.user('pa')])
     ;[admin, pa] = await Promise.all(['admin', 'pa'].map((n) => login(app, n)))
     // Tipo con tres etapas posibles; un modelo participa solo en algunas y otro hereda todas.
-    const type = await send('post', '/api/v1/catalog/types', admin, { familyCode: 'MOLINOS', code: 'E2E_MS_TIPO', name: 'E2E MS Tipo', stageCodes: ['D05', 'D06', 'D07'], networkCodes: ['FUR-PROC'] }).expect(201)
+    const type = await send('post', '/api/v1/catalog/types', admin, { familyCode: 'MOLINOS', code: 'E2E_MS_TIPO', name: 'E2E MS Tipo', stageCodes: ['D05', 'D06', 'D07'] }).expect(201)
     typeId = type.body.id
     idInherit = (await send('post', '/api/v1/catalog/models', admin, { typeCode: 'E2E_MS_TIPO', modelName: 'E2E MS Hereda' }).expect(201)).body.id
   })

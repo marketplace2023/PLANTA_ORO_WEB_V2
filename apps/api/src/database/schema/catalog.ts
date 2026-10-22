@@ -68,18 +68,18 @@ export const assetModelStages = catalogSchema.table(
   (t) => [primaryKey({ columns: [t.assetModelId, t.stageMasterId] })],
 )
 
-/** Redes transversales (potencia, IoT, procesos…) a las que pertenece un tipo de activo. */
-export const assetTypeNetworks = catalogSchema.table(
-  'asset_type_networks',
+/** Redes transversales propias de cada modelo. Vacío = sin redes; no se heredan del tipo. */
+export const assetModelNetworks = catalogSchema.table(
+  'asset_model_networks',
   {
-    assetTypeId: uuid('asset_type_id')
+    assetModelId: uuid('asset_model_id')
       .notNull()
-      .references(() => assetTypes.id, { onDelete: 'cascade' }),
+      .references(() => assetModels.id, { onDelete: 'cascade' }),
     networkMasterId: uuid('network_master_id')
       .notNull()
       .references(() => networkMaster.id, { onDelete: 'cascade' }),
   },
-  (t) => [primaryKey({ columns: [t.assetTypeId, t.networkMasterId] })],
+  (t) => [primaryKey({ columns: [t.assetModelId, t.networkMasterId] })],
 )
 
 export const assetModels = catalogSchema.table(

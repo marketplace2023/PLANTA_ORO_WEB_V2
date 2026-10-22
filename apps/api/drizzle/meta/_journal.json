@@ -232,6 +232,13 @@
       "when": 1792516738996,
       "tag": "0032_catalog_master_import",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1792613790556,
+      "tag": "0033_model_networks",
+      "breakpoints": true
     }
   ]
 }

@@ -6,7 +6,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 import { buildFurCode } from '../modules/assets/fur-code'
-import { runSeed } from './seed'
+import { DEMO_MODEL_NETWORKS, runSeed } from './seed'
 import { nextCode } from '../common/sequences'
 import {
   DAY,
@@ -188,6 +188,7 @@ export async function runSeedDev(url: string, password = DEV_PASSWORD, { include
       .onConflictDoNothing({ target: s.manufacturers.name })
     const manufacturerId = new Map((await db.select().from(s.manufacturers)).map((m) => [m.name, m.id]))
     const typeId = new Map((await db.select().from(s.assetTypes)).map((t) => [t.code, t.id]))
+    const modelNetworks = new Map((await db.select().from(s.networkMaster)).map(n => [n.code, n.id]))
     for (const [typeCode, maker, modelName, specifications] of MODELS) {
       const [existing] = await db
         .select({ id: s.assetModels.id })
@@ -195,9 +196,12 @@ export async function runSeedDev(url: string, password = DEV_PASSWORD, { include
         .where(and(eq(s.assetModels.assetTypeId, typeId.get(typeCode)!), eq(s.assetModels.modelName, modelName)))
         .limit(1)
       if (existing) continue
-      await db
+      const [created] = await db
         .insert(s.assetModels)
         .values({ assetTypeId: typeId.get(typeCode)!, manufacturerId: maker ? manufacturerId.get(maker) : null, modelName, specifications })
+        .returning()
+      const links = (DEMO_MODEL_NETWORKS[typeCode] ?? []).map(code => ({ assetModelId: created.id, networkMasterId: modelNetworks.get(code)! }))
+      if (links.length) await db.insert(s.assetModelNetworks).values(links)
     }
 
     // Activos de demostración de REVEMIN II (idempotente por tag).

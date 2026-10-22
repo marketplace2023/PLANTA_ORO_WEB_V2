@@ -24,9 +24,9 @@ export const updateFamilySchema = z
 /** Códigos de etapas (D01…) o de redes (FUR-PTE…); se validan contra los maestros al guardar. */
 const masterCodes = z.array(z.string().trim().toUpperCase().min(2).max(20)).max(40).transform((c) => [...new Set(c)])
 
-export const createTypeSchema = z.object({ familyCode: code, code, name, description: text.optional(), stageCodes: masterCodes.optional(), networkCodes: masterCodes.optional() })
+export const createTypeSchema = z.strictObject({ familyCode: code, code, name, description: text.optional(), stageCodes: masterCodes.optional() })
 export const updateTypeSchema = z
-  .object({ name, description: text.nullable(), familyCode: code, stageCodes: masterCodes, networkCodes: masterCodes })
+  .strictObject({ name, description: text.nullable(), familyCode: code, stageCodes: masterCodes })
   .partial()
   .refine((v) => Object.keys(v).length > 0, 'Indique al menos un campo')
 
@@ -40,6 +40,8 @@ export const createModelSchema = z.object({
   typeCode: code,
   /** Etapas donde participa (subconjunto de las del tipo). Vacío o ausente = hereda todas las del tipo. */
   stageCodes: masterCodes.optional(),
+  /** Redes propias del modelo. Vacío o ausente = sin asignar. */
+  networkCodes: masterCodes.optional(),
   manufacturerId: z.uuid().optional(),
   modelName: z.string().trim().min(1).max(200),
   specifications: json.default({}),
@@ -53,6 +55,7 @@ export const updateModelSchema = z
     technicalData: json,
     /** Etapas donde participa (subconjunto de las del tipo). Vacío = vuelve a heredar todas las del tipo. */
     stageCodes: masterCodes,
+    networkCodes: masterCodes,
     /** Desactivar en vez de borrar: los activos de planta siguen referenciando el modelo. */
     status: z.enum(['ACTIVE', 'INACTIVE']),
   })

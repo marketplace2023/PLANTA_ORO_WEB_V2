@@ -109,7 +109,7 @@ def main():
         log.append(f'tipo     + {code} «{t["asset_type_name"]}» ({fam})')
         if APPLY:
             call('POST', 'catalog/types', {'familyCode': fam, 'code': code, 'name': t['asset_type_name'],
-                                           'description': t['functional_description'], 'stageCodes': ['D01'], 'networkCodes': ['FUR-PROC']})
+                                           'description': t['functional_description'], 'stageCodes': ['D01']})
         types.add(code)
 
     # 3) fabricantes (referencias comerciales)
@@ -131,7 +131,7 @@ def main():
             continue
         name = f'{types_src[src_id]["asset_type_name"]} (por definir)'
         log.append(f'modelo   + {name} → {code}')
-        mid = call('POST', 'catalog/models', {'typeCode': code, 'modelName': name})['id'] if APPLY else None
+        mid = call('POST', 'catalog/models', {'typeCode': code, 'modelName': name, 'networkCodes': ['FUR-PROC']})['id'] if APPLY else None
         model_of[src_id] = mid
 
     # 5) activos, en el orden del inventario

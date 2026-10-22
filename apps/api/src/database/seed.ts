@@ -4,7 +4,6 @@ import { Pool } from 'pg'
 import { PERMISSIONS, ROLE_PERMISSIONS } from '../modules/iam/permissions.catalog'
 import {
   assetFamilies,
-  assetTypeNetworks,
   assetTypes,
   assetTypeStages,
   ecosystems,
@@ -106,8 +105,8 @@ const TYPE_STAGES: Record<string, string[]> = {
   TRANSMISOR_FLUJO: ['D06', 'D08', 'D09', 'D10', 'D13', 'D18'],
 }
 
-// Redes transversales de cada tipo base.
-const TYPE_NETWORKS: Record<string, string[]> = {
+// Redes de los modelos de demostración, solo al crearlos explícitamente en pruebas.
+export const DEMO_MODEL_NETWORKS: Record<string, string[]> = {
   CHANCADORA_MANDIBULAS: ['FUR-PROC', 'FUR-MNT'],
   CHANCADORA_CONICA: ['FUR-PROC', 'FUR-MNT'],
   MOLINO_SAG: ['FUR-PROC', 'FUR-PTE', 'FUR-MNT'],
@@ -255,19 +254,15 @@ export async function runSeed(url: string, { includeDemoAssets = false }: { incl
       .values(TYPES.map(([code, family, name]) => ({ code, name, familyId: familyId.get(family)! })))
       .onConflictDoUpdate({ target: assetTypes.code, set: { name: sql`excluded.name`, familyId: sql`excluded.family_id` } })
 
-    // Etapas y redes por defecto de cada tipo. Solo se siembran los tipos que aún no tienen ninguna: lo que el
+    // Etapas posibles por defecto de cada tipo. Solo se siembran los tipos que aún no tienen ninguna: lo que el
     // administrador cambie después no se pisa al volver a ejecutar el seed.
     const typeId = new Map((await db.select({ id: assetTypes.id, code: assetTypes.code }).from(assetTypes)).map((t) => [t.code, t.id]))
     const stageId = new Map((await db.select({ id: stageMaster.id, code: stageMaster.code }).from(stageMaster)).map((s) => [s.code, s.id]))
     const networkId = new Map((await db.select({ id: networkMaster.id, code: networkMaster.code }).from(networkMaster)).map((n) => [n.code, n.id]))
     const stagedTypes = new Set((await db.select({ id: assetTypeStages.assetTypeId }).from(assetTypeStages)).map((r) => r.id))
-    const networkedTypes = new Set((await db.select({ id: assetTypeNetworks.assetTypeId }).from(assetTypeNetworks)).map((r) => r.id))
     for (const [code, id] of typeId) {
       if (!stagedTypes.has(id) && TYPE_STAGES[code]) {
         await db.insert(assetTypeStages).values(TYPE_STAGES[code].map((s) => ({ assetTypeId: id, stageMasterId: stageId.get(s)! }))).onConflictDoNothing()
-      }
-      if (!networkedTypes.has(id) && TYPE_NETWORKS[code]) {
-        await db.insert(assetTypeNetworks).values(TYPE_NETWORKS[code].map((n) => ({ assetTypeId: id, networkMasterId: networkId.get(n)! }))).onConflictDoNothing()
       }
     }
 

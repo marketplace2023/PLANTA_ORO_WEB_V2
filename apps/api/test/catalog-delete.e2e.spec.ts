@@ -34,10 +34,10 @@ describe('Eliminar del catálogo (e2e)', () => {
     ;[admin, pa] = await Promise.all(['admin', 'pa'].map((n) => login(app, n)))
 
     famId = (await post(`${C}/families`, { code: 'E2E_DEL_F', name: 'E2E Familia a eliminar' }).expect(201)).body.id
-    typeId = (await post(`${C}/types`, { familyCode: 'E2E_DEL_F', code: 'E2E_DEL_T', name: 'E2E Tipo a eliminar', stageCodes: ['D06'], networkCodes: ['FUR-PROC'] }).expect(201)).body.id
+    typeId = (await post(`${C}/types`, { familyCode: 'E2E_DEL_F', code: 'E2E_DEL_T', name: 'E2E Tipo a eliminar', stageCodes: ['D06'] }).expect(201)).body.id
     makerId = (await post(`${C}/manufacturers`, { name: 'E2E Fabricante a eliminar' }).expect(201)).body.id
-    usedModelId = (await post(`${C}/models`, { typeCode: 'E2E_DEL_T', manufacturerId: makerId, modelName: 'E2E Modelo en uso' }).expect(201)).body.id
-    freeModelId = (await post(`${C}/models`, { typeCode: 'E2E_DEL_T', manufacturerId: makerId, modelName: 'E2E Modelo repetido' }).expect(201)).body.id
+    usedModelId = (await post(`${C}/models`, { typeCode: 'E2E_DEL_T', manufacturerId: makerId, modelName: 'E2E Modelo en uso', networkCodes: ['FUR-PROC'] }).expect(201)).body.id
+    freeModelId = (await post(`${C}/models`, { typeCode: 'E2E_DEL_T', manufacturerId: makerId, modelName: 'E2E Modelo repetido', networkCodes: ['FUR-PROC'] }).expect(201)).body.id
     // Un activo de planta que usa el primer modelo.
     await http()
       .post('/api/v1/plants/e2e-del1/assets')
@@ -117,7 +117,7 @@ describe('Eliminar del catálogo (e2e)', () => {
 
       // Un tipo y una familia vacíos sí se van, con sus etapas y redes.
       await post(`${C}/families`, { code: 'E2E_DEL_F2', name: 'E2E Familia vacía' }).expect(201)
-      const t2 = (await post(`${C}/types`, { familyCode: 'E2E_DEL_F2', code: 'E2E_DEL_T2', name: 'E2E Tipo vacío', stageCodes: ['D06', 'D07'], networkCodes: ['FUR-PTE'] }).expect(201)).body
+      const t2 = (await post(`${C}/types`, { familyCode: 'E2E_DEL_F2', code: 'E2E_DEL_T2', name: 'E2E Tipo vacío', stageCodes: ['D06', 'D07'] }).expect(201)).body
       await del(`${C}/types/${t2.id}`).expect(204)
       expect(await t.db.select().from(assetTypes).where(eq(assetTypes.code, 'E2E_DEL_T2'))).toHaveLength(0)
       const fam2 = (await t.db.select().from(assetFamilies).where(eq(assetFamilies.code, 'E2E_DEL_F2')))[0]

@@ -46,17 +46,39 @@ describe('Catálogo global', () => {
     plantState.currentPlant = null
   })
 
-  it('lista modelos con familia, tipo, fabricante y especificaciones; deja claro que es global', async () => {
+  it('lista modelos con familia, tipo y especificaciones sin el fabricante asignado ni texto genérico', async () => {
     setup()
     renderWithProviders(<CatalogPage />, { route: '/catalog' })
 
     const card = (await screen.findByRole('heading', { name: 'Bolas 16.5x24 ft' })).closest('li')!
     expect(within(card).getByText('Molinos')).toBeInTheDocument()
     expect(within(card).getByText('Molino de bolas')).toBeInTheDocument()
-    expect(within(card).getByText('Metso · FI')).toBeInTheDocument()
+    expect(within(card).queryByText(/Metso/)).not.toBeInTheDocument()
     expect(within(card).getByText('diameterFt:')).toBeInTheDocument()
-    expect(screen.getByText('Motor 4.0 MW 6 polos').closest('li')).toHaveTextContent('Genérico') // sin fabricante
+    expect(screen.getByText('Motor 4.0 MW 6 polos').closest('li')).not.toHaveTextContent('Genérico')
     expect(screen.getByText('Ecosistema global')).toBeInTheDocument()
+  })
+
+  it('muestra solo los nombres de referencia separados por coma, incluso sin fabricante asignado', async () => {
+    setup(page([
+      { ...MODELS[0], technicalData: { fabricantesReferencia: [{ nombre: ' ABB ', alcance: 'Motor', sitioWeb: 'https://example.test' }, null, { nombre: '   ' }, { nombre: 8 }, { nombre: 'Siemens' }] } },
+      { ...MODELS[1], technicalData: { fabricantesReferencia: [{ nombre: 'WEG' }] } },
+    ]))
+    renderWithProviders(<CatalogPage />, { route: '/catalog' })
+    const card = (await screen.findByRole('heading', { name: MODELS[0].modelName })).closest('li')!
+    expect(within(card).getByText('ABB, Siemens')).toBeInTheDocument()
+    expect(within(card).queryByText(/Metso|https:\/\/example.test/)).not.toBeInTheDocument()
+    const other = screen.getByRole('heading', { name: MODELS[1].modelName }).closest('li')!
+    expect(within(other).getByText('WEG')).toBeInTheDocument()
+    expect(other).not.toHaveTextContent('Genérico')
+  })
+
+  it.each([{ referencias: [] }, { referencias: [null, {}, { nombre: '' }, { nombre: ' \n ' }] }, { referencias: 'ABB' }])('omite la línea si las referencias no tienen nombres válidos ($referencias)', async ({ referencias }) => {
+    setup(page([{ ...MODELS[0], technicalData: { fabricantesReferencia: referencias } }]))
+    renderWithProviders(<CatalogPage />, { route: '/catalog' })
+    const card = (await screen.findByRole('heading', { name: MODELS[0].modelName })).closest('li')!
+    expect(within(card).queryByText(/Metso|Genérico|ABB/)).not.toBeInTheDocument()
+    expect(card.querySelector('p')).not.toBeInTheDocument()
   })
 
   it('los filtros de la URL llegan a la API (familia, fabricante, búsqueda) y se ven como chips', async () => {

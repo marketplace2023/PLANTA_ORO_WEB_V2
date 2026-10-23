@@ -23,6 +23,15 @@ const PAGE_SIZE = 24
 /** Etapas visibles en la tarjeta antes de resumir el resto con «+N etapas». */
 const MAX_STAGE_BADGES = 6
 
+function ReferenceManufacturers({ value }: { value: unknown }) {
+  const names = Array.isArray(value) ? value.flatMap((entry: unknown) => {
+    if (typeof entry !== 'object' || entry === null || !('nombre' in entry) || typeof entry.nombre !== 'string') return []
+    const name = entry.nombre.trim()
+    return name ? [name] : []
+  }) : []
+  return names.length > 0 ? <p className="text-sm text-fur-gray-600">{names.join(', ')}</p> : null
+}
+
 /** Catálogo maestro GLOBAL: qué tipos/modelos existen. No implica posesión; los activos de una planta viven en Activos Físicos. */
 export function CatalogPage() {
   const [params, setParams] = useSearchParams()
@@ -167,7 +176,7 @@ export function CatalogPage() {
                         <span className="text-xs text-fur-gray-600">{m.type.name}</span>
                       </div>
                       <h3 className="text-lg font-semibold text-fur-navy-900">{m.modelName}</h3>
-                      <p className="text-sm text-fur-gray-600">{m.manufacturer ? `${m.manufacturer.name}${m.manufacturer.countryCode ? ` · ${m.manufacturer.countryCode}` : ''}` : 'Genérico'}</p>
+                      <ReferenceManufacturers value={m.technicalData.fabricantesReferencia} />
                       {(m.stageCodes.length > 0 || m.networkCodes.length > 0) && (
                         <ul className="flex flex-wrap gap-1 pt-1" aria-label="Etapas y redes del tipo">
                           {stages.data && m.stageCodes.length === stages.data.length ? (

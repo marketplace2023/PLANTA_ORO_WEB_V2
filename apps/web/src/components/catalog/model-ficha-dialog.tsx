@@ -66,7 +66,7 @@ function readTechnicalData(technicalData: Record<string, unknown>, specification
         return text ? [[k, text]] : []
       })
     : []
-  const components = Array.isArray(componentes) ? componentes.filter((c): c is string => typeof c === 'string') : []
+  const components = Array.isArray(componentes) ? componentes.filter((c): c is string => typeof c === 'string' && c.trim().length > 0) : []
   const manufacturers: ReferenceManufacturer[] = Array.isArray(fabricantesReferencia)
     ? fabricantesReferencia.filter(isRecord).flatMap((m) => {
         const nombre = textOrNull(m.nombre)
@@ -99,6 +99,8 @@ export function ModelFichaDialog({
   const networkName = (code: string) => networks.find((n) => n.code === code)?.name ?? code
 
   const { identification, components, manufacturers, source, specs } = readTechnicalData(model.technicalData, model.specifications)
+  const hasComponents = components.length > 0
+  const manufacturersSectionNumber = hasComponents ? 4 : 3
   const recordState = identification.find(([k]) => k === 'Estado de la ficha')?.[1]
   // Orden de la ficha de planta: proyecto, TAG activo, TAG mapa, FUR, etapa, clasificación, criticidad.
   const LEADING = ['Proyecto', 'TAG activo', 'TAG mapa', 'Código FUR', 'Etapa de proceso', 'Clasificación', 'Criticidad']
@@ -166,7 +168,6 @@ export function ModelFichaDialog({
                 ['Familia', model.family.name],
                 ['Tipo de activo', model.type.name],
                 ['Modelo', model.modelName],
-                ['Fabricante', manufacturer ?? <Pending>Genérico</Pending>],
                 [
                   'Etapas donde participa',
                   model.stageCodes.length > 0 ? (
@@ -196,35 +197,29 @@ export function ModelFichaDialog({
             />
           </Section>
 
-          <div className="grid items-start gap-3 lg:grid-cols-2">
-            <Section n={2} icon={Settings2} title="Especificaciones Técnicas">
-              {specs.length > 0 ? (
-                <KeyValue rows={specs.map(([k, v]) => [humanizeKey(k), String(v)])} />
-              ) : (
-                <p className="px-3 py-3 text-sm text-fur-gray-600">Sin especificaciones técnicas registradas.</p>
-              )}
-            </Section>
+          <Section n={2} icon={Settings2} title="Especificaciones Técnicas">
+            {specs.length > 0 ? (
+              <KeyValue rows={specs.map(([k, v]) => [humanizeKey(k), String(v)])} />
+            ) : (
+              <p className="px-3 py-3 text-sm text-fur-gray-600">Sin especificaciones técnicas registradas.</p>
+            )}
+          </Section>
 
+          {hasComponents && (
             <Section n={3} icon={ListChecks} title="Componentes principales" hint="(verificar en campo)">
-              {components.length > 0 ? (
-                <ol className="divide-y divide-sky-100 text-sm">
-                  {components.map((c, i) => (
-                    <li key={`${i}-${c}`} className="grid grid-cols-[2.5rem_1fr] gap-2 px-3 py-1.5">
-                      <span className="text-center font-semibold text-sky-800">{i + 1}</span>
-                      <span className="text-fur-gray-800">{c}</span>
-                    </li>
-                  ))}
-                </ol>
-              ) : (
-                <p className="px-3 py-3 text-sm">
-                  <Pending />
-                </p>
-              )}
+              <ol className="divide-y divide-sky-100 text-sm">
+                {components.map((c, i) => (
+                  <li key={`${i}-${c}`} className="grid grid-cols-[2.5rem_1fr] gap-2 px-3 py-1.5">
+                    <span className="text-center font-semibold text-sky-800">{i + 1}</span>
+                    <span className="text-fur-gray-800">{c}</span>
+                  </li>
+                ))}
+              </ol>
             </Section>
-          </div>
+          )}
 
-          <div className="grid items-start gap-3 lg:grid-cols-2">
-            <Section n={4} icon={Factory} title="Fabricantes de referencia y web">
+          <div className="grid items-stretch gap-3 lg:grid-cols-2">
+            <Section n={manufacturersSectionNumber} icon={Factory} title="Fabricantes de referencia y web">
               {manufacturers.length > 0 ? (
                 <table className="w-full text-sm">
                   <thead>
@@ -265,7 +260,7 @@ export function ModelFichaDialog({
             <aside className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-fur-gray-800">
               <Info className="mt-0.5 size-5 shrink-0 text-fur-navy-800" aria-hidden />
               <div className="space-y-1">
-                <p className="font-bold text-fur-navy-800 uppercase">5. Nota técnica</p>
+                <p className="font-bold text-fur-navy-800 uppercase">{manufacturersSectionNumber + 1}. Nota técnica</p>
                 <p>
                   Información preliminar y referencial del catálogo global: describe el modelo, no un equipo en particular. Los fabricantes son
                   referencias comerciales, no marcas instaladas verificadas.

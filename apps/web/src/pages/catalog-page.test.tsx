@@ -255,7 +255,7 @@ describe('Catálogo global', () => {
     })
   })
   describe('ficha técnica del modelo', () => {
-    it('muestra las especificaciones en la segunda sección, junto a componentes, sin parámetros técnicos', async () => {
+    it('muestra las especificaciones en la segunda sección y oculta componentes si no están definidos', async () => {
       setup()
       renderWithProviders(<CatalogPage />, { route: '/catalog' })
 
@@ -271,11 +271,9 @@ describe('Catálogo global', () => {
       expect(within(specs).getByText('Power kw')).toBeInTheDocument()
       expect(within(specs).getByText('3000')).toBeInTheDocument()
       expect(within(dialog).queryByRole('heading', { name: /Parámetros técnicos|Especificaciones del modelo/ })).not.toBeInTheDocument()
-      const components = within(dialog).getByRole('heading', { name: /3. Componentes principales/ }).closest('section')!
-      expect(specs.parentElement).toBe(components.parentElement)
-      expect(specs.nextElementSibling).toBe(components)
-      expect(within(dialog).getByRole('heading', { name: /4. Fabricantes de referencia/ })).toBeInTheDocument()
-      expect(within(dialog).getByText('5. Nota técnica')).toBeInTheDocument()
+      expect(within(dialog).queryByRole('heading', { name: /3. Componentes principales/ })).not.toBeInTheDocument()
+      expect(within(dialog).getByRole('heading', { name: /3. Fabricantes de referencia/ })).toBeInTheDocument()
+      expect(within(dialog).getByText('4. Nota técnica')).toBeInTheDocument()
     })
 
     it.each(['TAG activo', 'TAG ACTIVO'])('muestra identificación (%s), componentes y fabricantes del inventario', async (tagLabel) => {
@@ -313,6 +311,11 @@ describe('Catálogo global', () => {
       expect(within(dialog).getByText('FUR-PROC-E02-001')).toBeInTheDocument()
       expect(within(dialog).getByText('Registro documental referencial — pendiente de validación en planta')).toBeInTheDocument()
       expect(within(dialog).getByText('Placa obturadora')).toBeInTheDocument()
+      const specs = within(dialog).getByRole('heading', { name: '2. Especificaciones Técnicas' }).closest('section')!
+      const components = within(dialog).getByRole('heading', { name: /3. Componentes principales/ }).closest('section')!
+      expect(specs.nextElementSibling).toBe(components)
+      expect(within(dialog).getByRole('heading', { name: /4. Fabricantes de referencia/ })).toBeInTheDocument()
+      expect(within(dialog).getByText('5. Nota técnica')).toBeInTheDocument()
       expect(within(dialog).getByRole('link', { name: /metso\.com/ })).toHaveAttribute('href', 'https://www.metso.com/')
       // Un sitio que no es http(s) no se enlaza.
       expect(within(dialog).getByText('javascript:alert(1)')).toBeInTheDocument()
@@ -320,13 +323,16 @@ describe('Catálogo global', () => {
       expect(within(dialog).getByText('Fuente: REVEMIN II / Etapa 02')).toBeInTheDocument()
     })
 
-    it('un modelo sin especificaciones lo indica y permite cerrar la ficha', async () => {
-      setup(page([{ ...MODELS[1], specifications: {} }], 1, 1, 24))
+    it.each([{ componentes: [] }, { componentes: ['', ' \n ', null, 4] }])('un modelo sin especificaciones lo indica y oculta componentes vacíos ($componentes)', async (technicalData) => {
+      setup(page([{ ...MODELS[1], specifications: {}, technicalData }], 1, 1, 24))
       renderWithProviders(<CatalogPage />, { route: '/catalog' })
 
       await userEvent.click(await screen.findByRole('button', { name: 'Ver la ficha técnica de Motor 4.0 MW 6 polos' }))
       const dialog = await screen.findByRole('dialog')
       expect(await within(dialog).findByText('Sin especificaciones técnicas registradas.')).toBeInTheDocument()
+      expect(within(dialog).queryByRole('heading', { name: /3. Componentes principales/ })).not.toBeInTheDocument()
+      expect(within(dialog).getByRole('heading', { name: /3. Fabricantes de referencia/ })).toBeInTheDocument()
+      expect(within(dialog).getByText('4. Nota técnica')).toBeInTheDocument()
       expect(within(dialog).getByText('Sin fabricantes de referencia registrados')).toBeInTheDocument()
       expect(within(dialog).getAllByText('Sin asignar')).toHaveLength(2) // etapas y redes
 

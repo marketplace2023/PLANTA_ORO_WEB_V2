@@ -5,7 +5,7 @@ import type { AppRequest } from '../../common/types'
 import { DB, type Database } from '../../database/database.module'
 import { uuidv7 } from '../../database/schema/common'
 import { assetFamilies, assetModels, assetModelStages, assetModelNetworks, assetTypes, assetTypeStages, assets, auditEvents, manufacturers, networkMaster, stageMaster } from '../../database/schema'
-import { cleanManufacturerName, normalized, parseMasterWorkbook, type ImportIssue, type MasterWorkbook } from './catalog-import.xlsx'
+import { cleanManufacturerName, normalized, parseMasterWorkbook, type ImportIssue, type ImportReferenceManufacturer, type MasterWorkbook } from './catalog-import.xlsx'
 
 type Connection = Pick<Database, 'select' | 'insert' | 'update' | 'delete' | 'execute'>
 const codeFor = (prefix: string, value: string) => `${prefix}_${createHash('sha256').update(normalized(value)).digest('hex').slice(0, 20).toUpperCase()}`
@@ -29,7 +29,7 @@ export type CatalogImportPreview = {
   fingerprint: string; issues: ImportIssue[]
   networks: Array<{ code: string; name: string }>
   summary: { models: { create: number; update: number }; families: { create: number; update: number }; types: { create: number; update: number }; manufacturers: { create: number; update: number; merged: number }; specifications: number }
-  rows: Array<{ tag: string; name: string; family: string; type: string; manufacturer: string; stages: string[]; components: string[]; specifications: Record<string, string>; action: Action }>
+  rows: Array<{ tag: string; name: string; family: string; type: string; manufacturer: string; stages: string[]; components: string[]; referenceManufacturers: ImportReferenceManufacturer[] | null; specifications: Record<string, string>; action: Action }>
 }
 
 function plan(book: MasterWorkbook, state: State, networkCodes: string[]) {
@@ -100,8 +100,9 @@ function plan(book: MasterWorkbook, state: State, networkCodes: string[]) {
     const action: Action = existing ? 'update' : 'create'
     const technicalData = record(existing?.technicalData)
     models.push({ id: existing?.id ?? uuidv7(), catalogTag: r.tag, modelName: r.name, assetTypeId: type.id, manufacturerId: maker.id, specifications: r.specifications,
-      technicalData: { ...technicalData, identificacion: { ...record(technicalData.identificacion), 'TAG ACTIVO': r.tag }, componentes: r.components }, stageId: stage.id, action })
-    previewRows.push({ tag: r.tag, name: r.name, family: r.family, type: r.type, manufacturer: r.manufacturer, stages: [stage.code], components: r.components, specifications: r.specifications, action })
+      technicalData: { ...technicalData, identificacion: { ...record(technicalData.identificacion), 'TAG ACTIVO': r.tag }, componentes: r.components,
+        ...(r.referenceManufacturers === null ? {} : { fabricantesReferencia: r.referenceManufacturers }) }, stageId: stage.id, action })
+    previewRows.push({ tag: r.tag, name: r.name, family: r.family, type: r.type, manufacturer: r.manufacturer, stages: [stage.code], components: r.components, referenceManufacturers: r.referenceManufacturers, specifications: r.specifications, action })
   }
   const naturalKeys = new Set<string>()
   for (const m of models) {

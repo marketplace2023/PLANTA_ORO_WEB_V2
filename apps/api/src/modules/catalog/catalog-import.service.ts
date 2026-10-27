@@ -52,6 +52,11 @@ function plan(book: MasterWorkbook, state: State, networkCodes: string[]) {
   const makerOps = new Map<string, { id: string; name: string; countryCode: string | null; website: string | null; aliases: string[]; action: Action }>()
   const models: Array<{ id: string; catalogTag: string; modelName: string; assetTypeId: string; manufacturerId: string; specifications: Record<string, string>; technicalData: Record<string, unknown>; stageId: string; action: Action }> = []
   const previewRows: CatalogImportPreview['rows'] = []
+  const sourceRows = new Map(book.rows.map(row => [row.tag, row.row]))
+  const effectiveStages = (modelId: string, typeId: string) => {
+    const own = state.modelStages.filter(s => s.assetModelId === modelId).map(s => s.stageMasterId)
+    return own.length ? own : state.typeStages.filter(s => s.assetTypeId === typeId).map(s => s.stageMasterId)
+  }
   const typeFamilies = new Map<string, Set<string>>()
   for (const row of book.rows) {
     const key = normalized(row.type)
@@ -93,10 +98,10 @@ function plan(book: MasterWorkbook, state: State, networkCodes: string[]) {
       makerOps.set(makerKey, maker)
     }
     const byTag = state.models.find(m => m.catalogTag === r.tag)
-    const byNaturalKey = unique(state.models.filter(m => m.assetTypeId === type!.id && (m.manufacturerId === maker!.id || maker!.aliases.includes(m.manufacturerId ?? '')) && m.modelName === r.name), `modelo ${r.name}`)
-    if (byNaturalKey && byNaturalKey.id !== byTag?.id && byNaturalKey.catalogTag) issue(`El nombre «${r.name}» ya pertenece al TAG ${byNaturalKey.catalogTag}`, r.row)
-    if (byTag && byNaturalKey && byTag.id !== byNaturalKey.id) issue(`El TAG ${r.tag} colisiona con otro modelo existente`, r.row)
-    const existing = byTag ?? (byNaturalKey?.catalogTag ? undefined : byNaturalKey)
+    // El TAG tiene prioridad. Solo se adopta un modelo anterior sin TAG si coincide también en la etapa.
+    const byNaturalKey = byTag ? undefined : unique(state.models.filter(m => !m.catalogTag && m.assetTypeId === type!.id && (m.manufacturerId === maker!.id || maker!.aliases.includes(m.manufacturerId ?? '')) && m.modelName === r.name && effectiveStages(m.id, m.assetTypeId).includes(stage.id)), `modelo ${r.name} en la etapa ${stage.code}`)
+    const existing = byTag ?? byNaturalKey
+    if (existing && models.some(m => m.id === existing.id)) issue(`Dos TAG intentan actualizar el mismo modelo anterior «${r.name}». Asigna sus TAG por separado antes de importar.`, r.row)
     const action: Action = existing ? 'update' : 'create'
     const technicalData = record(existing?.technicalData)
     models.push({ id: existing?.id ?? uuidv7(), catalogTag: r.tag, modelName: r.name, assetTypeId: type.id, manufacturerId: maker.id, specifications: r.specifications,
@@ -104,22 +109,29 @@ function plan(book: MasterWorkbook, state: State, networkCodes: string[]) {
         ...(r.referenceManufacturers === null ? {} : { fabricantesReferencia: r.referenceManufacturers }) }, stageId: stage.id, action })
     previewRows.push({ tag: r.tag, name: r.name, family: r.family, type: r.type, manufacturer: r.manufacturer, stages: [stage.code], components: r.components, referenceManufacturers: r.referenceManufacturers, specifications: r.specifications, action })
   }
-  const naturalKeys = new Set<string>()
-  for (const m of models) {
-    const key = JSON.stringify([m.assetTypeId, m.manufacturerId, m.modelName])
-    if (naturalKeys.has(key)) issue(`Dos TAG comparten tipo, fabricante y nombre: ${m.catalogTag}. El catálogo requiere nombres distintos para esa combinación.`)
-    naturalKeys.add(key)
-  }
-  // Una fusión de fabricantes no debe forzar a borrar modelos con la misma clave única.
+  // Compara el estado FINAL: permite mover modelos entre etapas en el mismo archivo sin conflictos transitorios.
+  // La misma regla cubre duplicados del Excel, modelos existentes y unificaciones de fabricantes.
   const canonicalMaker = new Map([...makerOps.values()].flatMap(m => m.aliases.map(id => [id, m.id] as const)))
-  const finalModels = new Map<string, Pick<State['models'][number], 'assetTypeId' | 'manufacturerId' | 'modelName'>>(state.models.map(m => [m.id, { ...m, manufacturerId: canonicalMaker.get(m.manufacturerId ?? '') ?? m.manufacturerId }]))
-  for (const m of models) finalModels.set(m.id, m)
-  const finalKeys = new Map<string, string>()
+  type Identity = { assetTypeId: string; manufacturerId: string | null; modelName: string; tag: string | null; row?: number; stages: string[] }
+  const finalModels = new Map<string, Identity>(state.models.map(m => {
+    const currentStages = effectiveStages(m.id, m.assetTypeId)
+    const typePlan = [...typeOps.values()].find(t => t.id === m.assetTypeId)
+    return [m.id, { ...m, manufacturerId: canonicalMaker.get(m.manufacturerId ?? '') ?? m.manufacturerId, tag: m.catalogTag,
+      stages: currentStages.length ? currentStages : [...(typePlan?.stageIds ?? [])] }]
+  }))
+  for (const m of models) finalModels.set(m.id, { ...m, tag: m.catalogTag, row: sourceRows.get(m.catalogTag), stages: [m.stageId] })
+  const finalKeys = new Map<string, { id: string; model: Identity }>()
   for (const [id, m] of finalModels) {
     if (!m.manufacturerId) continue
-    const key = JSON.stringify([m.assetTypeId, m.manufacturerId, m.modelName])
-    if (finalKeys.has(key)) issue(`No se pueden unificar fabricantes: dos modelos distintos comparten tipo y nombre «${m.modelName}». Corrige esa coincidencia antes de importar.`)
-    finalKeys.set(key, id)
+    for (const stageId of m.stages.length ? m.stages : ['']) {
+      const key = JSON.stringify([m.assetTypeId, m.manufacturerId, m.modelName, stageId])
+      const previous = finalKeys.get(key)
+      if (previous && previous.id !== id) {
+        const stage = state.stages.find(s => s.id === stageId)
+        const label = (model: Identity) => model.tag ? `TAG ${model.tag}${model.row ? ` (fila ${model.row})` : ' (catálogo existente)'}` : `modelo existente «${model.modelName}»`
+        issue(`Dos modelos distintos comparten tipo, fabricante, nombre «${m.modelName}» y etapa ${stage ? `${stage.code} · ${stage.name}` : 'sin asignar'}: ${label(previous.model)} y ${label(m)}. Usa etapas distintas o revisa esos registros.`, m.row ?? previous.model.row ?? 1)
+      } else finalKeys.set(key, { id, model: m })
+    }
   }
   const counts = (rows: Array<{ action: Action }>) => ({ create: rows.filter(r => r.action === 'create').length, update: rows.filter(r => r.action === 'update').length })
   const preview: CatalogImportPreview = { fingerprint, issues, networks: selectedNetworks.map(({ code, name }) => ({ code, name })), summary: { models: counts(models), families: counts([...familyOps.values()]), types: counts([...typeOps.values()]), manufacturers: { ...counts([...makerOps.values()]), merged: canonicalMaker.size }, specifications: book.specificationCount }, rows: previewRows }

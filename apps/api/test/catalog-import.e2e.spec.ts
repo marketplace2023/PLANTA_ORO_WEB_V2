@@ -272,7 +272,7 @@ describe('Importación del listado maestro del catálogo (e2e)', () => {
     const [model] = await models()
     await t.db.insert(assetModels).values({ assetTypeId: model.assetTypeId, manufacturerId: variant.id, modelName: model.modelName })
     const file = await workbook(), p = await preview(file).expect(201)
-    expect(p.body.issues.some((i: { message: string }) => i.message.includes('dos modelos distintos') || i.message.includes('Coincidencia ambigua'))).toBe(true)
+    expect(p.body.issues.some((i: { message: string }) => i.message.includes('comparten tipo, fabricante, nombre') || i.message.includes('Coincidencia ambigua'))).toBe(true)
     await apply(file, p.body.fingerprint).expect(400)
     expect(await t.db.select().from(manufacturers).where(eq(manufacturers.id, variant.id))).toHaveLength(1)
   })

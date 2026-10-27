@@ -104,7 +104,25 @@ export const assetModels = catalogSchema.table(
     /** Sirve de versión en la URL de la imagen: al cambiarla, los navegadores no sirven la anterior de caché. */
     imageUpdatedAt: timestamp('image_updated_at', { withTimezone: true }),
   },
-  (t) => [unique().on(t.assetTypeId, t.manufacturerId, t.modelName)],
+)
+
+/**
+ * Claves efectivas por etapa, mantenidas por triggers diferidos de PostgreSQL. Incluyen las etapas heredadas del tipo;
+ * la etapa UUID cero representa un modelo sin etapas. No se editan desde la aplicación.
+ */
+export const assetModelStageKeys = catalogSchema.table(
+  'asset_model_stage_keys',
+  {
+    assetModelId: uuid('asset_model_id').notNull().references(() => assetModels.id, { onDelete: 'cascade' }),
+    assetTypeId: uuid('asset_type_id').notNull(),
+    manufacturerId: uuid('manufacturer_id').notNull(),
+    modelName: varchar('model_name', { length: 200 }).notNull(),
+    stageMasterId: uuid('stage_master_id').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.assetModelId, t.stageMasterId] }),
+    unique('asset_model_stage_keys_identity_unique').on(t.assetTypeId, t.manufacturerId, t.modelName, t.stageMasterId),
+  ],
 )
 
 export const VARIABLE_TYPES = ['NUMBER', 'RANGE', 'TEXT', 'LIST', 'BOOLEAN'] as const

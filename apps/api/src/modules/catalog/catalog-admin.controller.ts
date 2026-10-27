@@ -121,7 +121,7 @@ export class CatalogAdminController {
         const modelIds = tx.select({ id: assetModels.id }).from(assetModels).where(eq(assetModels.assetTypeId, typeId))
         await tx.delete(assetModelStages).where(and(inArray(assetModelStages.assetModelId, modelIds), stageIds.length > 0 ? notInArray(assetModelStages.stageMasterId, stageIds) : undefined))
       }
-    })
+    }).catch((e) => (isUniqueViolation(e) ? this.conflict('modelos con el mismo tipo, fabricante, nombre y etapa; revisa las etapas antes de guardar') : Promise.reject(e)))
   }
 
   @Post('types')
@@ -276,7 +276,7 @@ export class CatalogAdminController {
         .returning()
       await this.replaceModelLinks(tx, created.id, stageIds, networkIds)
       return created
-    }).catch((e) => (isUniqueViolation(e) ? this.conflict(`el modelo ${dto.modelName} para ese tipo y fabricante`) : Promise.reject(e)))
+    }).catch((e) => (isUniqueViolation(e) ? this.conflict(`el modelo ${dto.modelName} para ese tipo, fabricante y etapa`) : Promise.reject(e)))
     await this.record(req, 'asset_model', row.id, 'created', { new: { typeCode: dto.typeCode, modelName: dto.modelName, manufacturerId: dto.manufacturerId, stageCodes: dto.stageCodes, networkCodes: dto.networkCodes ?? [] } })
     return { ...row, ...(await this.stagesOf(row.id, type.id)), networkCodes: await this.networksOf(row.id) }
   }
@@ -297,7 +297,7 @@ export class CatalogAdminController {
       const [updated] = Object.keys(fields).length ? await tx.update(assetModels).set(fields).where(eq(assetModels.id, id)).returning() : [current]
       await this.replaceModelLinks(tx, id, stageIds, networkIds)
       return updated
-    }).catch((e) => (isUniqueViolation(e) ? this.conflict(`el modelo ${dto.modelName} para ese tipo y fabricante`) : Promise.reject(e)))
+    }).catch((e) => (isUniqueViolation(e) ? this.conflict(`el modelo ${dto.modelName ?? before.modelName} para ese tipo, fabricante y etapa`) : Promise.reject(e)))
     await this.record(req, 'asset_model', id, dto.status && dto.status !== before.status ? `status.${dto.status.toLowerCase()}` : 'updated', {
       old: { modelName: before.modelName, status: before.status, networkCodes: oldNetworkCodes },
       new: dto,

@@ -53,6 +53,12 @@ function plan(book: MasterWorkbook, state: State, networkCodes: string[]) {
   const models: Array<{ id: string; catalogTag: string; modelName: string; assetTypeId: string; manufacturerId: string; specifications: Record<string, string>; technicalData: Record<string, unknown>; stageId: string; action: Action }> = []
   const previewRows: CatalogImportPreview['rows'] = []
   const sourceRows = new Map(book.rows.map(row => [row.tag, row.row]))
+  const existingTags = new Map<string, State['models']>()
+  for (const model of state.models) {
+    if (!model.catalogTag) continue
+    const tag = model.catalogTag.trim().toUpperCase()
+    existingTags.set(tag, [...(existingTags.get(tag) ?? []), model])
+  }
   const effectiveStages = (modelId: string, typeId: string) => {
     const own = state.modelStages.filter(s => s.assetModelId === modelId).map(s => s.stageMasterId)
     return own.length ? own : state.typeStages.filter(s => s.assetTypeId === typeId).map(s => s.stageMasterId)
@@ -64,6 +70,15 @@ function plan(book: MasterWorkbook, state: State, networkCodes: string[]) {
     typeFamilies.get(key)!.add(row.categoryCode)
   }
   for (const r of book.rows) {
+    const taggedModels = existingTags.get(r.tag)
+    if (taggedModels) {
+      const modelIds = new Set(taggedModels.map(m => m.id))
+      const networkIds = new Set(state.modelNetworks.filter(n => modelIds.has(n.assetModelId)).map(n => n.networkMasterId))
+      const networks = state.networks.filter(n => networkIds.has(n.id)).sort((a, b) => a.code.localeCompare(b.code))
+      issues.push({ sheet: 'Listado maestro', row: r.row, code: 'TAG_ALREADY_EXISTS',
+        message: `El TAG ${r.tag} ya existe en el catálogo. Redes actuales: ${networks.length ? networks.map(n => `${n.name} (${n.code})`).join(', ') : 'sin redes asignadas'}. No se permite importarlo ni sobrescribirlo.` })
+      continue
+    }
     let family = familyOps.get(r.categoryCode)
     if (!family) {
       const existing = unique(state.families.filter(f => f.categoryCode === r.categoryCode || (!f.categoryCode && normalized(f.name) === normalized(r.family))), `familia ${r.family}`)
@@ -97,10 +112,8 @@ function plan(book: MasterWorkbook, state: State, networkCodes: string[]) {
         aliases: group.filter(m => m.id !== existing?.id).map(m => m.id), action: existing ? 'update' : 'create' }
       makerOps.set(makerKey, maker)
     }
-    const byTag = state.models.find(m => m.catalogTag === r.tag)
-    // El TAG tiene prioridad. Solo se adopta un modelo anterior sin TAG si coincide también en la etapa.
-    const byNaturalKey = byTag ? undefined : unique(state.models.filter(m => !m.catalogTag && m.assetTypeId === type!.id && (m.manufacturerId === maker!.id || maker!.aliases.includes(m.manufacturerId ?? '')) && m.modelName === r.name && effectiveStages(m.id, m.assetTypeId).includes(stage.id)), `modelo ${r.name} en la etapa ${stage.code}`)
-    const existing = byTag ?? byNaturalKey
+    // Solo se adopta un modelo anterior sin TAG si coincide también en la etapa.
+    const existing = unique(state.models.filter(m => !m.catalogTag && m.assetTypeId === type!.id && (m.manufacturerId === maker!.id || maker!.aliases.includes(m.manufacturerId ?? '')) && m.modelName === r.name && effectiveStages(m.id, m.assetTypeId).includes(stage.id)), `modelo ${r.name} en la etapa ${stage.code}`)
     if (existing && models.some(m => m.id === existing.id)) issue(`Dos TAG intentan actualizar el mismo modelo anterior «${r.name}». Asigna sus TAG por separado antes de importar.`, r.row)
     const action: Action = existing ? 'update' : 'create'
     const technicalData = record(existing?.technicalData)
@@ -109,7 +122,7 @@ function plan(book: MasterWorkbook, state: State, networkCodes: string[]) {
         ...(r.referenceManufacturers === null ? {} : { fabricantesReferencia: r.referenceManufacturers }) }, stageId: stage.id, action })
     previewRows.push({ tag: r.tag, name: r.name, family: r.family, type: r.type, manufacturer: r.manufacturer, stages: [stage.code], components: r.components, referenceManufacturers: r.referenceManufacturers, specifications: r.specifications, action })
   }
-  // Compara el estado FINAL: permite mover modelos entre etapas en el mismo archivo sin conflictos transitorios.
+  // Compara el estado final de los modelos nuevos y de los modelos anteriores sin TAG que se adoptan.
   // La misma regla cubre duplicados del Excel, modelos existentes y unificaciones de fabricantes.
   const canonicalMaker = new Map([...makerOps.values()].flatMap(m => m.aliases.map(id => [id, m.id] as const)))
   type Identity = { assetTypeId: string; manufacturerId: string | null; modelName: string; tag: string | null; row?: number; stages: string[] }

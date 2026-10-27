@@ -2,25 +2,26 @@ import type { INestApplication } from '@nestjs/common'
 import ExcelJS from 'exceljs'
 import { eq, like } from 'drizzle-orm'
 import request from 'supertest'
-import { assetFamilies, assetModels, assetTypes, assets, manufacturers } from '../src/database/schema'
+import { assetFamilies, assetModels, assetModelNetworks, assetModelStages, assetTypes, assetTypeStages, assets, auditEvents, manufacturers } from '../src/database/schema'
 import { bearer, createApp, login, type Session, TestDb } from './helpers'
 
-async function workbook(options: { duplicate?: boolean; orphan?: boolean; rename?: boolean; splitFamily?: boolean; makers?: [string, string]; missingSpecifications?: boolean; invalidSpecification?: boolean; omitSpecificationsSheet?: boolean; components?: unknown[][]; references?: unknown[][] } = {}) {
+async function workbook(options: { tags?: [string, string]; duplicate?: boolean; orphan?: boolean; rename?: boolean; splitFamily?: boolean; makers?: [string, string]; missingSpecifications?: boolean; invalidSpecification?: boolean; omitSpecificationsSheet?: boolean; components?: unknown[][]; references?: unknown[][] } = {}) {
+  const tags = options.tags ?? ['E2E-IMPORT-01', 'E2E-IMPORT-02']
   const book = new ExcelJS.Workbook()
   const master = book.addWorksheet('Listado maestro')
   master.addRows([
     ['TAG ACTIVO', 'Nombre', 'Código CA', 'Categoría N4', 'Tipo', 'Fabricante / modelo', 'Denominación de etapa'],
-    ['E2E-IMPORT-01', options.rename ? 'E2E Modelo renombrado' : 'E2E Modelo uno', '97', '97 — E2E familia (por verificar)', 'E2E Tipo maestro', options.makers?.[0] ?? 'E2E Fabricante', 'Molienda primaria'],
-    [options.duplicate ? 'E2E-IMPORT-01' : 'E2E-IMPORT-02', 'E2E Modelo dos', options.splitFamily ? '98' : '97', '97 — E2E familia', 'E2E Tipo maestro', options.makers?.[1] ?? 'E2E Fabricante', 'Molienda secundaria'],
+    [tags[0], options.rename ? 'E2E Modelo renombrado' : 'E2E Modelo uno', '97', '97 — E2E familia (por verificar)', 'E2E Tipo maestro', options.makers?.[0] ?? 'E2E Fabricante', 'Molienda primaria'],
+    [options.duplicate ? tags[0] : tags[1], options.rename ? 'E2E Modelo dos renombrado' : 'E2E Modelo dos', options.splitFamily ? '98' : '97', '97 — E2E familia', 'E2E Tipo maestro', options.makers?.[1] ?? 'E2E Fabricante', 'Molienda secundaria'],
   ])
   book.addWorksheet('Categorías N4').addRows([['Código CA', 'Categoría N4'], ['97', options.rename ? 'E2E Familia renombrada' : 'E2E Familia canónica'], ['98', 'E2E Otra familia']])
   book.addWorksheet('Características').addRows([
-    ['TAG ACTIVO', 'Componentes principales'], ...(options.components ?? [['E2E-IMPORT-02', 'Motor, tambor, corona. Un solo componente.'], ['E2E-IMPORT-01', 'Motor, reductor, eje.']]),
+    ['TAG ACTIVO', 'Componentes principales'], ...(options.components ?? [[tags[1], 'Motor, tambor, corona. Un solo componente.'], [tags[0], 'Motor, reductor, eje.']]),
   ])
   if (!options.omitSpecificationsSheet) book.addWorksheet('Especificaciones').addRows([
     ['TAG ACTIVO', 'Parámetro técnico', 'Unidad', 'Valor / estado'],
-    ...(options.missingSpecifications ? [] : [[options.orphan ? 'E2E-NO-EXISTE' : 'E2E-IMPORT-02', 'Potencia del motor', 'kW', options.rename ? '80–100' : '7,5–75']]),
-    ['E2E-IMPORT-01', 'Material', '—', options.invalidSpecification ? '' : 'Acero'],
+    ...(options.missingSpecifications ? [] : [[options.orphan ? 'E2E-NO-EXISTE' : tags[1], 'Potencia del motor', 'kW', options.rename ? '80–100' : '7,5–75']]),
+    [tags[0], 'Material', '—', options.invalidSpecification ? '' : 'Acero'],
     [null, null, null, null],
   ])
   if (options.references !== undefined) book.addWorksheet('Fabricantes de referencia').addRows([
@@ -52,6 +53,25 @@ describe('Importación del listado maestro del catálogo (e2e)', () => {
     await t.user('import-user')
     admin = await login(app, 'import-admin')
     ordinary = await login(app, 'import-user')
+  })
+  beforeEach(async () => {
+    await t.db.delete(assets).where(like(assets.name, 'E2E Activo%'))
+    await t.db.delete(assetModels).where(like(assetModels.modelName, 'E2E Modelo%'))
+    await t.db.delete(assetTypes).where(eq(assetTypes.name, 'E2E Tipo maestro'))
+    await t.db.delete(assetFamilies).where(eq(assetFamilies.categoryCode, '97'))
+    await t.db.delete(assetFamilies).where(eq(assetFamilies.categoryCode, '98'))
+    await t.db.delete(manufacturers).where(like(manufacturers.name, 'E2E %'))
+  })
+  const importInitial = async (networks = ['FUR-PROC']) => {
+    const file = await workbook(), p = await preview(file, networks).expect(201)
+    await apply(file, p.body.fingerprint, networks).expect(201)
+    return models()
+  }
+  const dataSnapshot = async () => ({
+    models: await t.db.select().from(assetModels), families: await t.db.select().from(assetFamilies),
+    types: await t.db.select().from(assetTypes), makers: await t.db.select().from(manufacturers),
+    stages: await t.db.select().from(assetModelStages), typeStages: await t.db.select().from(assetTypeStages),
+    networks: await t.db.select().from(assetModelNetworks), audit: await t.db.select().from(auditEvents),
   })
   afterAll(async () => { await cleanup(); await t.close(); await app.close() })
 
@@ -136,35 +156,49 @@ describe('Importación del listado maestro del catálogo (e2e)', () => {
     const m = res.body.items.find((m: { catalogTag: string }) => m.catalogTag === 'E2E-IMPORT-02')
     expect(m).toMatchObject({ specifications: { 'Potencia del motor (kW)': '7,5–75' }, technicalData: { componentes: ['Motor, tambor, corona. Un solo componente.'] }, stageCodes: ['D06'], imageUrl: null, networkCodes: ['FUR-PROC'] })
     // La misma vista previa ya no autoriza volver a aplicar sobre un catálogo diferente.
-    await apply(file, p.body.fingerprint).expect(409)
+    await apply(file, p.body.fingerprint).expect(400)
   })
-  it('actualiza por TAG y Código CA aunque cambien nombres, manteniendo los IDs', async () => {
-    const before = await models()
-    const sibling = (await http().post('/api/v1/catalog/models').set('Authorization', bearer(admin)).send({
-      typeCode: (await t.db.select().from(assetTypes).where(eq(assetTypes.id, before[0].assetTypeId)))[0].code,
-      modelName: 'E2E Modelo fuera del Excel', networkCodes: ['FUR-PTE'],
-    }).expect(201)).body
-    await http().patch(`/api/v1/catalog/models/${before[0].id}`).set('Authorization', bearer(admin)).send({ networkCodes: ['FUR-IOT'] }).expect(200)
-    await t.db.update(assetModels).set({ imageKey: 'catalog/e2e.png', technicalData: { identificacion: { Proyecto: 'E2E' }, fuente: 'Referencia previa' } }).where(eq(assetModels.id, before[0].id))
-    const family = (await t.db.select().from(assetFamilies).where(eq(assetFamilies.categoryCode, '97')))[0]
-    const file = await workbook({ rename: true }), p = await preview(file).expect(201)
-    expect(p.body.summary.models).toEqual({ create: 0, update: 2 })
-    expect(p.body.summary.families).toEqual({ create: 0, update: 1 })
-    await apply(file, p.body.fingerprint).expect(201)
-    expect((await http().get(`/api/v1/catalog/assets/${sibling.id}`).expect(200)).body.networkCodes).toEqual(['FUR-PTE'])
-    expect((await http().get(`/api/v1/catalog/assets/${before[0].id}`).expect(200)).body.networkCodes).toEqual(['FUR-PROC'])
-    const after = await models()
-    expect(after.map(m => m.id).sort()).toEqual(before.map(m => m.id).sort())
-    expect(after.find(m => m.id === before[0].id)).toMatchObject({ imageKey: 'catalog/e2e.png', technicalData: { identificacion: { Proyecto: 'E2E' }, fuente: 'Referencia previa' } })
-    expect(after.find(m => m.catalogTag === 'E2E-IMPORT-01')?.modelName).toBe('E2E Modelo renombrado')
-    expect(after.find(m => m.catalogTag === 'E2E-IMPORT-02')?.specifications).toEqual({ 'Potencia del motor (kW)': '80–100' })
-    expect((await t.db.select().from(assetFamilies).where(eq(assetFamilies.id, family.id)))[0].name).toBe('E2E Familia renombrada')
+  it('bloquea toda la carga ante TAG existentes e informa todas sus redes sin sobrescribir datos', async () => {
+    const initial = await importInitial(['FUR-PTE', 'FUR-IOT'])
+    await t.db.update(assetModels).set({ imageKey: 'catalog/e2e.png', technicalData: { componentes: ['Original'], fabricantesReferencia: [{ nombre: 'Original' }] } }).where(eq(assetModels.id, initial[0].id))
+    const before = await dataSnapshot()
+    // Incluye un TAG nuevo: tampoco debe crearse si otro TAG del archivo ya existe.
+    const file = await workbook({ rename: true, tags: ['E2E-IMPORT-01', 'E2E-IMPORT-03'], missingSpecifications: true }), p = await preview(file).expect(201)
+    expect(p.body.issues).toContainEqual({ sheet: 'Listado maestro', row: 2, code: 'TAG_ALREADY_EXISTS',
+      message: 'El TAG E2E-IMPORT-01 ya existe en el catálogo. Redes actuales: IoT / Instrumentación (FUR-IOT), Potencia Eléctrica (FUR-PTE). No se permite importarlo ni sobrescribirlo.' })
+    expect(p.body.summary.models).toEqual({ create: 1, update: 0 })
+    expect(await dataSnapshot()).toEqual(before)
+    const result = await apply(file, p.body.fingerprint, ['FUR-PROC'], true).expect(400)
+    expect(result.body.errors).toContainEqual(expect.objectContaining({ path: 'Listado maestro:2', message: expect.stringContaining('FUR-PTE') }))
+    expect(await dataSnapshot()).toEqual(before)
+  })
+  it('detecta todos los TAG existentes aunque cambien sus nombres y redes de destino', async () => {
+    const initial = await importInitial()
+    await t.db.delete(assetModelNetworks).where(eq(assetModelNetworks.assetModelId, initial[0].id))
+    const file = await workbook({ rename: true }), p = await preview(file, ['FUR-PTE']).expect(201)
+    const issues = p.body.issues.filter((i: { code?: string }) => i.code === 'TAG_ALREADY_EXISTS')
+    expect(issues).toHaveLength(2)
+    expect(issues.find((i: { row: number }) => i.row === 2).message).toContain('sin redes asignadas')
+    expect(issues.find((i: { row: number }) => i.row === 3).message).toContain('Procesos (FUR-PROC)')
+    expect(p.body.summary.models).toEqual({ create: 0, update: 0 })
+    await apply(file, p.body.fingerprint, ['FUR-PTE']).expect(400)
+    expect(await models()).toEqual(initial)
+  })
+  it('revalida los TAG al confirmar si uno fue creado después del análisis', async () => {
+    const initial = await importInitial()
+    const file = await workbook({ rename: true, tags: ['E2E-IMPORT-03', 'E2E-IMPORT-04'] }), p = await preview(file).expect(201)
+    expect(p.body.issues).toEqual([])
+    await t.db.insert(assetModels).values({ assetTypeId: initial[0].assetTypeId, catalogTag: 'e2e-import-03', modelName: 'E2E Modelo concurrente' })
+    const before = await dataSnapshot()
+    const rejected = await apply(file, p.body.fingerprint).expect(400)
+    expect(rejected.body.errors).toContainEqual(expect.objectContaining({ message: expect.stringContaining('El TAG E2E-IMPORT-03 ya existe') }))
+    expect(await dataSnapshot()).toEqual(before)
   })
   it('la vista previa agrupa notas distintas y rechaza nombres vacíos después de quitar paréntesis', async () => {
     const p = await preview(await workbook({ makers: ['E2E Fabricante (INV-060)', 'E2E Fabricante (motor) (INV-062)'] })).expect(201)
     expect(p.body.issues).toEqual([])
     expect(p.body.rows.map((r: { manufacturer: string }) => r.manufacturer)).toEqual(['E2E Fabricante', 'E2E Fabricante'])
-    expect(p.body.summary.manufacturers).toEqual({ create: 0, update: 1, merged: 0 })
+    expect(p.body.summary.manufacturers).toEqual({ create: 1, update: 0, merged: 0 })
     const bad = await preview(await workbook({ makers: ['(Solo una nota)', 'E2E Fabricante (sin cierre'] })).expect(201)
     expect(bad.body.issues.filter((i: { message: string }) => i.message.includes('fabricante'))).toHaveLength(2)
   })
@@ -180,17 +214,15 @@ describe('Importación del listado maestro del catálogo (e2e)', () => {
     expect(imported.find(m => m.catalogTag === 'E2E-IMPORT-02')?.specifications).toEqual({})
     expect(imported.find(m => m.catalogTag === 'E2E-IMPORT-01')?.specifications).toEqual({ Material: 'Acero' })
   })
-  it('asigna varias redes elegidas y al reimportar las reemplaza sin afectar modelos fuera del archivo', async () => {
-    const before = await models()
-    const outside = (await http().get('/api/v1/catalog/assets?search=E2E%20Modelo%20fuera%20del%20Excel').expect(200)).body.items[0]
-    const file = await workbook({ rename: true })
+  it('asigna varias redes a los TAG nuevos y conserva las de los modelos existentes', async () => {
+    const before = await importInitial()
+    const file = await workbook({ rename: true, tags: ['E2E-IMPORT-03', 'E2E-IMPORT-04'] })
     const p = await preview(file, ['FUR-PTE', 'FUR-IOT']).expect(201)
     await apply(file, p.body.fingerprint, ['fur-iot', 'FUR-PTE', 'FUR-IOT']).expect(201)
-    for (const model of before) expect((await http().get(`/api/v1/catalog/assets/${model.id}`).expect(200)).body.networkCodes).toEqual(['FUR-IOT', 'FUR-PTE'])
-    const second = await preview(file, ['FUR-IOT']).expect(201)
-    await apply(file, second.body.fingerprint, ['FUR-IOT']).expect(201)
-    for (const model of before) expect((await http().get(`/api/v1/catalog/assets/${model.id}`).expect(200)).body.networkCodes).toEqual(['FUR-IOT'])
-    expect((await http().get(`/api/v1/catalog/assets/${outside.id}`).expect(200)).body.networkCodes).toEqual(['FUR-PTE'])
+    for (const model of before) expect((await http().get(`/api/v1/catalog/assets/${model.id}`).expect(200)).body.networkCodes).toEqual(['FUR-PROC'])
+    for (const model of (await models()).filter(m => !before.some(b => b.id === m.id))) {
+      expect((await http().get(`/api/v1/catalog/assets/${model.id}`).expect(200)).body.networkCodes).toEqual(['FUR-IOT', 'FUR-PTE'])
+    }
   })
   it('publica varios componentes y fabricantes por TAG, conserva el texto y valida antes de guardar', async () => {
     const references = [
@@ -223,36 +255,25 @@ describe('Importación del listado maestro del catálogo (e2e)', () => {
     const list = (await http().get('/api/v1/catalog/assets?search=E2E-IMPORT').expect(200)).body.items
     expect(list.find((m: { id: string }) => m.id === one.id).technicalData.fabricantesReferencia).toEqual(references)
   })
-  it('al reimportar reemplaza las referencias por TAG, conserva archivos anteriores y permite vaciarlas', async () => {
-    const outside = (await http().get('/api/v1/catalog/assets?search=E2E%20Modelo%20fuera%20del%20Excel').expect(200)).body.items[0]
-    const outsideReferences = [{ nombre: 'Referencia fuera del Excel', alcance: null, sitioWeb: null }]
-    await t.db.update(assetModels).set({ technicalData: { fabricantesReferencia: outsideReferences } }).where(eq(assetModels.id, outside.id))
+  it('bloquea reimportaciones con referencias cambiadas, vacías o sin hoja de referencias', async () => {
     const file = await workbook({ references: [['E2E-IMPORT-01', 'Siemens', 'Motor', 'https://www.siemens.com/']] })
     const p = await preview(file).expect(201)
-    expect(p.body.rows[1].referenceManufacturers).toEqual([])
     await apply(file, p.body.fingerprint).expect(201)
-    const after = await models()
-    const one = after.find(m => m.catalogTag === 'E2E-IMPORT-01')!
-    const two = after.find(m => m.catalogTag === 'E2E-IMPORT-02')!
-    const expected = [{ nombre: 'Siemens', alcance: 'Motor', sitioWeb: 'https://www.siemens.com/' }]
-    expect(one.technicalData).toMatchObject({ fabricantesReferencia: expected })
-    expect(two.technicalData).toMatchObject({ fabricantesReferencia: [] })
-    const legacyFile = await workbook(), legacyPreview = await preview(legacyFile).expect(201)
-    expect(legacyPreview.body.rows.map((r: { referenceManufacturers: unknown }) => r.referenceManufacturers)).toEqual([null, null])
-    await apply(legacyFile, legacyPreview.body.fingerprint).expect(201)
-    expect((await models()).find(m => m.id === one.id)?.technicalData).toMatchObject({ fabricantesReferencia: expected })
-    const emptyFile = await workbook({ components: [], references: [] }), empty = await preview(emptyFile).expect(201)
-    await apply(emptyFile, empty.body.fingerprint).expect(201)
-    for (const model of await models()) expect(model.technicalData).toMatchObject({ componentes: [], fabricantesReferencia: [] })
-    expect((await http().get(`/api/v1/catalog/assets/${outside.id}`).expect(200)).body.technicalData.fabricantesReferencia).toEqual(outsideReferences)
+    const before = await dataSnapshot()
+    for (const options of [{ references: [['E2E-IMPORT-01', 'ABB', '', '']] }, { components: [], references: [] }, {}]) {
+      const changed = await workbook(options), analysis = await preview(changed).expect(201)
+      expect(analysis.body.issues.filter((i: { code?: string }) => i.code === 'TAG_ALREADY_EXISTS')).toHaveLength(2)
+      await apply(changed, analysis.body.fingerprint).expect(400)
+      expect(await dataSnapshot()).toEqual(before)
+    }
   })
   it('consolida fabricantes anteriores y reasigna modelos y activos físicos sin cambiar sus IDs', async () => {
-    const before = await models()
+    const before = await importInitial()
     const variants = await t.db.insert(manufacturers).values([{ name: 'E2E Fabricante (INV-060)', website: 'https://example.com/' }, { name: 'E2E Fabricante (INV-062)' }]).returning()
     for (let i = 0; i < 2; i++) await t.db.update(assetModels).set({ manufacturerId: variants[i].id }).where(eq(assetModels.id, before[i].id))
     const plant = await t.plant('import-makers', 'PUBLIC')
     const [physical] = await t.db.insert(assets).values({ plantId: plant.id, assetModelId: before[0].id, manufacturerId: variants[1].id, furCode: 'E2E-IMPORT-MAKER-001', tag: 'E2E-MAKER', name: 'E2E Activo con fabricante' }).returning()
-    const file = await workbook({ makers: ['E2E Fabricante (INV-060)', 'E2E Fabricante (INV-062)'] })
+    const file = await workbook({ rename: true, tags: ['E2E-IMPORT-03', 'E2E-IMPORT-04'], makers: ['E2E Fabricante (INV-060)', 'E2E Fabricante (INV-062)'] })
     const p = await preview(file).expect(201)
     expect(p.body.issues).toEqual([])
     expect(p.body.summary.manufacturers).toEqual({ create: 0, update: 1, merged: 2 })
@@ -262,18 +283,33 @@ describe('Importación del listado maestro del catálogo (e2e)', () => {
     const makers = await t.db.select().from(manufacturers).where(like(manufacturers.name, 'E2E Fabricante%'))
     expect(makers).toHaveLength(1)
     expect(makers[0]).toMatchObject({ name: 'E2E Fabricante', website: 'https://example.com/' })
-    expect((await models()).map(m => m.id).sort()).toEqual(before.map(m => m.id).sort())
+    expect((await models()).filter(m => before.some(b => b.id === m.id))).toHaveLength(2)
     expect((await models()).every(m => m.manufacturerId === makers[0].id)).toBe(true)
     expect((await t.db.select().from(assets).where(eq(assets.id, physical.id)))[0].manufacturerId).toBe(makers[0].id)
-    expect((await preview(file).expect(201)).body.summary.manufacturers).toEqual({ create: 0, update: 1, merged: 0 })
+    expect((await preview(file).expect(201)).body.issues.filter((i: { code?: string }) => i.code === 'TAG_ALREADY_EXISTS')).toHaveLength(2)
   })
   it('bloquea una unificación que causaría colisión entre dos modelos distintos', async () => {
+    const [model] = await importInitial()
     const [variant] = await t.db.insert(manufacturers).values({ name: 'E2E Fabricante (otra nota)' }).returning()
-    const [model] = await models()
     await t.db.insert(assetModels).values({ assetTypeId: model.assetTypeId, manufacturerId: variant.id, modelName: model.modelName })
-    const file = await workbook(), p = await preview(file).expect(201)
+    const file = await workbook({ rename: true, tags: ['E2E-IMPORT-03', 'E2E-IMPORT-04'] }), p = await preview(file).expect(201)
     expect(p.body.issues.some((i: { message: string }) => i.message.includes('comparten tipo, fabricante, nombre') || i.message.includes('Coincidencia ambigua'))).toBe(true)
     await apply(file, p.body.fingerprint).expect(400)
     expect(await t.db.select().from(manufacturers).where(eq(manufacturers.id, variant.id))).toHaveLength(1)
+  })
+  it('mantiene la vinculación de modelos anteriores sin TAG sin permitir repetir los TAG asignados', async () => {
+    const initial = await importInitial()
+    await t.db.update(assetModels).set({ catalogTag: null, imageKey: 'catalog/legacy.png', technicalData: { fabricantesReferencia: [{ nombre: 'Referencia anterior' }] } }).where(like(assetModels.catalogTag, 'E2E-IMPORT-%'))
+    const file = await workbook(), p = await preview(file).expect(201)
+    expect(p.body.issues).toEqual([])
+    expect(p.body.summary.models).toEqual({ create: 0, update: 2 })
+    await apply(file, p.body.fingerprint).expect(201)
+    const after = await models()
+    expect(after.map(m => m.id).sort()).toEqual(initial.map(m => m.id).sort())
+    for (const model of after) expect(model).toMatchObject({ imageKey: 'catalog/legacy.png', technicalData: { fabricantesReferencia: [{ nombre: 'Referencia anterior' }] } })
+    const again = await preview(file).expect(201)
+    expect(again.body.issues.filter((i: { code?: string }) => i.code === 'TAG_ALREADY_EXISTS')).toHaveLength(2)
+    await apply(file, again.body.fingerprint).expect(400)
+    expect(await models()).toEqual(after)
   })
 })

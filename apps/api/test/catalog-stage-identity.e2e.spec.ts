@@ -55,13 +55,14 @@ describe('Identidad del catálogo por tipo, fabricante, nombre y etapa', () => {
     await app.close()
   })
 
-  it('crea modelos distintos por etapa y al reimportar conserva los ID por TAG', async () => {
+  it('crea modelos distintos por etapa y rechaza reimportar sus TAG', async () => {
     const before = await importRows()
     expect(before).toHaveLength(2)
     expect(new Set(before.map(m => m.id)).size).toBe(2)
     const file = await workbook(), p = await preview(file).expect(201)
-    expect(p.body.summary.models).toEqual({ create: 0, update: 2 })
-    await apply(file, p.body.fingerprint).expect(201)
+    expect(p.body.summary.models).toEqual({ create: 0, update: 0 })
+    expect(p.body.issues.filter((i: { code?: string }) => i.code === 'TAG_ALREADY_EXISTS')).toHaveLength(2)
+    await apply(file, p.body.fingerprint).expect(400)
     expect((await models()).map(m => m.id).sort()).toEqual(before.map(m => m.id).sort())
     const list = (await http().get('/api/v1/catalog/assets?search=E2E-STAGE').expect(200)).body.items
     expect(list.find((m: { catalogTag: string }) => m.catalogTag === ROWS[0].tag).stageCodes).toEqual(['D05'])
@@ -86,24 +87,20 @@ describe('Identidad del catálogo por tipo, fabricante, nombre y etapa', () => {
     await apply(file, p.body.fingerprint).expect(400)
   })
 
-  it('revalida cambios por TAG y permite intercambiar etapas dentro de la misma transacción', async () => {
+  it('no permite sobrescribir TAG existentes aunque cambien o intercambien sus etapas', async () => {
     const before = await importRows()
-    const badFile = await workbook([{ ...ROWS[0], stage: ROWS[1].stage }]), bad = await preview(badFile).expect(201)
-    await apply(badFile, bad.body.fingerprint).expect(400)
-    const swapped = [ { ...ROWS[0], stage: ROWS[1].stage }, { ...ROWS[1], stage: ROWS[0].stage } ]
-    const after = await importRows(swapped)
-    expect(after.map(m => m.id).sort()).toEqual(before.map(m => m.id).sort())
-    for (const model of after) {
-      const res = await http().get(`/api/v1/catalog/assets/${model.id}`).expect(200)
-      expect(res.body.stageCodes).toEqual([model.catalogTag === ROWS[0].tag ? 'D06' : 'D05'])
-    }
+    const swapped = [{ ...ROWS[0], stage: ROWS[1].stage }, { ...ROWS[1], stage: ROWS[0].stage }]
+    const file = await workbook(swapped), p = await preview(file).expect(201)
+    expect(p.body.issues.filter((i: { code?: string }) => i.code === 'TAG_ALREADY_EXISTS')).toHaveLength(2)
+    await apply(file, p.body.fingerprint).expect(400)
+    expect(await models()).toEqual(before)
   })
 
   it('unifica variantes de fabricante cuando sus modelos coinciden solo en etapas diferentes', async () => {
     const before = await importRows()
     const variants = await t.db.insert(manufacturers).values([{ name: 'E2E Stage fabricante (uno)' }, { name: 'E2E Stage fabricante (dos)' }]).returning()
     for (let i = 0; i < before.length; i++) await t.db.update(assetModels).set({ manufacturerId: variants[i].id }).where(eq(assetModels.id, before[i].id))
-    const file = await workbook(), p = await preview(file).expect(201)
+    const file = await workbook([{ tag: 'E2E-STAGE-03', stage: 'Clasificación (hidrociclones)' }]), p = await preview(file).expect(201)
     expect(p.body.issues).toEqual([])
     expect(p.body.summary.manufacturers.merged).toBe(2)
     await apply(file, p.body.fingerprint).expect(201)

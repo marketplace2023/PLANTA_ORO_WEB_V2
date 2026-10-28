@@ -50,7 +50,7 @@ function plan(book: MasterWorkbook, state: State, networkCodes: string[]) {
   const familyOps = new Map<string, { id: string; code: string; categoryCode: string; name: string; action: Action }>()
   const typeOps = new Map<string, { id: string; code: string; name: string; familyId: string; stageIds: Set<string>; action: Action }>()
   const makerOps = new Map<string, { id: string; name: string; countryCode: string | null; website: string | null; aliases: string[]; action: Action }>()
-  const models: Array<{ id: string; catalogTag: string; modelName: string; assetTypeId: string; manufacturerId: string; specifications: Record<string, string>; technicalData: Record<string, unknown>; stageId: string; action: Action }> = []
+  const models: Array<{ id: string; catalogTag: string; modelName: string; assetTypeId: string; manufacturerId: string; specifications: Record<string, string>; technicalData: Record<string, unknown>; stageId: string; action: Action; duplicateIdentityAllowed: boolean }> = []
   const previewRows: CatalogImportPreview['rows'] = []
   const sourceRows = new Map(book.rows.map(row => [row.tag, row.row]))
   const existingTags = new Map<string, State['models']>()
@@ -113,19 +113,18 @@ function plan(book: MasterWorkbook, state: State, networkCodes: string[]) {
       makerOps.set(makerKey, maker)
     }
     // Solo se adopta un modelo anterior sin TAG si coincide también en la etapa.
-    const existing = unique(state.models.filter(m => !m.catalogTag && m.assetTypeId === type!.id && (m.manufacturerId === maker!.id || maker!.aliases.includes(m.manufacturerId ?? '')) && m.modelName === r.name && effectiveStages(m.id, m.assetTypeId).includes(stage.id)), `modelo ${r.name} en la etapa ${stage.code}`)
-    if (existing && models.some(m => m.id === existing.id)) issue(`Dos TAG intentan actualizar el mismo modelo anterior «${r.name}». Asigna sus TAG por separado antes de importar.`, r.row)
+    const existing = unique(state.models.filter(m => !m.catalogTag && !models.some(planned => planned.id === m.id) && m.assetTypeId === type!.id && (m.manufacturerId === maker!.id || maker!.aliases.includes(m.manufacturerId ?? '')) && m.modelName === r.name && effectiveStages(m.id, m.assetTypeId).includes(stage.id)), `modelo ${r.name} en la etapa ${stage.code}`)
     const action: Action = existing ? 'update' : 'create'
     const technicalData = record(existing?.technicalData)
     models.push({ id: existing?.id ?? uuidv7(), catalogTag: r.tag, modelName: r.name, assetTypeId: type.id, manufacturerId: maker.id, specifications: r.specifications,
       technicalData: { ...technicalData, identificacion: { ...record(technicalData.identificacion), 'TAG ACTIVO': r.tag }, componentes: r.components,
-        ...(r.referenceManufacturers === null ? {} : { fabricantesReferencia: r.referenceManufacturers }) }, stageId: stage.id, action })
+        ...(r.referenceManufacturers === null ? {} : { fabricantesReferencia: r.referenceManufacturers }) }, stageId: stage.id, action, duplicateIdentityAllowed: false })
     previewRows.push({ tag: r.tag, name: r.name, family: r.family, type: r.type, manufacturer: r.manufacturer, stages: [stage.code], components: r.components, referenceManufacturers: r.referenceManufacturers, specifications: r.specifications, action })
   }
   // Compara el estado final de los modelos nuevos y de los modelos anteriores sin TAG que se adoptan.
   // La misma regla cubre duplicados del Excel, modelos existentes y unificaciones de fabricantes.
   const canonicalMaker = new Map([...makerOps.values()].flatMap(m => m.aliases.map(id => [id, m.id] as const)))
-  type Identity = { assetTypeId: string; manufacturerId: string | null; modelName: string; tag: string | null; row?: number; stages: string[] }
+  type Identity = { assetTypeId: string; manufacturerId: string | null; modelName: string; tag: string | null; row?: number; stages: string[]; duplicateIdentityAllowed: boolean }
   const finalModels = new Map<string, Identity>(state.models.map(m => {
     const currentStages = effectiveStages(m.id, m.assetTypeId)
     const typePlan = [...typeOps.values()].find(t => t.id === m.assetTypeId)
@@ -140,9 +139,25 @@ function plan(book: MasterWorkbook, state: State, networkCodes: string[]) {
       const key = JSON.stringify([m.assetTypeId, m.manufacturerId, m.modelName, stageId])
       const previous = finalKeys.get(key)
       if (previous && previous.id !== id) {
+        // Los duplicados ya aceptados no deben bloquear futuras cargas de otros activos.
+        const original = state.models.find(model => model.id === id)
+        const originalPeer = state.models.find(model => model.id === previous.id)
+        const hadStage = (model: State['models'][number] | undefined) => {
+          const stages = model ? effectiveStages(model.id, model.assetTypeId) : []
+          return (stages.length ? stages : ['']).includes(stageId)
+        }
+        if (!m.row && !previous.model.row && (m.duplicateIdentityAllowed || previous.model.duplicateIdentityAllowed)
+          && original?.manufacturerId === originalPeer?.manufacturerId && hadStage(original) && hadStage(originalPeer)) continue
+        const imported = models.find(model => model.id === id && model.action === 'create')
+        if (imported) {
+          imported.duplicateIdentityAllowed = true
+          const peer = models.find(model => model.id === previous.id)
+          if (peer) peer.duplicateIdentityAllowed = true
+        }
         const stage = state.stages.find(s => s.id === stageId)
         const label = (model: Identity) => model.tag ? `TAG ${model.tag}${model.row ? ` (fila ${model.row})` : ' (catálogo existente)'}` : `modelo existente «${model.modelName}»`
-        issue(`Dos modelos distintos comparten tipo, fabricante, nombre «${m.modelName}» y etapa ${stage ? `${stage.code} · ${stage.name}` : 'sin asignar'}: ${label(previous.model)} y ${label(m)}. Usa etapas distintas o revisa esos registros.`, m.row ?? previous.model.row ?? 1)
+        issues.push({ sheet: 'Listado maestro', row: m.row ?? previous.model.row ?? 1, ...(imported ? { code: 'DUPLICATE_MODEL_IDENTITY' as const } : {}),
+          message: `Dos modelos distintos comparten tipo, fabricante, nombre «${m.modelName}» y etapa ${stage ? `${stage.code} · ${stage.name}` : 'sin asignar'}: ${label(previous.model)} y ${label(m)}. ${imported ? 'Revisa esos registros o acepta importar los modelos duplicados con TAG distintos.' : 'Usa etapas distintas o revisa esos registros.'}` })
       } else finalKeys.set(key, { id, model: m })
     }
   }
@@ -160,7 +175,7 @@ export class CatalogImportService {
     return plan(book, await snapshot(this.db), networkCodes).preview
   }
 
-  async apply(buffer: Buffer, fingerprint: string, networkCodes: string[], req: AppRequest, allowMissingSpecifications = false) {
+  async apply(buffer: Buffer, fingerprint: string, networkCodes: string[], req: AppRequest, allowMissingSpecifications = false, allowDuplicateModels = false) {
     const book = await parseMasterWorkbook(buffer)
     return this.db.transaction(async tx => {
       await tx.execute(sql`select pg_advisory_xact_lock(hashtext('catalog-master-import'))`)
@@ -168,7 +183,7 @@ export class CatalogImportService {
       await tx.execute(sql`lock table catalog.asset_families, catalog.asset_types, catalog.manufacturers, catalog.asset_models, catalog.asset_type_stages, catalog.asset_model_stages, catalog.asset_model_networks, process.stage_master, plant.network_master, asset.assets in share row exclusive mode`)
       const state = await snapshot(tx)
       const p = plan(book, state, networkCodes)
-      const blockingIssues = p.preview.issues.filter(i => !allowMissingSpecifications || i.code !== 'MISSING_SPECIFICATIONS')
+      const blockingIssues = p.preview.issues.filter(i => !(allowMissingSpecifications && i.code === 'MISSING_SPECIFICATIONS') && !(allowDuplicateModels && i.code === 'DUPLICATE_MODEL_IDENTITY'))
       if (blockingIssues.length) throw new BadRequestException({ message: 'Corrige los errores del Excel antes de importar', errors: blockingIssues.map(i => ({ path: `${i.sheet}:${i.row}`, message: i.message })) })
       if (p.preview.fingerprint !== fingerprint) throw new ConflictException('El archivo, las redes seleccionadas o el catálogo cambiaron desde la vista previa. Vuelve a analizar el Excel.')
       for (const { action, ...row } of p.families) {
@@ -213,7 +228,7 @@ export class CatalogImportService {
       }
       await tx.insert(auditEvents).values({ module: 'catalog', entityType: 'master_import', action: 'imported', userId: req.user?.id,
         oldData: { models: state.models.filter(m => importedIds.has(m.id) || mergedIds.includes(m.manufacturerId ?? '')), manufacturers: state.makers.filter(m => p.makers.some(x => x.id === m.id || x.aliases.includes(m.id))), assets: oldAssets, families: state.families.filter(f => p.families.some(x => x.id === f.id)), types: state.types.filter(t => p.types.some(x => x.id === t.id)) },
-        newData: { fileHash: book.fingerprint, networks: p.preview.networks, allowMissingSpecifications, summary: p.preview.summary, tags: p.models.map(m => m.catalogTag) }, ipAddress: req.ip, userAgent: req.headers['user-agent'], correlationId: req.correlationId })
+        newData: { fileHash: book.fingerprint, networks: p.preview.networks, allowMissingSpecifications, allowDuplicateModels, duplicateTags: p.models.filter(m => m.duplicateIdentityAllowed).map(m => m.catalogTag), summary: p.preview.summary, tags: p.models.map(m => m.catalogTag) }, ipAddress: req.ip, userAgent: req.headers['user-agent'], correlationId: req.correlationId })
       return { ...p.preview, imported: p.models.length }
     })
   }

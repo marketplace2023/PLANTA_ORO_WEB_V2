@@ -35,10 +35,11 @@ export class CatalogImportController {
   }
 
   @Post()
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: CATALOG_IMPORT_MAX_BYTES, files: 1, fields: 3 } }))
-  apply(@UploadedFile() file: Express.Multer.File | undefined, @Body('fingerprint') fingerprint: unknown, @Body('networkCodes') networkCodes: unknown, @Body('allowMissingSpecifications') allowMissingSpecifications: unknown, @Req() req: AppRequest) {
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: CATALOG_IMPORT_MAX_BYTES, files: 1, fields: 4 } }))
+  apply(@UploadedFile() file: Express.Multer.File | undefined, @Body('fingerprint') fingerprint: unknown, @Body('networkCodes') networkCodes: unknown, @Body('allowMissingSpecifications') allowMissingSpecifications: unknown, @Body('allowDuplicateModels') allowDuplicateModels: unknown, @Req() req: AppRequest) {
     if (typeof fingerprint !== 'string' || !/^[a-f0-9]{64}$/.test(fingerprint)) throw new BadRequestException('Primero analiza el archivo para obtener una vista previa')
     if (allowMissingSpecifications !== undefined && allowMissingSpecifications !== 'true' && allowMissingSpecifications !== 'false') throw new BadRequestException('allowMissingSpecifications debe ser true o false')
-    return this.imports.apply(this.buffer(file), fingerprint, this.networkCodes(networkCodes), req, allowMissingSpecifications === 'true')
+    if (allowDuplicateModels !== undefined && allowDuplicateModels !== 'true' && allowDuplicateModels !== 'false') throw new BadRequestException('allowDuplicateModels debe ser true o false')
+    return this.imports.apply(this.buffer(file), fingerprint, this.networkCodes(networkCodes), req, allowMissingSpecifications === 'true', allowDuplicateModels === 'true')
   }
 }

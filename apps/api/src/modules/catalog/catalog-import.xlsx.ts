@@ -13,7 +13,7 @@ export function cleanManufacturerName(value: string): string {
   } while (name !== previous)
   return name.replace(/\s+/g, ' ').trim()
 }
-export type ImportIssue = { sheet: string; row: number; message: string; code?: 'MISSING_SPECIFICATIONS' | 'TAG_ALREADY_EXISTS' }
+export type ImportIssue = { sheet: string; row: number; message: string; code?: 'MISSING_SPECIFICATIONS' | 'TAG_ALREADY_EXISTS' | 'DUPLICATE_MODEL_IDENTITY' }
 export type ImportReferenceManufacturer = { nombre: string; alcance: string | null; sitioWeb: string | null }
 export type MasterRow = {
   row: number; tag: string; name: string; categoryCode: string; family: string; type: string

@@ -1,4 +1,5 @@
-import { boolean, integer, jsonb, pgSchema, primaryKey, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
+import { boolean, check, integer, jsonb, pgSchema, primaryKey, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core'
 import { createdAt, pk, updatedAt } from './common'
 import { networkMaster } from './plant'
 import { stageMaster } from './process'
@@ -93,6 +94,8 @@ export const assetModels = catalogSchema.table(
     modelName: varchar('model_name', { length: 200 }).notNull(),
     /** Identificador del registro del catálogo importado; no es el TAG de un activo de planta. */
     catalogTag: varchar('catalog_tag', { length: 100 }).unique(),
+    /** Excepción aceptada expresamente en una importación; nunca permite repetir el TAG. */
+    duplicateIdentityAllowed: boolean('duplicate_identity_allowed').notNull().default(false),
     specifications: jsonb('specifications').notNull().default({}),
     technicalData: jsonb('technical_data').notNull().default({}),
     /** Se enlazará a document.documents cuando exista el módulo de documentos. */
@@ -104,6 +107,7 @@ export const assetModels = catalogSchema.table(
     /** Sirve de versión en la URL de la imagen: al cambiarla, los navegadores no sirven la anterior de caché. */
     imageUpdatedAt: timestamp('image_updated_at', { withTimezone: true }),
   },
+  (t) => [check('asset_models_duplicate_identity_requires_tag', sql`not ${t.duplicateIdentityAllowed} or nullif(trim(${t.catalogTag}), '') is not null`)],
 )
 
 /**
@@ -118,10 +122,12 @@ export const assetModelStageKeys = catalogSchema.table(
     manufacturerId: uuid('manufacturer_id').notNull(),
     modelName: varchar('model_name', { length: 200 }).notNull(),
     stageMasterId: uuid('stage_master_id').notNull(),
+    /** UUID cero para claves normales; ID del modelo para una excepción aceptada. */
+    identityScope: uuid('identity_scope').notNull().default('00000000-0000-0000-0000-000000000000'),
   },
   (t) => [
     primaryKey({ columns: [t.assetModelId, t.stageMasterId] }),
-    unique('asset_model_stage_keys_identity_unique').on(t.assetTypeId, t.manufacturerId, t.modelName, t.stageMasterId),
+    unique('asset_model_stage_keys_identity_unique').on(t.assetTypeId, t.manufacturerId, t.modelName, t.stageMasterId, t.identityScope),
   ],
 )
 

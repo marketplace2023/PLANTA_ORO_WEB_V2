@@ -1,4 +1,4 @@
-import { BookOpen, Search } from 'lucide-react'
+import { ArrowUpRight, BookOpen, Box, Search } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { EmptyState } from '@/components/base/empty-state'
@@ -29,7 +29,7 @@ function ReferenceManufacturers({ value }: { value: unknown }) {
     const name = entry.nombre.trim()
     return name ? [name] : []
   }) : []
-  return names.length > 0 ? <p className="text-sm text-fur-gray-600">{names.join(', ')}</p> : null
+  return names.length > 0 ? <p className="line-clamp-2 text-sm leading-relaxed text-fur-gray-600" title={names.join(', ')}>{names.join(', ')}</p> : null
 }
 
 /** Catálogo maestro GLOBAL: qué tipos/modelos existen. No implica posesión; los activos de una planta viven en Activos Físicos. */
@@ -149,9 +149,17 @@ export function CatalogPage() {
       {models.isError ? (
         <ErrorState onRetry={() => void models.refetch()} />
       ) : models.isLoading ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-busy="true">
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3" aria-busy="true" aria-label="Cargando modelos">
           {Array.from({ length: 6 }, (_, i) => (
-            <Skeleton key={i} className="h-36" />
+            <div key={i} className="overflow-hidden rounded-2xl border border-border bg-card">
+              <Skeleton className="aspect-video rounded-none" />
+              <div className="space-y-3 p-5">
+                <Skeleton className="h-3 w-1/3" />
+                <Skeleton className="h-6 w-4/5" />
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="mt-6 h-9 w-full" />
+              </div>
+            </div>
           ))}
         </div>
       ) : data && data.total === 0 ? (
@@ -163,63 +171,70 @@ export function CatalogPage() {
       ) : (
         data && (
           <>
-            <ul ref={resultsRef} className="grid scroll-mt-20 gap-4 sm:grid-cols-2 lg:scroll-mt-32 xl:grid-cols-3">
+            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-base font-semibold text-fur-navy-900">Modelos disponibles</h2>
+              <span className="text-xs tabular-nums text-fur-gray-600" aria-live="polite">{data.total.toLocaleString('es')} {data.total === 1 ? 'modelo' : 'modelos'}</span>
+            </div>
+            <ul ref={resultsRef} className="grid scroll-mt-20 gap-5 sm:grid-cols-2 lg:scroll-mt-32 xl:grid-cols-3">
               {data.items.map((m) => (
-                <li key={m.id}>
+                <li key={m.id} className="min-w-0">
                   <button
                     type="button"
                     onClick={() => setFicha(m)}
                     aria-label={`Ver la ficha técnica de ${m.modelName}`}
-                    className="block h-full w-full rounded-xl text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                    className="group block h-full w-full rounded-2xl text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-offset-4"
                   >
-                  <Card className={`h-full transition-shadow hover:shadow-md${m.imageUrl ? ' pt-0' : ''}`}>
-                    {m.imageUrl && (
-                      <div className="overflow-hidden rounded-t-lg border-b border-border bg-white">
-                        <img src={apiUrl(m.imageUrl)} alt={`Foto de ${m.modelName}`} loading="lazy" className="block h-44 w-full object-cover" />
+                    <Card className="h-full gap-0 rounded-2xl py-0 ring-fur-navy-900/10 transition-[box-shadow,translate] duration-200 group-hover:shadow-lg group-hover:shadow-fur-navy-900/10 group-hover:ring-fur-navy-900/25 motion-safe:group-hover:-translate-y-1">
+                      <div className="relative aspect-video shrink-0 overflow-hidden border-b border-border bg-fur-gray-100">
+                        {m.imageUrl ? (
+                          <img src={apiUrl(m.imageUrl)} alt={`Foto de ${m.modelName}`} loading="lazy" className="absolute inset-0 size-full object-cover transition-transform duration-300 motion-safe:group-hover:scale-[1.03]" />
+                        ) : (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[radial-gradient(var(--fur-gray-200)_1px,transparent_1px)] bg-size-[16px_16px] text-fur-gray-600">
+                            <Box className="size-12 text-fur-navy-900/35" strokeWidth={1} aria-hidden />
+                            <span className="bg-fur-gray-100 px-2 text-xs">Imagen pendiente</span>
+                          </div>
+                        )}
                       </div>
-                    )}
-                    <CardContent className="space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="secondary">{m.family.name}</Badge>
-                        <span className="text-xs text-fur-gray-600">{m.type.name}</span>
-                      </div>
-                      <h3 className="text-lg font-semibold text-fur-navy-900">{m.modelName}</h3>
-                      <ReferenceManufacturers value={m.technicalData.fabricantesReferencia} />
-                      {(m.stageCodes.length > 0 || m.networkCodes.length > 0) && (
-                        <ul className="flex flex-wrap gap-1 pt-1" aria-label="Etapas y redes del tipo">
-                          {stages.data && m.stageCodes.length === stages.data.length ? (
-                            <li><Badge variant="outline" className="font-normal">Todas las etapas</Badge></li>
-                          ) : (
-                            <>
-                              {m.stageCodes.slice(0, MAX_STAGE_BADGES).map((code) => (
+                      <CardContent className="flex flex-1 flex-col gap-3 p-5">
+                        <span className="border-l-2 border-fur-gold-500 pl-2 text-xs font-semibold text-fur-navy-900">{m.family.name}</span>
+                        <div className="space-y-1.5">
+                          <h3 className="text-lg leading-snug font-semibold tracking-tight text-fur-navy-900 [overflow-wrap:anywhere]">{m.modelName}</h3>
+                          <span className="block text-xs leading-relaxed text-fur-gray-600">{m.type.name}</span>
+                        </div>
+                        <ReferenceManufacturers value={m.technicalData.fabricantesReferencia} />
+                        <div className="mt-auto space-y-4 pt-2">
+                          {(m.stageCodes.length > 0 || m.networkCodes.length > 0) && (
+                            <ul className="flex flex-wrap gap-1.5" aria-label="Etapas y redes del modelo">
+                              {stages.data && m.stageCodes.length === stages.data.length ? (
+                                <li><Badge variant="outline" className="font-normal">Todas las etapas</Badge></li>
+                              ) : (
+                                <>
+                                  {m.stageCodes.slice(0, MAX_STAGE_BADGES).map((code) => (
+                                    <li key={code}>
+                                      <Badge variant="outline" className="fur-code font-normal" title={stageName(code)}>{code}</Badge>
+                                    </li>
+                                  ))}
+                                  {m.stageCodes.length > MAX_STAGE_BADGES && (
+                                    <li><Badge variant="outline" className="font-normal" title={m.stageCodes.slice(MAX_STAGE_BADGES).join(', ')}>+{m.stageCodes.length - MAX_STAGE_BADGES} etapas</Badge></li>
+                                  )}
+                                </>
+                              )}
+                              {m.networkCodes.map((code) => (
                                 <li key={code}>
-                                  <Badge variant="outline" className="fur-code font-normal" title={stageName(code)}>{code}</Badge>
+                                  <Badge variant="secondary" className="h-auto max-w-full rounded-md bg-fur-navy-900/5 py-1 font-normal whitespace-normal text-fur-navy-900">{networkName(code)}</Badge>
                                 </li>
                               ))}
-                              {m.stageCodes.length > MAX_STAGE_BADGES && (
-                                <li><Badge variant="outline" className="font-normal" title={m.stageCodes.slice(MAX_STAGE_BADGES).join(', ')}>+{m.stageCodes.length - MAX_STAGE_BADGES} etapas</Badge></li>
-                              )}
-                            </>
+                            </ul>
                           )}
-                          {m.networkCodes.map((code) => (
-                            <li key={code}>
-                              <Badge variant="secondary" className="font-normal">{networkName(code)}</Badge>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      {Object.keys(m.specifications).length > 0 && (
-                        <dl className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-xs">
-                          {Object.entries(m.specifications).slice(0, 4).map(([k, v]) => (
-                            <div key={k} className="flex gap-1">
-                              <dt className="text-fur-gray-600">{k}:</dt>
-                              <dd className="fur-code font-normal">{String(v)}</dd>
-                            </div>
-                          ))}
-                        </dl>
-                      )}
-                    </CardContent>
-                  </Card>
+                          <div className="flex items-center justify-between gap-3 border-t border-border pt-3">
+                            <span className="text-sm font-semibold text-fur-navy-900">Ver ficha técnica</span>
+                            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-fur-navy-900 text-white transition-colors duration-200 group-hover:bg-fur-gold-500 group-hover:text-fur-navy-900 group-focus-visible:bg-fur-gold-500 group-focus-visible:text-fur-navy-900">
+                              <ArrowUpRight className="size-4" aria-hidden />
+                            </span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </button>
                 </li>
               ))}

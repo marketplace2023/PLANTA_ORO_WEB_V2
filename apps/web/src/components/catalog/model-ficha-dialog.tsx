@@ -19,13 +19,15 @@ const humanizeKey = (key: string) => {
 
 function Section({ n, icon: Icon, title, hint, children }: { n: number; icon: LucideIcon; title: string; hint?: string; children: ReactNode }) {
   return (
-    <section className="overflow-hidden rounded-lg border border-sky-200 bg-white">
-      <h3 className="flex items-center gap-2 bg-sky-100 px-3 py-2 text-sm font-bold tracking-wide text-fur-navy-800 uppercase">
-        <Icon className="size-4 shrink-0" aria-hidden />
-        <span>
-          {n}. {title}
+    <section className="min-w-0 overflow-hidden rounded-xl border border-border bg-white">
+      <h3 className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border px-4 py-3 text-sm font-semibold text-fur-navy-900 sm:px-5">
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-fur-navy-900/5">
+          <Icon className="size-4" aria-hidden />
         </span>
-        {hint && <span className="text-[0.7rem] font-semibold text-fur-navy-800/70 normal-case">{hint}</span>}
+        <span className="min-w-0 flex-1">
+          {n}. {title}
+          {hint && <span className="mt-0.5 block text-xs font-normal text-fur-gray-600 sm:ml-2 sm:inline">{hint}</span>}
+        </span>
       </h3>
       {children}
     </section>
@@ -34,11 +36,11 @@ function Section({ n, icon: Icon, title, hint, children }: { n: number; icon: Lu
 
 function KeyValue({ rows }: { rows: Array<[label: string, value: ReactNode]> }) {
   return (
-    <dl className="divide-y divide-sky-100 text-sm">
+    <dl className="divide-y divide-border text-sm">
       {rows.map(([label, value]) => (
-        <div key={label} className="grid grid-cols-[minmax(7rem,34%)_1fr] gap-3 px-3 py-1.5">
-          <dt className="font-semibold text-fur-navy-900">{label}</dt>
-          <dd className="text-fur-gray-800">{value}</dd>
+        <div key={label} className="grid gap-1.5 px-4 py-3 odd:bg-fur-gray-50/70 sm:grid-cols-[minmax(0,32%)_minmax(0,1fr)] sm:gap-5 sm:px-5">
+          <dt className="min-w-0 leading-relaxed font-medium text-fur-navy-900 [overflow-wrap:anywhere]">{label}</dt>
+          <dd className="min-w-0 leading-relaxed text-fur-gray-800 [overflow-wrap:anywhere]">{value}</dd>
         </div>
       ))}
     </dl>
@@ -113,20 +115,20 @@ export function ModelFichaDialog({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="flex max-h-[94vh] flex-col gap-0 overflow-hidden bg-sky-50/60 p-0 sm:max-w-6xl"
+        className="flex max-h-[94dvh] flex-col gap-0 overflow-hidden rounded-2xl bg-fur-gray-50 p-0 shadow-2xl sm:max-w-6xl"
         onOpenAutoFocus={(e) => {
           e.preventDefault()
           ;(e.currentTarget as HTMLElement).focus()
         }}
       >
-        <header className="flex items-center gap-4 bg-fur-navy-900 px-5 py-3.5 text-white sm:px-7">
+        <header className="flex shrink-0 items-center gap-4 border-b-2 border-fur-gold-500 bg-fur-navy-900 px-4 py-4 text-white sm:px-6">
           <div className="min-w-0 flex-1">
-            <DialogTitle className="text-xl leading-tight font-black tracking-tight uppercase sm:text-3xl">Ficha técnica del activo físico</DialogTitle>
-            <DialogDescription className="mt-1 text-xs font-semibold tracking-wide text-white/85 uppercase sm:text-sm">
+            <DialogTitle className="text-base leading-snug font-semibold tracking-tight sm:text-xl">Ficha técnica del activo físico</DialogTitle>
+            <DialogDescription className="mt-1 text-xs leading-relaxed text-white/70">
               Catálogo FUR | {model.family.name} — {model.type.name}
             </DialogDescription>
           </div>
-          <p className="hidden shrink-0 border-l border-white/40 pl-4 text-sm leading-tight text-white/90 sm:block">
+          <p className="hidden shrink-0 border-l border-white/20 pl-4 text-xs leading-relaxed text-white/70 lg:block">
             Planta de
             <br />
             beneficio de oro
@@ -138,22 +140,25 @@ export function ModelFichaDialog({
           </DialogClose>
         </header>
 
-        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3 sm:p-4">
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
-            <div className="flex items-center gap-4 rounded-lg bg-sky-100 px-5 py-4">
-              <div className="min-w-0">
-                <h2 className="text-2xl leading-tight font-black tracking-tight text-fur-navy-900 uppercase sm:text-3xl">{model.modelName}</h2>
-                <p className="mt-1 text-base font-semibold text-sky-800 sm:text-lg">{description ?? model.type.name}</p>
-                {description && <p className="text-sm text-fur-gray-600">{model.type.name}</p>}
-                <p className="text-sm text-fur-gray-600">{manufacturer ?? 'Fabricante genérico'}</p>
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-3 sm:p-6">
+          <div className="grid overflow-hidden rounded-xl border border-border bg-white md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+            <div className="flex items-center p-5 sm:p-7">
+              <div className="min-w-0 space-y-4">
+                <span className="inline-block border-l-2 border-fur-gold-500 pl-2 text-xs font-semibold text-fur-navy-900">{model.family.name}</span>
+                <h2 className="text-2xl leading-tight font-semibold tracking-tight text-fur-navy-900 [overflow-wrap:anywhere] sm:text-3xl">{model.modelName}</h2>
+                <div className="space-y-1">
+                  <p className="text-sm leading-relaxed font-medium text-fur-gray-800">{description ?? model.type.name}</p>
+                  {description && <p className="text-xs leading-relaxed text-fur-gray-600">{model.type.name}</p>}
+                  <p className="text-xs leading-relaxed text-fur-gray-600">{manufacturer ?? 'Fabricante genérico'}</p>
+                </div>
               </div>
             </div>
-            <div className="grid min-h-40 place-items-center overflow-hidden rounded-lg border border-sky-200 bg-white">
+            <div className="relative grid min-h-48 place-items-center overflow-hidden border-t border-border bg-fur-gray-100/60 md:border-t-0 md:border-l">
               {imageUrl ? (
-                <img src={imageUrl} alt={`Foto de ${model.modelName}`} className="max-h-60 w-full object-contain" />
+                <img src={imageUrl} alt={`Foto de ${model.modelName}`} className="max-h-80 w-full object-contain" />
               ) : (
-                <span className="flex flex-col items-center gap-1 py-6 text-xs text-fur-gray-500">
-                  <Package className="size-10" aria-hidden />
+                <span className="flex flex-col items-center gap-3 py-10 text-xs text-fur-gray-600">
+                  <Package className="size-12 text-fur-navy-900/35" strokeWidth={1} aria-hidden />
                   Sin foto del modelo
                 </span>
               )}
@@ -173,7 +178,7 @@ export function ModelFichaDialog({
                   model.stageCodes.length > 0 ? (
                     <ul className="flex flex-wrap gap-1.5">
                       {model.stageCodes.map((c) => (
-                        <li key={c} className="rounded bg-fur-navy-900 px-1.5 py-0.5 text-xs text-white" title={stageName(c)}>
+                        <li key={c} className="rounded-md bg-fur-navy-900/5 px-2 py-1 text-xs text-fur-navy-900" title={stageName(c)}>
                           <span className="fur-code">{c}</span>
                           {stageName(c) && <span className="hidden sm:inline"> · {stageName(c)}</span>}
                         </li>
@@ -189,7 +194,7 @@ export function ModelFichaDialog({
                 ],
                 [
                   'Estado de la ficha',
-                  <span key="st" className="font-semibold text-fur-red-500">
+                  <span key="st" className="font-medium text-amber-900">
                     {recordState ?? 'REFERENCIAL — catálogo global, pendiente de validación en planta'}
                   </span>,
                 ],
@@ -201,67 +206,63 @@ export function ModelFichaDialog({
             {specs.length > 0 ? (
               <KeyValue rows={specs.map(([k, v]) => [humanizeKey(k), String(v)])} />
             ) : (
-              <p className="px-3 py-3 text-sm text-fur-gray-600">Sin especificaciones técnicas registradas.</p>
+              <p className="px-5 py-5 text-sm text-fur-gray-600">Sin especificaciones técnicas registradas.</p>
             )}
           </Section>
 
           {hasComponents && (
             <Section n={3} icon={ListChecks} title="Componentes principales" hint="(verificar en campo)">
-              <ol className="divide-y divide-sky-100 text-sm">
+              <ol className="divide-y divide-border text-sm">
                 {components.map((c, i) => (
-                  <li key={`${i}-${c}`} className="grid grid-cols-[2.5rem_1fr] gap-2 px-3 py-1.5">
-                    <span className="text-center font-semibold text-sky-800">{i + 1}</span>
-                    <span className="text-fur-gray-800">{c}</span>
+                  <li key={`${i}-${c}`} className="flex items-start gap-3 px-4 py-4 sm:px-5">
+                    <span className="grid size-7 shrink-0 place-items-center rounded-md bg-fur-gold-500/15 font-mono text-xs font-medium text-fur-navy-900">{i + 1}</span>
+                    <span className="min-w-0 leading-relaxed text-fur-gray-800 [overflow-wrap:anywhere]">{c}</span>
                   </li>
                 ))}
               </ol>
             </Section>
           )}
 
-          <div className="grid items-stretch gap-3 lg:grid-cols-2">
+          <div className="grid items-stretch gap-5 lg:grid-cols-2">
             <Section n={manufacturersSectionNumber} icon={Factory} title="Fabricantes de referencia y web">
               {manufacturers.length > 0 ? (
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-sky-100 text-left text-xs font-bold text-fur-navy-800">
-                      <th className="px-3 py-1.5">Fabricante</th>
-                      <th className="px-3 py-1.5">Descripción</th>
-                      <th className="px-3 py-1.5">Sitio web</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {manufacturers.map((m) => {
-                      const url = safeUrl(m.sitioWeb)
-                      return (
-                        <tr key={`${m.nombre}-${m.alcance}`} className="border-b border-sky-50 last:border-0">
-                          <td className="px-3 py-1.5 font-semibold text-fur-navy-900">{m.nombre}</td>
-                          <td className="px-3 py-1.5 text-fur-gray-800">{m.alcance ?? '—'}</td>
-                          <td className="px-3 py-1.5">
+                <ul className="divide-y divide-border">
+                  {manufacturers.map((m, i) => {
+                    const url = safeUrl(m.sitioWeb)
+                    return (
+                      <li key={`${i}-${m.nombre}`} className="space-y-2 px-4 py-4 sm:px-5">
+                        <div className="flex items-start gap-3">
+                          <Factory className="mt-0.5 size-4 shrink-0 text-fur-gray-500" aria-hidden />
+                          <div className="min-w-0 flex-1 space-y-1 [overflow-wrap:anywhere]">
+                            <p className="text-sm font-semibold text-fur-navy-900">{m.nombre}</p>
+                            {m.alcance && <p className="text-sm leading-relaxed text-fur-gray-600">{m.alcance}</p>}
                             {url ? (
-                              <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sky-800 underline underline-offset-2">
-                                {new URL(url).hostname.replace(/^www\./, '')} <ExternalLink className="size-3" aria-hidden />
+                              <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex max-w-full items-center gap-1.5 rounded-sm text-xs font-medium text-fur-navy-800 underline decoration-fur-gold-500 decoration-2 underline-offset-4 outline-none hover:decoration-fur-navy-900 focus-visible:ring-2 focus-visible:ring-ring">
+                                <span className="min-w-0 [overflow-wrap:anywhere]">{new URL(url).hostname.replace(/^www\./, '')}</span> <ExternalLink className="size-3 shrink-0" aria-hidden />
                               </a>
                             ) : (
-                              (m.sitioWeb ?? '—')
+                              m.sitioWeb && <p className="text-xs text-fur-gray-600">{m.sitioWeb}</p>
                             )}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+                          </div>
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
               ) : (
-                <p className="px-3 py-3 text-sm">
+                <p className="px-5 py-5 text-sm">
                   <Pending>Sin fabricantes de referencia registrados</Pending>
                 </p>
               )}
             </Section>
 
-            <aside className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-fur-gray-800">
-              <Info className="mt-0.5 size-5 shrink-0 text-fur-navy-800" aria-hidden />
-              <div className="space-y-1">
-                <p className="font-bold text-fur-navy-800 uppercase">{manufacturersSectionNumber + 1}. Nota técnica</p>
-                <p>
+            <aside className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/70 p-5 text-sm text-fur-gray-800">
+              <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-fur-gold-500/20">
+                <Info className="size-4 text-amber-900" aria-hidden />
+              </span>
+              <div className="min-w-0 space-y-3">
+                <p className="pt-1 font-semibold text-fur-navy-900">{manufacturersSectionNumber + 1}. Nota técnica</p>
+                <p className="leading-relaxed">
                   Información preliminar y referencial del catálogo global: describe el modelo, no un equipo en particular. Los fabricantes son
                   referencias comerciales, no marcas instaladas verificadas.
                 </p>

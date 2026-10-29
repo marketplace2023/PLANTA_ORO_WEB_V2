@@ -47,7 +47,7 @@ describe('Catálogo global', () => {
     plantState.currentPlant = null
   })
 
-  it('lista modelos con familia, tipo y especificaciones sin el fabricante asignado ni texto genérico', async () => {
+  it('lista modelos con familia y tipo, reserva las especificaciones para la ficha y oculta el fabricante asignado', async () => {
     setup()
     renderWithProviders(<CatalogPage />, { route: '/catalog' })
 
@@ -55,7 +55,9 @@ describe('Catálogo global', () => {
     expect(within(card).getByText('Molinos')).toBeInTheDocument()
     expect(within(card).getByText('Molino de bolas')).toBeInTheDocument()
     expect(within(card).queryByText(/Metso/)).not.toBeInTheDocument()
-    expect(within(card).getByText('diameterFt:')).toBeInTheDocument()
+    expect(within(card).queryByText('diameterFt:')).not.toBeInTheDocument()
+    expect(within(card).queryByText('3000')).not.toBeInTheDocument()
+    expect(within(card).getByText('Ver ficha técnica')).toBeInTheDocument()
     expect(screen.getByText('Motor 4.0 MW 6 polos').closest('li')).not.toHaveTextContent('Genérico')
     expect(screen.getByText('Ecosistema global')).toBeInTheDocument()
   })
@@ -135,12 +137,12 @@ describe('Catálogo global', () => {
       setup()
       renderWithProviders(<CatalogPage />, { route: '/catalog' })
       const card = (await screen.findByRole('heading', { name: 'Bolas 16.5x24 ft' })).closest('li')!
-      const tags = within(card).getByRole('list', { name: 'Etapas y redes del tipo' })
+      const tags = within(card).getByRole('list', { name: 'Etapas y redes del modelo' })
       expect(within(tags).getByText('D06')).toBeInTheDocument()
       expect(within(tags).getByText('D07')).toBeInTheDocument()
       expect(await within(tags).findByText('Potencia Eléctrica')).toBeInTheDocument()
       const other = screen.getByText('Motor 4.0 MW 6 polos').closest('li')!
-      expect(within(other).queryByRole('list', { name: 'Etapas y redes del tipo' })).not.toBeInTheDocument()
+      expect(within(other).queryByRole('list', { name: 'Etapas y redes del modelo' })).not.toBeInTheDocument()
     })
 
     it('resume las etapas cuando son muchas: «Todas las etapas» o «+N etapas»', async () => {
@@ -266,7 +268,7 @@ describe('Catálogo global', () => {
     expect(await screen.findByRole('heading', { name: 'Bolas 16.5x24 ft' })).toBeInTheDocument()
   })
   describe('Foto del modelo', () => {
-    it('muestra la foto en la tarjeta de los modelos que la tienen y nada en los demás', async () => {
+    it('muestra la foto o un estado de imagen pendiente cuando el modelo no tiene una', async () => {
       const withPhoto = { ...MODELS[0], imageUrl: '/catalog/models/m-foto/image?v=123' }
       const without = { ...MODELS[1], imageUrl: null }
       setup(page([withPhoto, without], 2, 1, 24))
@@ -277,6 +279,7 @@ describe('Catálogo global', () => {
       expect(within(card).getByAltText(`Foto de ${withPhoto.modelName}`)).toHaveAttribute('src', 'http://localhost:3000/api/v1/catalog/models/m-foto/image?v=123')
       const other = screen.getByRole('heading', { name: without.modelName }).closest('li')!
       expect(within(other).queryByRole('img')).not.toBeInTheDocument()
+      expect(within(other).getByText('Imagen pendiente')).toBeInTheDocument()
     })
   })
 

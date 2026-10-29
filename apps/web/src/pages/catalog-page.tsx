@@ -1,5 +1,5 @@
 import { BookOpen, Search } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { EmptyState } from '@/components/base/empty-state'
 import { ErrorState } from '@/components/base/error-state'
@@ -62,6 +62,14 @@ export function CatalogPage() {
   const models = useCatalogModels(filters, PAGE_SIZE)
   const families = useCatalogFamilies()
   const manufacturers = useCatalogManufacturers()
+
+  const resultsRef = useRef<HTMLUListElement>(null)
+  const previousPage = useRef(page)
+  useEffect(() => {
+    if (previousPage.current === page || !models.isSuccess || models.isPlaceholderData) return
+    previousPage.current = page
+    resultsRef.current?.scrollIntoView({ block: 'start', behavior: 'auto' })
+  }, [page, models.isSuccess, models.isPlaceholderData])
 
   const [ficha, setFicha] = useState<CatalogModel | null>(null)
   const stages = useStageCatalog()
@@ -155,7 +163,7 @@ export function CatalogPage() {
       ) : (
         data && (
           <>
-            <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <ul ref={resultsRef} className="grid scroll-mt-20 gap-4 sm:grid-cols-2 lg:scroll-mt-32 xl:grid-cols-3">
               {data.items.map((m) => (
                 <li key={m.id}>
                   <button
@@ -164,10 +172,10 @@ export function CatalogPage() {
                     aria-label={`Ver la ficha técnica de ${m.modelName}`}
                     className="block h-full w-full rounded-xl text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                   >
-                  <Card className="h-full transition-shadow hover:shadow-md">
+                  <Card className={`h-full transition-shadow hover:shadow-md${m.imageUrl ? ' pt-0' : ''}`}>
                     {m.imageUrl && (
                       <div className="overflow-hidden rounded-t-lg border-b border-border bg-white">
-                        <img src={apiUrl(m.imageUrl)} alt={`Foto de ${m.modelName}`} loading="lazy" className="h-44 w-full object-contain" />
+                        <img src={apiUrl(m.imageUrl)} alt={`Foto de ${m.modelName}`} loading="lazy" className="block h-44 w-full object-cover" />
                       </div>
                     )}
                     <CardContent className="space-y-2">

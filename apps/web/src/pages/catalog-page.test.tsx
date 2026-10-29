@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { FAMILIES, MODELS, page } from '@/test/assets-fixtures'
@@ -42,6 +42,7 @@ const modelCalls = (mock: ReturnType<typeof setup>) => mock.calls.filter((c) => 
 
 describe('Catálogo global', () => {
   afterEach(() => {
+    vi.restoreAllMocks()
     vi.unstubAllGlobals()
     plantState.currentPlant = null
   })
@@ -198,6 +199,44 @@ describe('Catálogo global', () => {
     await screen.findByRole('heading', { name: 'Bolas 16.5x24 ft' })
     await userEvent.click(await screen.findByRole('button', { name: /Quitar filtro Familia/ }))
     await waitFor(() => expect(modelCalls(mock).at(-1)!.query.has('family')).toBe(false))
+  })
+
+  it('al paginar vuelve a las primeras tarjetas después de recibir los nuevos resultados, también al regresar', async () => {
+    const scroll = vi.spyOn(Element.prototype, 'scrollIntoView')
+    let resolvePage!: (reply: { body: unknown }) => void
+    const pending = new Promise<{ body: unknown }>((resolve) => { resolvePage = resolve })
+    let response: { body: unknown } | Promise<{ body: unknown }> = { body: page(MODELS, 48, 1, 24) }
+    const mock = mockApi({
+      'GET /catalog/assets': () => response,
+      'GET /catalog/families': { body: FAMILIES },
+      'GET /catalog/manufacturers': { body: MAKERS },
+      'GET /stages/catalog': { body: STAGES },
+      'GET /networks/catalog': { body: NETWORKS },
+    })
+    renderWithProviders(<CatalogPage />, { route: '/catalog?family=MOLINOS' })
+    await screen.findByRole('heading', { name: MODELS[0].modelName })
+    expect(scroll).not.toHaveBeenCalled()
+
+    response = pending
+    await userEvent.click(screen.getByRole('button', { name: 'Página siguiente' }))
+    await waitFor(() => expect(modelCalls(mock).at(-1)!.query.get('page')).toBe('2'))
+    expect(scroll).not.toHaveBeenCalled()
+
+    await act(async () => {
+      resolvePage({ body: page([{ ...MODELS[0], modelName: 'Modelo de la segunda página' }], 48, 2, 24) })
+    })
+    const heading = await screen.findByRole('heading', { name: 'Modelo de la segunda página' })
+    await waitFor(() => expect(scroll).toHaveBeenCalledTimes(1))
+    expect(scroll.mock.contexts[0]).toBe(heading.closest('ul'))
+    expect(scroll).toHaveBeenLastCalledWith({ block: 'start', behavior: 'auto' })
+    expect(modelCalls(mock).at(-1)!.query.get('family')).toBe('MOLINOS')
+
+    response = { body: page(MODELS, 48, 1, 24) }
+    await userEvent.click(screen.getByRole('button', { name: 'Página anterior' }))
+    await screen.findByRole('heading', { name: MODELS[0].modelName })
+    await waitFor(() => expect(scroll).toHaveBeenCalledTimes(2))
+    expect(scroll.mock.contexts[1]).toBe(screen.getByRole('heading', { name: MODELS[0].modelName }).closest('ul'))
+    expect(screen.getByRole('button', { name: 'Página anterior' })).toBeDisabled()
   })
 
   it('sin resultados: lo explica según haya o no filtros', async () => {

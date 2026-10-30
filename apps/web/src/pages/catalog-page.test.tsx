@@ -271,6 +271,28 @@ describe('Catálogo global', () => {
     expect(await screen.findByRole('heading', { name: 'Bolas 16.5x24 ft' })).toBeInTheDocument()
   })
   describe('Foto del modelo', () => {
+    it('amplía la foto sobre la ficha y vuelve a ella al cerrar con Escape, botón o fondo', async () => {
+      const withPhoto = { ...MODELS[0], imageUrl: '/catalog/models/m-foto/image?v=123' }
+      setup(page([withPhoto], 1, 1, 24))
+      renderWithProviders(<CatalogPage />, { route: '/catalog' })
+      await userEvent.click(await screen.findByRole('button', { name: `Ver la ficha técnica de ${withPhoto.modelName}` }))
+      const ficha = await screen.findByRole('dialog', { name: 'Ficha técnica del activo físico' })
+      const photo = within(ficha).getByRole('button', { name: `Ampliar foto de ${withPhoto.modelName}` })
+      for (const close of ['Escape', 'botón', 'fondo']) {
+        await userEvent.click(photo)
+        const lightbox = await screen.findByRole('dialog', { name: `Imagen de ${withPhoto.modelName}` })
+        expect(within(lightbox).getByAltText(`Foto ampliada de ${withPhoto.modelName}`)).toHaveAttribute('src', 'http://localhost:3000/api/v1/catalog/models/m-foto/image?v=123')
+        if (close === 'Escape') await userEvent.keyboard('{Escape}')
+        else if (close === 'botón') await userEvent.click(within(lightbox).getByRole('button', { name: 'Cerrar imagen' }))
+        else await userEvent.click(document.querySelectorAll('[data-slot="dialog-overlay"]').item(1))
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: `Imagen de ${withPhoto.modelName}` })).not.toBeInTheDocument())
+        expect(screen.getByRole('dialog', { name: 'Ficha técnica del activo físico' })).toBe(ficha)
+        await waitFor(() => expect(photo).toHaveFocus())
+      }
+      await userEvent.click(within(ficha).getByRole('button', { name: 'Cerrar' }))
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    })
+
     it('muestra la foto o un estado de imagen pendiente cuando el modelo no tiene una', async () => {
       const withPhoto = { ...MODELS[0], imageUrl: '/catalog/models/m-foto/image?v=123' }
       const without = { ...MODELS[1], imageUrl: null }
@@ -397,6 +419,7 @@ describe('Catálogo global', () => {
       await userEvent.click(await screen.findByRole('button', { name: 'Ver la ficha técnica de Motor 4.0 MW 6 polos' }))
       const dialog = await screen.findByRole('dialog')
       expect(await within(dialog).findByText('Sin especificaciones técnicas registradas.')).toBeInTheDocument()
+      expect(within(dialog).queryByRole('button', { name: /Ampliar foto/ })).not.toBeInTheDocument()
       expect(within(dialog).queryByRole('heading', { name: /3. Componentes principales/ })).not.toBeInTheDocument()
       expect(within(dialog).getByRole('heading', { name: /3. Fabricantes de referencia/ })).toBeInTheDocument()
       expect(within(dialog).getByText('4. Nota técnica')).toBeInTheDocument()

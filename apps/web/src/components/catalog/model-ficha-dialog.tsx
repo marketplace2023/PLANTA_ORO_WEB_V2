@@ -1,7 +1,7 @@
-import { ClipboardList, ExternalLink, Factory, Info, ListChecks, Package, Settings2, X, type LucideIcon } from 'lucide-react'
+import { ClipboardList, ExternalLink, Factory, Info, ListChecks, Maximize2, Package, Settings2, X, type LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import type { CatalogModel } from '@/features/assets/use-assets'
 import { apiUrl } from '@/lib/api'
 
@@ -155,7 +155,30 @@ export function ModelFichaDialog({
             </div>
             <div className="relative grid min-h-48 place-items-center overflow-hidden border-t border-border bg-fur-gray-100/60 md:border-t-0 md:border-l">
               {imageUrl ? (
-                <img src={imageUrl} alt={`Foto de ${model.modelName}`} className="max-h-80 w-full object-contain" />
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <button type="button" className="group relative block min-h-48 w-full cursor-zoom-in self-stretch outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-fur-gold-500 sm:min-h-80" aria-label={`Ampliar foto de ${model.modelName}`}>
+                      <img src={imageUrl} alt={`Foto de ${model.modelName}`} className="absolute inset-0 size-full object-cover" />
+                      <span className="absolute right-3 bottom-3 inline-flex items-center gap-1.5 rounded-md bg-white/95 px-2.5 py-1.5 text-xs font-medium text-fur-navy-900 shadow-sm transition-colors group-hover:bg-fur-gold-500 group-focus-visible:bg-fur-gold-500">
+                        <Maximize2 className="size-3.5" aria-hidden /> Ampliar
+                      </span>
+                    </button>
+                  </DialogTrigger>
+                  <DialogContent showCloseButton={false} className="flex max-h-[94dvh] w-[96vw] max-w-[96vw] flex-col gap-0 overflow-hidden rounded-xl bg-fur-navy-950 p-0 text-white shadow-2xl sm:max-w-[96vw]">
+                    <header className="flex shrink-0 items-center justify-between gap-4 border-b border-white/10 px-4 py-3">
+                      <DialogTitle className="line-clamp-2 text-sm leading-snug font-medium" title={model.modelName}>Imagen de {model.modelName}</DialogTitle>
+                      <DialogDescription className="sr-only">Fotografía ampliada del modelo. Cierra esta vista para volver a la ficha técnica.</DialogDescription>
+                      <DialogClose asChild>
+                        <Button type="button" variant="ghost" size="icon-sm" className="shrink-0 text-white hover:bg-white/15 hover:text-white" aria-label="Cerrar imagen">
+                          <X />
+                        </Button>
+                      </DialogClose>
+                    </header>
+                    <div className="flex min-h-0 items-center justify-center bg-black/20 p-2 sm:p-3">
+                      <img src={imageUrl} alt={`Foto ampliada de ${model.modelName}`} className="max-h-[calc(94dvh-6rem)] w-full object-contain" />
+                    </div>
+                  </DialogContent>
+                </Dialog>
               ) : (
                 <span className="flex flex-col items-center gap-3 py-10 text-xs text-fur-gray-600">
                   <Package className="size-12 text-fur-navy-900/35" strokeWidth={1} aria-hidden />

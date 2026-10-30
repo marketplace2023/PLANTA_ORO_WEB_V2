@@ -68,7 +68,7 @@ export function CatalogPage() {
   useEffect(() => {
     if (previousPage.current === page || !models.isSuccess || models.isPlaceholderData) return
     previousPage.current = page
-    resultsRef.current?.scrollIntoView({ block: 'start', behavior: 'auto' })
+    resultsRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' })
   }, [page, models.isSuccess, models.isPlaceholderData])
 
   const [ficha, setFicha] = useState<CatalogModel | null>(null)

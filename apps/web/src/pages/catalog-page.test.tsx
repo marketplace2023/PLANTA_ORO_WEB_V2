@@ -230,14 +230,17 @@ describe('Catálogo global', () => {
     const heading = await screen.findByRole('heading', { name: 'Modelo de la segunda página' })
     await waitFor(() => expect(scroll).toHaveBeenCalledTimes(1))
     expect(scroll.mock.contexts[0]).toBe(heading.closest('ul'))
-    expect(scroll).toHaveBeenLastCalledWith({ block: 'start', behavior: 'auto' })
+    expect(scroll).toHaveBeenLastCalledWith({ block: 'start', behavior: 'smooth' })
     expect(modelCalls(mock).at(-1)!.query.get('family')).toBe('MOLINOS')
 
+    const matchMedia = vi.fn().mockReturnValue({ matches: true })
+    vi.stubGlobal('matchMedia', matchMedia)
     response = { body: page(MODELS, 48, 1, 24) }
     await userEvent.click(screen.getByRole('button', { name: 'Página anterior' }))
     await screen.findByRole('heading', { name: MODELS[0].modelName })
     await waitFor(() => expect(scroll).toHaveBeenCalledTimes(2))
     expect(scroll.mock.contexts[1]).toBe(screen.getByRole('heading', { name: MODELS[0].modelName }).closest('ul'))
+    expect(scroll).toHaveBeenLastCalledWith({ block: 'start', behavior: 'smooth' })
     expect(screen.getByRole('button', { name: 'Página anterior' })).toBeDisabled()
   })
 

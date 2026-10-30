@@ -56,8 +56,8 @@ const TYPES: Array<[code: string, family: string, name: string]> = [
   ['TRANSMISOR_FLUJO', 'INSTRUMENTOS', 'Transmisor de flujo'],
 ]
 
-// Arquitectura §11.1: las 19 etapas oficiales del proceso. Los grupos/colores siguen la orientación de design.md §32.
-const STAGES: Array<[code: string, name: string, group: string, color: string]> = [
+// Etapas base del ecosistema: proceso y sala de control. Las altas manuales no se sobrescriben al repetir el seed.
+const STAGES: Array<[code: string, name: string, group: string, color: string, description?: string]> = [
   ['D01', 'Recepción, chancado y cribado', 'TRITURACION', 'orange'],
   ['D02', 'Trituración primaria', 'TRITURACION', 'orange'],
   ['D03', 'Trituración secundaria', 'TRITURACION', 'orange'],
@@ -77,9 +77,13 @@ const STAGES: Array<[code: string, name: string, group: string, color: string]> 
   ['D17', 'Regeneración de carbón', 'CARBON', 'purple'],
   ['D18', 'Manejo de soluciones', 'RELAVES', 'cyan'],
   ['D19', 'Relaves y agua / manejo ambiental', 'RELAVES', 'cyan'],
+  ['D20', 'Sala de control y monitoreo', 'SALA DE CONTROL Y MONITOREO', 'cyan', 'Sala de control y monitoreo'],
 ]
 
-const ALL_STAGES = STAGES.map(([code]) => code)
+export const DEFAULT_STAGE_COUNT = STAGES.length
+
+// Las asignaciones de los tipos de demostración siguen limitadas al circuito de proceso D01–D19.
+const ALL_STAGES = STAGES.map(([code]) => code).filter(code => code !== 'D20')
 
 // Etapas en las que se usa cada tipo base (punto de partida: el administrador lo ajusta desde el catálogo).
 // Motores, tableros y transformadores alimentan toda la planta, por eso cubren todas las etapas.
@@ -189,7 +193,7 @@ export async function runSeed(url: string, { includeDemoAssets = false }: { incl
     // (nombre, grupo, color, orden, descripción, imagen), igual que las redes.
     await db
       .insert(stageMaster)
-      .values(STAGES.map(([code, name, stageGroup, colorToken], i) => ({ code, name, stageGroup, colorToken, sequenceDefault: i + 1 })))
+      .values(STAGES.map(([code, name, stageGroup, colorToken, description], i) => ({ code, name, stageGroup, colorToken, description, sequenceDefault: i + 1 })))
       .onConflictDoNothing({ target: stageMaster.code })
 
     // Las redes se administran desde el panel (crear, editar, eliminar): el seed solo crea las que faltan y no pisa

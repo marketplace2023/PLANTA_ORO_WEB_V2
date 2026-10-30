@@ -70,7 +70,23 @@ describe('Integridad del esquema (e2e)', () => {
   it('el seed es idempotente: re-ejecutarlo no duplica el catálogo', async () => {
     const { runSeed } = await import('../src/database/seed')
     await runSeed(TEST_DATABASE_URL)
-    expect(await db.select().from(stageMaster)).toHaveLength(19)
+    expect(await db.select().from(stageMaster)).toHaveLength(20)
     expect(await db.select().from(networkMaster)).toHaveLength(10)
+  })
+
+  it('repetir el seed conserva el ID y las ediciones administrativas de D20', async () => {
+    const { runSeed } = await import('../src/database/seed')
+    const [before] = await db.select().from(stageMaster).where(eq(stageMaster.code, 'D20'))
+    expect(before).toMatchObject({ name: 'Sala de control y monitoreo', description: 'Sala de control y monitoreo', stageGroup: 'SALA DE CONTROL Y MONITOREO', colorToken: 'cyan', sequenceDefault: 20 })
+    const edited = { name: 'Sala de control editada', description: 'Configuración administrativa', colorToken: 'blue', sequenceDefault: 24 }
+    try {
+      await db.update(stageMaster).set(edited).where(eq(stageMaster.id, before.id))
+      await runSeed(TEST_DATABASE_URL)
+      const rows = await db.select().from(stageMaster).where(eq(stageMaster.code, 'D20'))
+      expect(rows).toHaveLength(1)
+      expect(rows[0]).toMatchObject({ ...edited, id: before.id })
+    } finally {
+      await db.update(stageMaster).set({ name: before.name, description: before.description, colorToken: before.colorToken, sequenceDefault: before.sequenceDefault }).where(eq(stageMaster.id, before.id))
+    }
   })
 })

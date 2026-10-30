@@ -109,7 +109,7 @@ export function ModelFichaDialog({
   const leading = LEADING.flatMap((k) => identification.filter(([key]) => key.toLocaleLowerCase('es') === k.toLocaleLowerCase('es')))
   const description = model.type.description?.trim() || null
   const imageUrl = model.imageUrl ? apiUrl(model.imageUrl) : null
-  const manufacturer = model.manufacturer ? `${model.manufacturer.name}${model.manufacturer.countryCode ? ` · ${model.manufacturer.countryCode}` : ''}` : null
+
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -149,7 +149,7 @@ export function ModelFichaDialog({
                 <div className="space-y-1">
                   <p className="text-sm leading-relaxed font-medium text-fur-gray-800">{description ?? model.type.name}</p>
                   {description && <p className="text-xs leading-relaxed text-fur-gray-600">{model.type.name}</p>}
-                  <p className="text-xs leading-relaxed text-fur-gray-600">{manufacturer ?? 'Fabricante genérico'}</p>
+                  {manufacturers.length > 0 && <p className="text-xs leading-relaxed text-fur-gray-600">{[...new Set(manufacturers.map(m => m.nombre))].join(', ')}</p>}
                 </div>
               </div>
             </div>

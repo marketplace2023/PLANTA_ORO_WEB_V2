@@ -71,7 +71,13 @@ export function FieldsDialog({ title, description, fields, initial = {}, submitL
       await onSubmit(values)
       onClose()
     } catch (err) {
-      if (err instanceof ApiError && err.fieldErrors.length > 0) setErrors(Object.fromEntries(err.fieldErrors.map((f) => [f.path, f.message])))
+      if (err instanceof ApiError && err.fieldErrors.length > 0) {
+        const extraErrors = err.fieldErrors.filter(error => !fields.some(field => field.name === error.path))
+        setErrors({
+          ...Object.fromEntries(err.fieldErrors.map(error => [error.path, error.message])),
+          ...(extraErrors.length > 0 ? { _form: extraErrors.map(error => error.message).join('. ') } : {}),
+        })
+      }
       else if (err instanceof ApiError && err.status === 403) setErrors({ _form: 'No tienes permiso para esta acción.' })
       else if (err instanceof ApiError && err.status === 409) setErrors({ _form: err.message })
       else setErrors({ _form: err instanceof ApiError ? err.message : 'No se pudo guardar. Inténtalo de nuevo.' })

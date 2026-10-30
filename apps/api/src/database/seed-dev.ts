@@ -186,7 +186,6 @@ export async function runSeedDev(url: string, password = DEV_PASSWORD, { include
       .insert(s.manufacturers)
       .values(MANUFACTURERS.map(([name, countryCode]) => ({ name, countryCode })))
       .onConflictDoNothing({ target: s.manufacturers.name })
-    const manufacturerId = new Map((await db.select().from(s.manufacturers)).map((m) => [m.name, m.id]))
     const typeId = new Map((await db.select().from(s.assetTypes)).map((t) => [t.code, t.id]))
     const modelNetworks = new Map((await db.select().from(s.networkMaster)).map(n => [n.code, n.id]))
     for (const [typeCode, maker, modelName, specifications] of MODELS) {
@@ -198,7 +197,7 @@ export async function runSeedDev(url: string, password = DEV_PASSWORD, { include
       if (existing) continue
       const [created] = await db
         .insert(s.assetModels)
-        .values({ assetTypeId: typeId.get(typeCode)!, manufacturerId: maker ? manufacturerId.get(maker) : null, modelName, specifications })
+        .values({ assetTypeId: typeId.get(typeCode)!, technicalData: { fabricantesReferencia: maker ? [{ nombre: maker, alcance: null, sitioWeb: null }] : [] }, modelName, specifications })
         .returning()
       const links = (DEMO_MODEL_NETWORKS[typeCode] ?? []).map(code => ({ assetModelId: created.id, networkMasterId: modelNetworks.get(code)! }))
       if (links.length) await db.insert(s.assetModelNetworks).values(links)

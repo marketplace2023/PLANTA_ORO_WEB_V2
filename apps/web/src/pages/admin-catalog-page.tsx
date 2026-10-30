@@ -5,6 +5,7 @@ import { useSearchParams } from 'react-router-dom'
 import { EmptyState } from '@/components/base/empty-state'
 import { ErrorState } from '@/components/base/error-state'
 import { FieldsDialog, type Field, type FieldValues } from '@/components/base/fields-dialog'
+import { ReferenceManufacturersFields, type ReferenceManufacturer } from '@/components/catalog/reference-manufacturers-fields'
 import { ModelImagePicker, type ImageChange } from '@/components/catalog/model-image-picker'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
@@ -13,16 +14,14 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useCatalogFamilies, useCatalogManufacturers, useCatalogModels, type CatalogFamily, type CatalogManufacturer, type CatalogModel } from '@/features/assets/use-assets'
+import { useCatalogFamilies, useCatalogManufacturers, useCatalogModels, type CatalogFamily, type CatalogModel } from '@/features/assets/use-assets'
 import {
   useCatalogTypes,
   useCreateFamily,
-  useCreateManufacturer,
   useCreateModel,
   useCreateType,
   useRemoveModelImage,
   useUpdateFamily,
-  useUpdateManufacturer,
   useUpdateModel,
   useUpdateType,
   useUploadModelImage,
@@ -171,50 +170,12 @@ function Types() {
 // ---------- Fabricantes ----------
 function Manufacturers() {
   const makers = useCatalogManufacturers()
-  const create = useCreateManufacturer()
-  const update = useUpdateManufacturer()
-  const [dialog, setDialog] = useState<{ item?: CatalogManufacturer } | null>(null)
-  const fields: Field[] = [
-    { name: 'name', label: 'Nombre', required: true },
-    { name: 'countryCode', label: 'País (código ISO de 2 letras)', placeholder: 'PE' },
-    { name: 'website', label: 'Sitio web', placeholder: 'https://…' },
-  ]
-  return (
-    <Section title="Nuevo fabricante" onCreate={() => setDialog({})}>
-      {makers.isError ? <ErrorState onRetry={() => void makers.refetch()} /> : makers.isLoading ? <Loading /> : (
-        <div className="overflow-x-auto rounded-lg border border-border bg-card">
-          <Table>
-            <TableHeader><TableRow><TableHead>Fabricante</TableHead><TableHead>País</TableHead><TableHead><span className="sr-only">Acciones</span></TableHead></TableRow></TableHeader>
-            <TableBody>
-              {makers.data!.map((m) => (
-                <TableRow key={m.id}>
-                  <TableCell>{m.name}</TableCell>
-                  <TableCell>{m.countryCode ?? '—'}</TableCell>
-                  <TableCell className="text-right">
-                    <Button size="icon-sm" variant="ghost" aria-label={`Editar ${m.name}`} onClick={() => setDialog({ item: m })}><Pencil /></Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-      {dialog && (
-        <FieldsDialog
-          title={dialog.item ? `Editar ${dialog.item.name}` : 'Nuevo fabricante'}
-          fields={fields}
-          initial={dialog.item ? { name: dialog.item.name, countryCode: dialog.item.countryCode ?? '', website: '' } : {}}
-          submitLabel={dialog.item ? 'Guardar cambios' : 'Crear fabricante'}
-          onClose={() => setDialog(null)}
-          onSubmit={(v) =>
-            dialog.item
-              ? update.mutateAsync({ id: dialog.item.id, name: String(v.name), countryCode: orNull(v.countryCode), ...(orNull(v.website) !== null && { website: orNull(v.website) }) })
-              : create.mutateAsync({ name: String(v.name), countryCode: orUndef(v.countryCode), website: orUndef(v.website) })
-          }
-        />
-      )}
-    </Section>
-  )
+  return <>
+    <p className="mb-4 text-sm text-fur-gray-600">Fabricantes de referencia de las fichas. Se administran desde cada modelo o mediante Excel.</p>
+    {makers.isLoading ? <Loading /> : makers.isError ? <ErrorState onRetry={() => void makers.refetch()} /> : (
+      <ul className="divide-y divide-border rounded-lg border border-border bg-card">{makers.data?.map(m => <li key={m.id} className="p-3 text-sm">{m.name}</li>)}</ul>
+    )}
+  </>
 }
 
 // ---------- Modelos ----------
@@ -223,15 +184,15 @@ function Models() {
   const q = useDebouncedValue(search.trim(), 300)
   const models = useCatalogModels({ search: q || undefined, status: 'ALL' }, 50)
   const types = useCatalogTypes()
-  const makers = useCatalogManufacturers()
   const create = useCreateModel()
   const update = useUpdateModel()
   const uploadImage = useUploadModelImage()
   const removeImage = useRemoveModelImage()
+  const [references, setReferences] = useState<ReferenceManufacturer[]>([])
   const [image, setImage] = useState<ImageChange>({ file: null, remove: false })
   const [dialog, setDialog] = useState<{ item?: CatalogModel } | null>(null)
-  const openDialog = (item?: CatalogModel) => { setImage({ file: null, remove: false }); setDialog({ item }) }
-  const makerOptions = (makers.data ?? []).map((m) => ({ value: m.id, label: m.name }))
+  const openDialog = (item?: CatalogModel) => { setImage({ file: null, remove: false }); setReferences(item?.referenceManufacturers ?? []); setDialog({ item }) }
+
 
   return (
     <Section title="Nuevo modelo" onCreate={() => openDialog()}>
@@ -253,7 +214,7 @@ function Models() {
                   </TableCell>
                   <TableCell className="font-medium">{m.modelName}</TableCell>
                   <TableCell>{m.type.name}</TableCell>
-                  <TableCell>{m.manufacturer?.name ?? 'Genérico'}</TableCell>
+                  <TableCell>{m.referenceManufacturers?.map(ref => ref.nombre).join(', ') || '—'}</TableCell>
                   <TableCell><Badge variant="outline" className="bg-card font-medium text-foreground">{m.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}</Badge></TableCell>
                   <TableCell className="text-right">
                     <Button size="icon-sm" variant="ghost" aria-label={`Editar ${m.modelName}`} onClick={() => openDialog(m)}><Pencil /></Button>
@@ -272,19 +233,18 @@ function Models() {
           fields={[
             ...(dialog.item ? [] : [{ name: 'typeCode', label: 'Tipo', type: 'select', required: true, options: (types.data ?? []).map((t) => ({ value: t.code, label: `${t.familyName} · ${t.name}` })) } as Field]),
             { name: 'modelName', label: 'Modelo', required: true },
-            { name: 'manufacturerId', label: 'Fabricante', type: 'select', options: makerOptions, emptyLabel: 'Sin fabricante (genérico)' },
             { name: 'specifications', label: 'Especificaciones (JSON)', type: 'json', help: 'Ej.: {"powerKw": 500, "poles": 6}' },
             ...(dialog.item ? [{ name: 'status', label: 'Estado', type: 'select', options: [{ value: 'ACTIVE', label: 'Activo' }, { value: 'INACTIVE', label: 'Inactivo' }] } as Field] : []),
           ]}
-          initial={dialog.item ? { modelName: dialog.item.modelName, manufacturerId: dialog.item.manufacturer?.id ?? '', specifications: JSON.stringify(dialog.item.specifications, null, 2), status: dialog.item.status } : {}}
+          initial={dialog.item ? { modelName: dialog.item.modelName, specifications: JSON.stringify(dialog.item.specifications, null, 2), status: dialog.item.status } : {}}
           submitLabel={dialog.item ? 'Guardar cambios' : 'Crear modelo'}
           onClose={() => setDialog(null)}
-          extra={<ModelImagePicker currentUrl={dialog.item?.imageUrl ?? null} value={image} onChange={setImage} />}
+          extra={<><ReferenceManufacturersFields value={references} onChange={setReferences} /><ModelImagePicker currentUrl={dialog.item?.imageUrl ?? null} value={image} onChange={setImage} /></>}
           onSubmit={async (v) => {
             const specifications = JSON.parse(String(v.specifications || '{}'))
             const saved = dialog.item
-              ? await update.mutateAsync({ id: dialog.item.id, modelName: String(v.modelName), manufacturerId: orNull(v.manufacturerId), specifications, status: v.status as 'ACTIVE' | 'INACTIVE' })
-              : await create.mutateAsync({ typeCode: String(v.typeCode), modelName: String(v.modelName), manufacturerId: orUndef(v.manufacturerId), specifications })
+              ? await update.mutateAsync({ id: dialog.item.id, modelName: String(v.modelName), technicalData: { ...dialog.item.technicalData, fabricantesReferencia: references }, specifications, status: v.status as 'ACTIVE' | 'INACTIVE' })
+              : await create.mutateAsync({ typeCode: String(v.typeCode), modelName: String(v.modelName), technicalData: { fabricantesReferencia: references }, specifications })
             const id = dialog.item?.id ?? (saved as { id: string }).id
             // El modelo ya quedó guardado: si falla la foto se avisa, pero no se vuelve a pedir todo el formulario.
             try {

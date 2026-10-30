@@ -120,7 +120,7 @@ describe('Administración del catálogo y roles asignables (e2e)', () => {
 
   describe('modelos', () => {
     it('crea un modelo con tipo, fabricante y especificaciones', async () => {
-      const res = await post('/api/v1/catalog/models', admin, { typeCode: 'E2E_TIPO'.replace('E2E_TIPO', 'MOLINO_BOLAS'), manufacturerId: makerId, modelName: 'E2E Modelo A', specifications: { powerKw: 500 } }).expect(201)
+      const res = await post('/api/v1/catalog/models', admin, { typeCode: 'E2E_TIPO'.replace('E2E_TIPO', 'MOLINO_BOLAS'), modelName: 'E2E Modelo A', specifications: { powerKw: 500 } }).expect(201)
       modelId = res.body.id
       expect(res.body).toMatchObject({ modelName: 'E2E Modelo A', specifications: { powerKw: 500 }, status: 'ACTIVE' })
     })
@@ -129,14 +129,14 @@ describe('Administración del catálogo y roles asignables (e2e)', () => {
       const bad1 = await post('/api/v1/catalog/models', admin, { typeCode: 'NO_EXISTE', modelName: 'E2E x' }).expect(400)
       expect(bad1.body.errors[0].path).toBe('typeCode')
       const bad2 = await post('/api/v1/catalog/models', admin, { typeCode: 'MOLINO_BOLAS', manufacturerId: '018f0000-0000-7000-8000-000000000000', modelName: 'E2E x' }).expect(400)
-      expect(bad2.body.errors[0].path).toBe('manufacturerId')
-      await post('/api/v1/catalog/models', admin, { typeCode: 'MOLINO_BOLAS', manufacturerId: makerId, modelName: 'E2E Modelo A' }).expect(409)
+      expect(bad2.body.errors[0].message).toContain('manufacturerId')
+      await post('/api/v1/catalog/models', admin, { typeCode: 'MOLINO_BOLAS', modelName: 'E2E Modelo A' }).expect(409)
       await post('/api/v1/catalog/models', admin, { typeCode: 'MOLINO_BOLAS', modelName: '' }).expect(400)
     })
 
     it('edita especificaciones y fabricante', async () => {
-      const res = await patch(`/api/v1/catalog/models/${modelId}`, admin, { specifications: { powerKw: 600, poles: 6 }, manufacturerId: null }).expect(200)
-      expect(res.body).toMatchObject({ specifications: { powerKw: 600, poles: 6 }, manufacturerId: null })
+      const res = await patch(`/api/v1/catalog/models/${modelId}`, admin, { specifications: { powerKw: 600, poles: 6 }, technicalData: { fabricantesReferencia: [] } }).expect(200)
+      expect(res.body).toMatchObject({ specifications: { powerKw: 600, poles: 6 }, technicalData: { fabricantesReferencia: [] } })
     })
 
     it('desactivar oculta el modelo del catálogo público pero lo conserva para el administrador', async () => {

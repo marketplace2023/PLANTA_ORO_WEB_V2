@@ -28,7 +28,7 @@ describe('Eliminación masiva del catálogo por Excel (e2e)', () => {
     admin = await login(app, 'bulk-admin'); ordinary = await login(app, 'bulk-user')
     first = await t.model('MOLINO_BOLAS', 'E2E Bulk A')
     second = await t.model('MOLINO_BOLAS', 'E2E Bulk B')
-    outside = await t.model('MOLINO_BOLAS', 'E2E Bulk A') // mismo nombre, TAG ajeno al Excel
+    outside = (await t.db.insert(assetModels).values({ assetTypeId: first.assetTypeId, modelName: first.modelName, catalogTag: 'E2E-BULK-OUTSIDE', duplicateIdentityAllowed: true }).returning())[0] // mismo nombre, TAG ajeno al Excel
     for (const [model, tag] of [[first, 'E2E-BULK-01'], [second, 'E2E-BULK-02'], [outside, 'E2E-BULK-OUTSIDE']] as const) {
       await t.db.update(assetModels).set({ catalogTag: tag }).where(eq(assetModels.id, model.id))
     }
@@ -124,7 +124,7 @@ describe('Eliminación masiva del catálogo por Excel (e2e)', () => {
     await t.db.insert(assetModelNetworks).values({ assetModelId: first.id, networkMasterId: network.id })
     await t.db.insert(modelVariableValues).values({ assetModelId: first.id, variableId: variable.id, value: 1 })
     const [maker] = await t.db.insert(manufacturers).values({ name: 'E2E Bulk maker' }).returning()
-    await t.db.update(assetModels).set({ manufacturerId: maker.id }).where(eq(assetModels.id, first.id))
+    await t.db.update(assetModels).set({ technicalData: { fabricantesReferencia: [{ nombre: maker.name }] } }).where(eq(assetModels.id, first.id))
     const [provider] = await t.db.insert(providers).values({ organizationName: 'E2E Bulk provider', countryCode: 'VE' }).returning()
     const [listing] = await t.db.insert(listings).values({ providerId: provider.id, assetFamilyId: type.familyId, assetModelId: first.id, title: 'E2E Publicación' }).returning()
     const storage = app.get(StorageService), key = `catalog/models/e2e-bulk-${randomUUID()}.png`

@@ -328,7 +328,7 @@ describe('Catálogo global', () => {
       expect(within(dialog).getByText('Ficha técnica del activo físico')).toBeInTheDocument()
       expect(within(dialog).getByText(/Catálogo FUR \| Molinos — Molino de bolas/)).toBeInTheDocument()
       expect(within(dialog).getByText('Identificación del activo', { exact: false })).toBeInTheDocument()
-      expect(within(dialog).getAllByText('Metso · FI').length).toBeGreaterThan(0)
+      expect(within(dialog).queryByText('Metso · FI')).not.toBeInTheDocument()
       expect(within(dialog).getByText('D06')).toBeInTheDocument()
 
       const specs = within(dialog).getByRole('heading', { name: '2. Especificaciones Técnicas' }).closest('section')!

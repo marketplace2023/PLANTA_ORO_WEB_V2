@@ -271,7 +271,7 @@ export type CatalogModel = {
   networkCodes: string[]
   type: { id: string; code: string; name: string; description?: string | null; stageCodes: string[] }
   family: { id: string; code: string; name: string; icon: string | null }
-  manufacturer: { id: string; name: string; countryCode: string | null } | null
+  referenceManufacturers?: Array<{ nombre: string; alcance: string | null; sitioWeb: string | null }>
 }
 export type CatalogManufacturer = { id: string; name: string; countryCode: string | null }
 

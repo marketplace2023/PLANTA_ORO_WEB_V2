@@ -17,13 +17,15 @@ describe('Nombre del fabricante del listado maestro', () => {
   })
 })
 
-async function workbook(options: { components?: unknown[][]; references?: unknown[][]; referenceHeaders?: string[] } = {}) {
+async function workbook(options: { components?: unknown[][]; references?: unknown[][]; referenceHeaders?: string[]; omitLegacyManufacturer?: boolean } = {}) {
   const book = new ExcelJS.Workbook()
-  book.addWorksheet('Listado maestro').addRows([
+  const master = book.addWorksheet('Listado maestro')
+  const masterRows = [
     ['TAG ACTIVO', 'Nombre', 'Código CA', 'Categoría N4', 'Tipo', 'Fabricante / modelo', 'Denominación de etapa'],
     ['TEST-01', 'Modelo uno', '08', 'Bombas', 'Bomba de pulpa', 'Pendiente', 'Molienda primaria'],
     ['TEST-02', 'Modelo dos', '08', 'Bombas', 'Bomba de pulpa', 'Pendiente', 'Molienda primaria'],
-  ])
+  ]
+  master.addRows(options.omitLegacyManufacturer ? masterRows.map(row => row.filter((_, index) => index !== 5)) : masterRows)
   book.addWorksheet('Categorías N4').addRows([['Código CA', 'Categoría N4'], ['08', 'Bombas']])
   book.addWorksheet('Características').addRows([['TAG ACTIVO', 'Componentes principales'], ...(options.components ?? [['TEST-01', 'Motor, carcasa y eje.']])])
   book.addWorksheet('Especificaciones').addRows([
@@ -37,6 +39,13 @@ async function workbook(options: { components?: unknown[][]; references?: unknow
 }
 
 describe('Componentes y fabricantes de referencia por TAG', () => {
+  it('admite la plantilla nueva de seis columnas sin Fabricante / modelo', async () => {
+    const parsed = await parseMasterWorkbook(await workbook({ omitLegacyManufacturer: true, references: [['TEST-01', 'Siemens', '', '']] }))
+    expect(parsed.issues).toEqual([])
+    expect(parsed.rows).toHaveLength(2)
+    expect(parsed.rows[0]).toMatchObject({ stage: 'Molienda primaria', referenceManufacturers: [{ nombre: 'Siemens', alcance: null, sitioWeb: null }] })
+  })
+
   it('mantiene el formato anterior y permite modelos sin componentes', async () => {
     const parsed = await parseMasterWorkbook(await workbook())
     expect(parsed.issues).toEqual([])

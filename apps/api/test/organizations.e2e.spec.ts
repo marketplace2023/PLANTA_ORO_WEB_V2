@@ -59,7 +59,7 @@ describe('Proveedores, marketplace y servicios profesionales (e2e)', () => {
     otherFamilyCode = families.find((f) => f.code !== familyCode)!.code
     const model = await t.model(typeCode, 'E2E Bolas mkt', 'E2E Maker Mkt')
     modelId = model.id
-    manufacturerId = model.manufacturerId!
+    manufacturerId = (await get('/api/v1/catalog/manufacturers').expect(200)).body.find((m: { name: string }) => m.name === 'E2E Maker Mkt').id
 
     provA = (await mkProvider({ organizationName: 'E2E Alfa Repuestos', taxId: 'A-1', certifications: ['ISO 9001'], stageCodes: ['D06', 'D07'], familyCodes: [familyCode], ownerEmail: `owner@e2e.fur.local` })).id
     provB = (await mkProvider({ organizationName: 'E2E Beta Industrial', taxId: 'B-1', countryCode: 'CL', stageCodes: ['D11'], ownerEmail: 'owner2@e2e.fur.local' })).id
@@ -272,7 +272,7 @@ describe('Proveedores, marketplace y servicios profesionales (e2e)', () => {
     it('la familia se deduce del modelo; debe coincidir si se indica; y se exige alguna de las dos', async () => {
       const fromModel = await mkListing(provA, { assetFamilyCode: undefined, assetModelId: modelId, title: 'Molino de bolas usado' })
       expect(fromModel.family.code).toBe(familyCode)
-      expect(fromModel.model).toMatchObject({ id: modelId, manufacturer: { id: manufacturerId } })
+      expect(fromModel.model).toMatchObject({ id: modelId, manufacturer: { name: 'E2E Maker Mkt' } })
       expect(fromModel.type.code).toBe(typeCode)
       await send('post', `/api/v1/providers/${provA}/listings`, owner, { title: 'x', assetModelId: modelId, assetFamilyCode: otherFamilyCode }).expect(400)
       await send('post', `/api/v1/providers/${provA}/listings`, owner, { title: 'x' }).expect(400)

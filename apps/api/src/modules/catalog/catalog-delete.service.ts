@@ -3,7 +3,7 @@ import { BadRequestException, ConflictException, Inject, Injectable, Logger } fr
 import { asc, eq, getTableColumns, inArray, sql } from 'drizzle-orm'
 import type { AppRequest } from '../../common/types'
 import { DB, type Database } from '../../database/database.module'
-import { assetFamilies, assetModels, assetModelStages, assetModelNetworks, assetTypes, auditEvents, listings, manufacturers, modelVariableValues } from '../../database/schema'
+import { assetFamilies, assetModels, assetModelStages, assetModelNetworks, assetTypes, auditEvents, listings, modelVariableValues } from '../../database/schema'
 import { StorageService } from '../documents/storage.service'
 import { parseCatalogDeleteWorkbook } from './catalog-delete.xlsx'
 import type { ImportIssue } from './catalog-import.xlsx'
@@ -19,12 +19,12 @@ export type CatalogDeletePreview = {
 
 async function snapshot(db: Connection, tags: string[]) {
   const models = await db.select({
-    model: getTableColumns(assetModels), family: assetFamilies.name, type: assetTypes.name, manufacturer: manufacturers.name,
+    model: getTableColumns(assetModels), family: assetFamilies.name, type: assetTypes.name,
     assets: sql<number>`(select count(*)::int from asset.assets a where a.asset_model_id = ${assetModels.id})`,
     inventoryItems: sql<number>`(select count(*)::int from inventory.items i where i.catalog_item_id = ${assetModels.id})`,
     listings: sql<number>`(select count(*)::int from marketplace.listings l where l.asset_model_id = ${assetModels.id})`,
   }).from(assetModels).innerJoin(assetTypes, eq(assetTypes.id, assetModels.assetTypeId))
-    .innerJoin(assetFamilies, eq(assetFamilies.id, assetTypes.familyId)).leftJoin(manufacturers, eq(manufacturers.id, assetModels.manufacturerId))
+    .innerJoin(assetFamilies, eq(assetFamilies.id, assetTypes.familyId))
     .where(inArray(assetModels.catalogTag, tags)).orderBy(asc(assetModels.id))
   const ids = models.map(row => row.model.id)
   const stages = ids.length ? await db.select().from(assetModelStages).where(inArray(assetModelStages.assetModelId, ids)) : []

@@ -36,8 +36,8 @@ describe('Eliminar del catálogo (e2e)', () => {
     famId = (await post(`${C}/families`, { code: 'E2E_DEL_F', name: 'E2E Familia a eliminar' }).expect(201)).body.id
     typeId = (await post(`${C}/types`, { familyCode: 'E2E_DEL_F', code: 'E2E_DEL_T', name: 'E2E Tipo a eliminar', stageCodes: ['D06'] }).expect(201)).body.id
     makerId = (await post(`${C}/manufacturers`, { name: 'E2E Fabricante a eliminar' }).expect(201)).body.id
-    usedModelId = (await post(`${C}/models`, { typeCode: 'E2E_DEL_T', manufacturerId: makerId, modelName: 'E2E Modelo en uso', networkCodes: ['FUR-PROC'] }).expect(201)).body.id
-    freeModelId = (await post(`${C}/models`, { typeCode: 'E2E_DEL_T', manufacturerId: makerId, modelName: 'E2E Modelo repetido', networkCodes: ['FUR-PROC'] }).expect(201)).body.id
+    usedModelId = (await post(`${C}/models`, { typeCode: 'E2E_DEL_T', modelName: 'E2E Modelo en uso', networkCodes: ['FUR-PROC'] }).expect(201)).body.id
+    freeModelId = (await post(`${C}/models`, { typeCode: 'E2E_DEL_T', modelName: 'E2E Modelo repetido', networkCodes: ['FUR-PROC'] }).expect(201)).body.id
     // Un activo de planta que usa el primer modelo.
     await http()
       .post('/api/v1/plants/e2e-del1/assets')
@@ -78,9 +78,9 @@ describe('Eliminar del catálogo (e2e)', () => {
       expect(res.body.message).toMatch(/tiene 2 modelo\(s\)/)
     })
 
-    it('un fabricante usado por modelos', async () => {
-      const res = await del(`${C}/manufacturers/${makerId}`).expect(409)
-      expect(res.body.message).toMatch(/lo usan 2 modelo\(s\)/)
+    it('los modelos ya no dependen del antiguo maestro de fabricantes', async () => {
+      const refs = await http().get(`${C}/manufacturers`).expect(200)
+      expect(refs.body.some((m: { id: string }) => m.id === makerId)).toBe(false)
     })
 
     it('una familia con tipos', async () => {
@@ -107,7 +107,7 @@ describe('Eliminar del catálogo (e2e)', () => {
 
     it('al quedar sin dependencias, se eliminan fabricante, tipo y familia (en ese orden de dependencia)', async () => {
       // El modelo en uso sigue protegido: primero se le quita el fabricante, lo único que bloqueaba al fabricante.
-      await http().patch(`${C}/models/${usedModelId}`).set('Authorization', bearer(admin)).send({ manufacturerId: null }).expect(200)
+      await http().patch(`${C}/models/${usedModelId}`).set('Authorization', bearer(admin)).send({ technicalData: { fabricantesReferencia: [] } }).expect(200)
       await del(`${C}/manufacturers/${makerId}`).expect(204)
       expect(await t.db.select().from(manufacturers).where(eq(manufacturers.id, makerId))).toHaveLength(0)
 

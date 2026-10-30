@@ -195,7 +195,6 @@ export class CatalogAdminController {
     const [before] = await this.db.select().from(manufacturers).where(eq(manufacturers.id, id))
     if (!before) throw new NotFoundException('Fabricante no encontrado')
     await this.assertUnused(`No se puede eliminar el fabricante «${before.name}»:`, [
-      { table: assetModels, column: assetModels.manufacturerId, id, text: (n) => `lo usan ${n} modelo(s). Cámbialos de fabricante o elimínalos primero.` },
       { table: assets, column: assets.manufacturerId, id, text: (n) => `lo usan ${n} activo(s) de planta.` },
     ])
     await this.db.delete(manufacturers).where(eq(manufacturers.id, id))
@@ -203,12 +202,6 @@ export class CatalogAdminController {
   }
 
   // ---------- Modelos ----------
-
-  private async assertManufacturer(id: string | null | undefined) {
-    if (!id) return
-    const [m] = await this.db.select({ id: manufacturers.id }).from(manufacturers).where(eq(manufacturers.id, id))
-    if (!m) throw validationError('manufacturerId', 'El fabricante no existe')
-  }
 
   /**
    * Etapas donde participa un modelo: deben ser un subconjunto de las posibles del tipo. Devuelve los ids a guardar; vacío =
@@ -266,18 +259,17 @@ export class CatalogAdminController {
   async createModel(@Body(new ZodValidationPipe(createModelSchema)) dto: CreateModelDto, @Req() req: AppRequest) {
     const [type] = await this.db.select({ id: assetTypes.id }).from(assetTypes).where(eq(assetTypes.code, dto.typeCode))
     if (!type) throw validationError('typeCode', `El tipo ${dto.typeCode} no existe`)
-    await this.assertManufacturer(dto.manufacturerId)
     const stageIds = await this.modelStageIds(type.id, dto.stageCodes ?? []) // valida antes de crear nada
     const networkIds = await this.masterIds('networkCodes', dto.networkCodes ?? [])
 
     const row = await this.db.transaction(async tx => {
       const [created] = await tx.insert(assetModels)
-        .values({ assetTypeId: type.id, manufacturerId: dto.manufacturerId, modelName: dto.modelName, specifications: dto.specifications, technicalData: dto.technicalData })
+        .values({ assetTypeId: type.id, modelName: dto.modelName, specifications: dto.specifications, technicalData: dto.technicalData })
         .returning()
       await this.replaceModelLinks(tx, created.id, stageIds, networkIds)
       return created
-    }).catch((e) => (isUniqueViolation(e) ? this.conflict(`el modelo ${dto.modelName} para ese tipo, fabricante y etapa`) : Promise.reject(e)))
-    await this.record(req, 'asset_model', row.id, 'created', { new: { typeCode: dto.typeCode, modelName: dto.modelName, manufacturerId: dto.manufacturerId, stageCodes: dto.stageCodes, networkCodes: dto.networkCodes ?? [] } })
+    }).catch((e) => (isUniqueViolation(e) ? this.conflict(`el modelo ${dto.modelName} para ese tipo, fabricantes de referencia y etapa`) : Promise.reject(e)))
+    await this.record(req, 'asset_model', row.id, 'created', { new: { typeCode: dto.typeCode, modelName: dto.modelName, stageCodes: dto.stageCodes, networkCodes: dto.networkCodes ?? [] } })
     return { ...row, ...(await this.stagesOf(row.id, type.id)), networkCodes: await this.networksOf(row.id) }
   }
 
@@ -285,7 +277,6 @@ export class CatalogAdminController {
   async updateModel(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(updateModelSchema)) dto: UpdateModelDto, @Req() req: AppRequest) {
     const [before] = await this.db.select().from(assetModels).where(eq(assetModels.id, id))
     if (!before) throw new NotFoundException('Modelo no encontrado')
-    await this.assertManufacturer(dto.manufacturerId)
     const { stageCodes, networkCodes, ...fields } = dto
     const stageIds = stageCodes ? await this.modelStageIds(before.assetTypeId, stageCodes) : undefined
     const networkIds = networkCodes ? await this.masterIds('networkCodes', networkCodes) : undefined
@@ -297,7 +288,7 @@ export class CatalogAdminController {
       const [updated] = Object.keys(fields).length ? await tx.update(assetModels).set(fields).where(eq(assetModels.id, id)).returning() : [current]
       await this.replaceModelLinks(tx, id, stageIds, networkIds)
       return updated
-    }).catch((e) => (isUniqueViolation(e) ? this.conflict(`el modelo ${dto.modelName ?? before.modelName} para ese tipo, fabricante y etapa`) : Promise.reject(e)))
+    }).catch((e) => (isUniqueViolation(e) ? this.conflict(`el modelo ${dto.modelName ?? before.modelName} para ese tipo, fabricantes de referencia y etapa`) : Promise.reject(e)))
     await this.record(req, 'asset_model', id, dto.status && dto.status !== before.status ? `status.${dto.status.toLowerCase()}` : 'updated', {
       old: { modelName: before.modelName, status: before.status, networkCodes: oldNetworkCodes },
       new: dto,
@@ -317,7 +308,7 @@ export class CatalogAdminController {
     // Los valores de «Datos del fabricante» caen en cascada; las publicaciones del marketplace quedan sin modelo.
     await this.db.delete(assetModels).where(eq(assetModels.id, id))
     if (before.imageKey) await this.storage.delete(before.imageKey).catch(() => undefined)
-    await this.record(req, 'asset_model', id, 'deleted', { old: { modelName: before.modelName, status: before.status, manufacturerId: before.manufacturerId } })
+    await this.record(req, 'asset_model', id, 'deleted', { old: { modelName: before.modelName, status: before.status } })
   }
 
   // ---------- Foto del modelo ----------

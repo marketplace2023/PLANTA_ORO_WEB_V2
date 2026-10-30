@@ -17,13 +17,13 @@ export type ImportIssue = { sheet: string; row: number; message: string; code?: 
 export type ImportReferenceManufacturer = { nombre: string; alcance: string | null; sitioWeb: string | null }
 export type MasterRow = {
   row: number; tag: string; name: string; categoryCode: string; family: string; type: string
-  manufacturer: string; stage: string; components: string[]; specifications: Record<string, string>
+  stage: string; components: string[]; specifications: Record<string, string>
   /** null: archivo anterior sin la hoja; conservar las referencias existentes. */
   referenceManufacturers: ImportReferenceManufacturer[] | null
 }
 export type MasterWorkbook = { fingerprint: string; rows: MasterRow[]; issues: ImportIssue[]; specificationCount: number }
 const requiredHeaders: Record<string, string[]> = {
-  'Listado maestro': ['TAG ACTIVO', 'Nombre', 'Código CA', 'Categoría N4', 'Tipo', 'Fabricante / modelo', 'Denominación de etapa'],
+  'Listado maestro': ['TAG ACTIVO', 'Nombre', 'Código CA', 'Categoría N4', 'Tipo', 'Denominación de etapa'],
   'Categorías N4': ['Código CA', 'Categoría N4'],
   'Características': ['TAG ACTIVO', 'Componentes principales'],
   'Especificaciones': ['TAG ACTIVO', 'Parámetro técnico', 'Unidad', 'Valor / estado'],
@@ -92,14 +92,10 @@ export async function parseMasterWorkbook(buffer: Buffer): Promise<MasterWorkboo
     for (const [field, max] of [['TAG ACTIVO', 100], ['Nombre', 200], ['Tipo', 160], ['Denominación de etapa', 200]] as const) {
       if (!v[field] || v[field].length > max) issues.push({ sheet: 'Listado maestro', row, message: `«${field}» es obligatorio y admite hasta ${max} caracteres` })
     }
-    const manufacturer = cleanManufacturerName(v['Fabricante / modelo'])
-    if (manufacturer.length < 2 || manufacturer.length > 160 || /[()]/.test(manufacturer)) {
-      issues.push({ sheet: 'Listado maestro', row, message: 'El fabricante debe tener entre 2 y 160 caracteres fuera de los paréntesis y las notas deben tener paréntesis balanceados' })
-    }
     if (tags.has(tag)) issues.push({ sheet: 'Listado maestro', row, message: `TAG repetido: ${tag}` })
     if (!families.has(categoryCode)) issues.push({ sheet: 'Listado maestro', row, message: `Código CA ${categoryCode} ausente en «Categorías N4»` })
     tags.add(tag)
-    rows.push({ row, tag, name: v.Nombre, categoryCode, family: families.get(categoryCode) ?? '', type: v.Tipo, manufacturer, stage: v['Denominación de etapa'], components: [], specifications: {}, referenceManufacturers: tables.has('Fabricantes de referencia') ? [] : null })
+    rows.push({ row, tag, name: v.Nombre, categoryCode, family: families.get(categoryCode) ?? '', type: v.Tipo, stage: v['Denominación de etapa'], components: [], specifications: {}, referenceManufacturers: tables.has('Fabricantes de referencia') ? [] : null })
   }
   if (!rows.length || rows.length > 2_000) issues.push({ sheet: 'Listado maestro', row: 1, message: 'El listado debe contener entre 1 y 2.000 activos' })
   const byTag = new Map(rows.map(r => [r.tag, r]))

@@ -107,27 +107,22 @@ describe('Administrar catálogo', () => {
       await waitFor(() => expect(body(m, 'POST', '/catalog/types')).toEqual({ code: 'MOLINO_SAG', name: 'Molino SAG', familyCode: 'MOLINOS' }))
     })
 
-    it('crear fabricante: normaliza los opcionales vacíos', async () => {
-      const m = setup({ 'POST /catalog/manufacturers': { status: 201, body: {} } })
+    it('muestra los fabricantes derivados de las fichas sin alta de marcas independientes', async () => {
+      setup()
       renderWithProviders(<AdminCatalogPage />, { route: '/admin/catalog?tab=manufacturers' })
       expect(await screen.findByText('Metso')).toBeInTheDocument()
-      await userEvent.click(screen.getByRole('button', { name: /Nuevo fabricante/ }))
-      const dialog = await screen.findByRole('dialog')
-      await userEvent.type(within(dialog).getByLabelText('Nombre'), 'Weir')
-      await userEvent.click(within(dialog).getByRole('button', { name: 'Crear fabricante' }))
-      await waitFor(() => expect(body(m, 'POST', '/catalog/manufacturers')).toEqual({ name: 'Weir' }))
+      expect(screen.queryByRole('button', { name: /Nuevo fabricante/ })).not.toBeInTheDocument()
+      expect(screen.getByText(/Se administran desde cada modelo/)).toBeInTheDocument()
     })
 
-    it('errores por campo del servidor (web inválida) aparecen bajo el campo', async () => {
-      setup({ 'POST /catalog/manufacturers': { status: 400, body: { message: 'Datos inválidos', errors: [{ path: 'website', message: 'URL inválida' }] } } })
+    it('permite reintentar la consulta de referencias si falla', async () => {
+      let fail = true
+      setup({ 'GET /catalog/manufacturers': () => fail ? { status: 500, body: {} } : { body: [{ id: 'ref1', name: 'WEG' }] } })
       renderWithProviders(<AdminCatalogPage />, { route: '/admin/catalog?tab=manufacturers' })
-      await userEvent.click(await screen.findByRole('button', { name: /Nuevo fabricante/ }))
-      const dialog = await screen.findByRole('dialog')
-      await userEvent.type(within(dialog).getByLabelText('Nombre'), 'X Corp')
-      await userEvent.type(within(dialog).getByLabelText('Sitio web'), 'javascript:alert(1)')
-      await userEvent.click(within(dialog).getByRole('button', { name: 'Crear fabricante' }))
-      expect(await within(dialog).findByText('URL inválida')).toBeInTheDocument()
-      expect(within(dialog).getByLabelText('Sitio web')).toHaveAttribute('aria-invalid', 'true')
+      expect(await screen.findByRole('alert')).toBeInTheDocument()
+      fail = false
+      await userEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+      expect(await screen.findByText('WEG')).toBeInTheDocument()
     })
   })
 
@@ -168,10 +163,19 @@ describe('Administrar catálogo', () => {
       await userEvent.click(within(dialog).getByLabelText(/Especificaciones/))
       await userEvent.paste('{"powerKw": 5600}')
       await userEvent.click(within(dialog).getByRole('button', { name: 'Crear modelo' }))
-      await waitFor(() => expect(body(m, 'POST', '/catalog/models')).toEqual({ typeCode: 'MOLINO_BOLAS', modelName: 'Bolas 20x32 ft', specifications: { powerKw: 5600 } }))
+      await waitFor(() => expect(body(m, 'POST', '/catalog/models')).toEqual({ typeCode: 'MOLINO_BOLAS', modelName: 'Bolas 20x32 ft', specifications: { powerKw: 5600 }, technicalData: { fabricantesReferencia: [] } }))
     })
 
-    it('editar: puede desactivar un modelo (no se borra) y quitar el fabricante', async () => {
+    it('muestra los errores del servidor en referencias dentro del formulario', async () => {
+      setup({ 'PATCH /catalog/models/m1': { status: 400, body: { message: 'Datos inválidos', errors: [{ path: 'technicalData.fabricantesReferencia.0.sitioWeb', message: 'La web debe usar HTTP(S)' }] } } })
+      renderWithProviders(<AdminCatalogPage />, { route: '/admin/catalog?tab=models' })
+      await userEvent.click(await screen.findByRole('button', { name: 'Editar Bolas 16.5x24 ft' }))
+      const dialog = await screen.findByRole('dialog')
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Guardar cambios' }))
+      expect(await within(dialog).findByText('La web debe usar HTTP(S)')).toBeInTheDocument()
+    })
+
+    it('editar: puede desactivar un modelo y agregar referencias sin fabricante principal', async () => {
       const m = setup({ 'PATCH /catalog/models/m1': { body: {} } })
       renderWithProviders(<AdminCatalogPage />, { route: '/admin/catalog?tab=models' })
       await userEvent.click(await screen.findByRole('button', { name: 'Editar Bolas 16.5x24 ft' }))
@@ -180,10 +184,11 @@ describe('Administrar catálogo', () => {
 
       await userEvent.click(within(dialog).getByRole('combobox', { name: 'Estado' }))
       await userEvent.click(await screen.findByRole('option', { name: 'Inactivo' }))
-      await userEvent.click(within(dialog).getByRole('combobox', { name: 'Fabricante' }))
-      await userEvent.click(await screen.findByRole('option', { name: 'Sin fabricante (genérico)' }))
+      expect(within(dialog).queryByRole('combobox', { name: 'Fabricante' })).not.toBeInTheDocument()
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Añadir fabricante de referencia' }))
+      await userEvent.type(within(dialog).getByRole('textbox', { name: 'Fabricante 1' }), 'WEG')
       await userEvent.click(within(dialog).getByRole('button', { name: 'Guardar cambios' }))
-      await waitFor(() => expect(body(m, 'PATCH', '/catalog/models/m1')).toMatchObject({ status: 'INACTIVE', manufacturerId: null, modelName: 'Bolas 16.5x24 ft', specifications: { diameterFt: 16.5, powerKw: 3000 } }))
+      await waitFor(() => expect(body(m, 'PATCH', '/catalog/models/m1')).toMatchObject({ status: 'INACTIVE', technicalData: { fabricantesReferencia: [{ nombre: 'WEG', alcance: null, sitioWeb: null }] }, modelName: 'Bolas 16.5x24 ft', specifications: { diameterFt: 16.5, powerKw: 3000 } }))
     })
   })
 })

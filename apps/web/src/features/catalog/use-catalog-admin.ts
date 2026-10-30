@@ -20,9 +20,9 @@ export const useUpdateType = () => useCatalogMutation(({ id, ...v }: { id: strin
 export const useCreateManufacturer = () => useCatalogMutation((v: { name: string; countryCode?: string; website?: string }) => send('POST', '/catalog/manufacturers', v))
 export const useUpdateManufacturer = () => useCatalogMutation(({ id, ...v }: { id: string; name?: string; countryCode?: string | null; website?: string | null }) => send('PATCH', `/catalog/manufacturers/${id}`, v))
 export const useCreateModel = () =>
-  useCatalogMutation((v: { typeCode: string; manufacturerId?: string; modelName: string; specifications?: Record<string, unknown> }) => send<{ id: string }>('POST', '/catalog/models', v))
+  useCatalogMutation((v: { typeCode: string; modelName: string; technicalData?: Record<string, unknown>; specifications?: Record<string, unknown> }) => send<{ id: string }>('POST', '/catalog/models', v))
 export const useUpdateModel = () =>
-  useCatalogMutation(({ id, ...v }: { id: string; modelName?: string; manufacturerId?: string | null; specifications?: Record<string, unknown>; status?: 'ACTIVE' | 'INACTIVE' }) => send('PATCH', `/catalog/models/${id}`, v))
+  useCatalogMutation(({ id, ...v }: { id: string; modelName?: string; technicalData?: Record<string, unknown>; specifications?: Record<string, unknown>; status?: 'ACTIVE' | 'INACTIVE' }) => send('PATCH', `/catalog/models/${id}`, v))
 
 /** Foto del modelo (solo administrador). Reemplaza la anterior si ya había una. */
 export const useUploadModelImage = () => useCatalogMutation(({ id, file }: { id: string; file: File }) => api<{ id: string; imageUrl: string }>(`/catalog/models/${id}/image`, { method: 'POST', ...formBody({}, file) }))

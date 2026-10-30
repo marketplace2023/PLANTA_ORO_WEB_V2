@@ -99,7 +99,7 @@ export class AssetsService {
         typeDescription: assetTypes.description,
         familyCode: assetFamilies.code,
         familyName: assetFamilies.name,
-        manufacturerName: manufacturers.name,
+        manufacturerName: sql<string | null>`coalesce(${manufacturers.name}, catalog.reference_manufacturer_names(${assetModels.technicalData}))`,
         stageCode: stageMaster.code,
         stageName: stageMaster.name,
         stageOverride: plantStages.nameOverride,
@@ -109,7 +109,7 @@ export class AssetsService {
       .innerJoin(assetModels, eq(assetModels.id, assets.assetModelId))
       .innerJoin(assetTypes, eq(assetTypes.id, assetModels.assetTypeId))
       .innerJoin(assetFamilies, eq(assetFamilies.id, assetTypes.familyId))
-      .leftJoin(manufacturers, eq(manufacturers.id, sql`coalesce(${assets.manufacturerId}, ${assetModels.manufacturerId})`))
+      .leftJoin(manufacturers, eq(manufacturers.id, assets.manufacturerId))
       .leftJoin(plantStages, eq(plantStages.id, assets.plantStageId))
       .leftJoin(stageMaster, eq(stageMaster.id, plantStages.stageMasterId))
   }

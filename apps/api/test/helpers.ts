@@ -106,18 +106,16 @@ export class TestDb {
   /** Modelo de catálogo propio de los tests (nombre con prefijo E2E, limpiado al final). */
   async model(typeCode: string, modelName: string, maker?: string) {
     const [type] = await this.db.select().from(schema.assetTypes).where(eq(schema.assetTypes.code, typeCode))
-    let manufacturerId: string | undefined
     if (maker) {
       const [m] = await this.db
         .insert(schema.manufacturers)
         .values({ name: maker, countryCode: 'PE' })
         .onConflictDoNothing({ target: schema.manufacturers.name })
         .returning()
-      manufacturerId = m?.id ?? (await this.db.select().from(schema.manufacturers).where(eq(schema.manufacturers.name, maker)))[0].id
     }
     const [row] = await this.db
       .insert(schema.assetModels)
-      .values({ assetTypeId: type.id, manufacturerId, modelName, specifications: { powerKw: 100 } })
+      .values({ assetTypeId: type.id, technicalData: { fabricantesReferencia: maker ? [{ nombre: maker, alcance: null, sitioWeb: null }] : [] }, modelName, specifications: { powerKw: 100 } })
       .returning()
     return row
   }

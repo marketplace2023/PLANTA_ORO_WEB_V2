@@ -43,7 +43,7 @@ describe('Catálogo global de activos (e2e)', () => {
     expect(byFamily.body.items[0]).toMatchObject({
       family: { code: 'MOLINOS' },
       type: { code: 'MOLINO_BOLAS', name: 'Molino de bolas' },
-      manufacturer: { countryCode: 'PE' },
+      referenceManufacturers: [{ nombre: 'E2E Fabricante Uno' }],
       specifications: { powerKw: 100 },
     })
 

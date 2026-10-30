@@ -6,7 +6,7 @@ import { isUniqueViolation } from '../src/common/db-errors'
 import { assetFamilies, assetModels, assetModelStages, assetTypes, assetTypeStages, auditEvents, manufacturers, stageMaster } from '../src/database/schema'
 import { bearer, createApp, login, type Session, TestDb } from './helpers'
 
-type Input = { tag: string; stage: string; material?: string; missingSpecifications?: boolean }
+type Input = { tag: string; stage: string; material?: string; missingSpecifications?: boolean; references?: string[] }
 const ROWS: Input[] = [{ tag: 'E2E-STAGE-01', stage: 'Molienda primaria' }, { tag: 'E2E-STAGE-02', stage: 'Molienda secundaria' }]
 async function workbook(rows = ROWS) {
   const book = new ExcelJS.Workbook()
@@ -17,6 +17,10 @@ async function workbook(rows = ROWS) {
   book.addWorksheet('Categorías N4').addRows([['Código CA', 'Categoría N4'], ['96', 'E2E Stage familia']])
   book.addWorksheet('Características').addRow(['TAG ACTIVO', 'Componentes principales'])
   book.addWorksheet('Especificaciones').addRows([['TAG ACTIVO', 'Parámetro técnico', 'Unidad', 'Valor / estado'], ...rows.filter(r => !r.missingSpecifications).map(r => [r.tag, 'Material', '', r.material ?? 'Acero'])])
+  book.addWorksheet('Fabricantes de referencia').addRows([
+    ['TAG ACTIVO', 'Fabricante', 'Descripción', 'Sitio web'],
+    ...rows.flatMap(row => (row.references ?? []).map(name => [row.tag, name, '', ''])),
+  ])
   return Buffer.from(await book.xlsx.writeBuffer())
 }
 
@@ -100,21 +104,31 @@ describe('Identidad del catálogo por tipo, fabricante, nombre y etapa', () => {
     expect(await models()).toEqual(before)
   })
 
-  it('unifica variantes de fabricante cuando sus modelos coinciden solo en etapas diferentes', async () => {
+  it('compara conjuntos de referencias sin importar orden, mayúsculas ni nombres repetidos', async () => {
+    const file = await workbook([
+      { ...ROWS[0], references: ['Siemens', 'ABB'] },
+      { ...ROWS[1], stage: ROWS[0].stage, references: [' abb ', 'SIEMENS', 'ABB'] },
+    ]), p = await preview(file).expect(201)
+    expect(p.body.issues).toHaveLength(1)
+    expect(p.body.issues[0].code).toBe('DUPLICATE_MODEL_IDENTITY')
+    await apply(file, p.body.fingerprint).expect(400)
+    await apply(file, p.body.fingerprint, { allowDuplicateModels: 'true' }).expect(201)
+    expect(await models()).toHaveLength(2)
+  })
+
+  it('mantiene referencias distintas independientes sin usar la columna antigua', async () => {
     const before = await importRows()
-    const variants = await t.db.insert(manufacturers).values([{ name: 'E2E Stage fabricante (uno)' }, { name: 'E2E Stage fabricante (dos)' }]).returning()
-    for (let i = 0; i < before.length; i++) await t.db.update(assetModels).set({ manufacturerId: variants[i].id }).where(eq(assetModels.id, before[i].id))
-    const file = await workbook([{ tag: 'E2E-STAGE-03', stage: 'Clasificación (hidrociclones)' }]), p = await preview(file).expect(201)
+    await t.db.update(assetModels).set({ technicalData: { fabricantesReferencia: [{ nombre: 'E2E Otro fabricante' }] } }).where(eq(assetModels.id, before[0].id))
+    const file = await workbook([{ tag: 'E2E-STAGE-03', stage: ROWS[0].stage }]), p = await preview(file).expect(201)
     expect(p.body.issues).toEqual([])
-    expect(p.body.summary.manufacturers.merged).toBe(2)
     await apply(file, p.body.fingerprint).expect(201)
-    expect(new Set((await models()).map(m => m.manufacturerId)).size).toBe(1)
+    expect(await models()).toHaveLength(3)
   })
 
   it('protege también las altas y ediciones manuales, incluidas etapas heredadas', async () => {
     const [model] = await importRows()
     const [type] = await t.db.select().from(assetTypes).where(eq(assetTypes.id, model.assetTypeId))
-    const dto = { typeCode: type.code, manufacturerId: model.manufacturerId, modelName: model.modelName }
+    const dto = { typeCode: type.code, technicalData: model.technicalData, modelName: model.modelName }
     await post('models', dto).expect(409) // hereda D05 y D06 y se solapa con los dos modelos
     await patch(`types/${type.id}`, { stageCodes: ['D05', 'D06', 'D07'] }).expect(200)
     const created = (await post('models', { ...dto, stageCodes: ['D07'] }).expect(201)).body
@@ -135,7 +149,7 @@ describe('Identidad del catálogo por tipo, fabricante, nombre y etapa', () => {
     const [base] = await importRows()
     const [stage] = await t.db.select().from(stageMaster).where(eq(stageMaster.code, 'D05'))
     const insert = () => t.db.transaction(async tx => {
-      const [model] = await tx.insert(assetModels).values({ assetTypeId: base.assetTypeId, manufacturerId: base.manufacturerId, modelName: 'E2E Stage concurrencia' }).returning()
+      const [model] = await tx.insert(assetModels).values({ assetTypeId: base.assetTypeId, technicalData: base.technicalData, modelName: 'E2E Stage concurrencia' }).returning()
       await tx.insert(assetModelStages).values({ assetModelId: model.id, stageMasterId: stage.id })
     })
     const results = await Promise.allSettled([insert(), insert()])
@@ -205,19 +219,14 @@ describe('Identidad del catálogo por tipo, fabricante, nombre y etapa', () => {
     const stored = await models(), standard = stored.find(m => !m.duplicateIdentityAllowed)!, exception = stored.find(m => m.duplicateIdentityAllowed)!
     await t.db.delete(assetModels).where(eq(assetModels.id, standard.id))
     const [type] = await t.db.select().from(assetTypes).where(eq(assetTypes.id, exception.assetTypeId))
-    await post('models', { typeCode: type.code, manufacturerId: exception.manufacturerId, modelName: exception.modelName, stageCodes: ['D05'] }).expect(409)
+    await post('models', { typeCode: type.code, technicalData: exception.technicalData, modelName: exception.modelName, stageCodes: ['D05'] }).expect(409)
     await patch(`models/${exception.id}`, { specifications: { Material: 'Otro material' } }).expect(200)
     expect(await models()).toHaveLength(1)
   })
 
-  it('aceptar inserciones duplicadas no permite colisiones nuevas entre modelos anteriores al unificar fabricantes', async () => {
+  it('un cambio manual de referencias no permite introducir una coincidencia nueva', async () => {
     const [base] = await importRows([ROWS[0]])
-    const [variant] = await t.db.insert(manufacturers).values({ name: 'E2E Stage fabricante (otra)' }).returning()
-    await t.db.insert(assetModels).values({ assetTypeId: base.assetTypeId, manufacturerId: variant.id, modelName: base.modelName, catalogTag: 'E2E-STAGE-OLD', duplicateIdentityAllowed: true })
-    const file = await workbook([ROWS[1]]), p = await preview(file).expect(201)
-    expect(p.body.issues).toContainEqual(expect.objectContaining({ message: expect.stringContaining('comparten tipo, fabricante, nombre') }))
-    expect(p.body.issues.some((i: { code?: string }) => i.code === 'DUPLICATE_MODEL_IDENTITY')).toBe(false)
-    await apply(file, p.body.fingerprint, { allowDuplicateModels: 'true' }).expect(400)
-    expect(await t.db.select().from(manufacturers).where(eq(manufacturers.id, variant.id))).toHaveLength(1)
+    const [other] = await t.db.insert(assetModels).values({ assetTypeId: base.assetTypeId, technicalData: { fabricantesReferencia: [{ nombre: 'Otro' }] }, modelName: base.modelName }).returning()
+    await patch(`models/${other.id}`, { technicalData: {} }).expect(409)
   })
 })

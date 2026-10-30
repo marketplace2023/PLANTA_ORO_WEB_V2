@@ -253,6 +253,13 @@
       "when": 1793203585977,
       "tag": "0035_import_duplicate_models",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1793302535022,
+      "tag": "0036_reference_manufacturers",
+      "breakpoints": true
     }
   ]
 }

@@ -159,7 +159,7 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
               <SelectContent>
                 {models.data?.items.map((m) => (
                   <SelectItem key={m.id} value={m.id}>
-                    {m.type.name} · {m.manufacturer?.name ?? 'Genérico'} · {m.modelName}
+                    {m.type.name} · {m.modelName}
                   </SelectItem>
                 ))}
               </SelectContent>

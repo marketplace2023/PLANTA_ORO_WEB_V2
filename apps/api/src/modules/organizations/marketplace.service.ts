@@ -5,13 +5,15 @@ import { validationError } from '../../common/errors'
 import { escapeLike, pageOf } from '../../common/pagination'
 import type { AppRequest, AuthUser } from '../../common/types'
 import { DB, type Database } from '../../database/database.module'
-import { assetFamilies, assetModels, assetTypes, listings, listingStages, manufacturers, providers, stageMaster } from '../../database/schema'
+import { assetFamilies, assetModels, assetTypes, listings, listingStages, providers, stageMaster } from '../../database/schema'
 import { AuditService } from '../audit/audit.service'
 import { inspectImage } from '../documents/image-upload'
 import { StorageService } from '../documents/storage.service'
 import { OrgAccessService } from './org-access.service'
 import type { CreateListingDto, ListListingsQuery, ListProviderListingsQuery, UpdateListingDto } from './organizations.schemas'
 import { ProvidersService, ratingOf } from './providers.service'
+
+import { referenceMatches, referenceNames } from '../catalog/reference-manufacturers'
 
 type Tx = Parameters<Parameters<Database['transaction']>[0]>[0]
 
@@ -46,8 +48,8 @@ export class MarketplaceService {
         modelName: assetModels.modelName,
         typeCode: assetTypes.code,
         typeName: assetTypes.name,
-        manufacturerId: manufacturers.id,
-        manufacturerName: manufacturers.name,
+        manufacturerId: sql<string | null>`null`,
+        manufacturerName: referenceNames,
         providerId: providers.id,
         providerName: providers.organizationName,
         providerVerified: providers.verified,
@@ -60,7 +62,6 @@ export class MarketplaceService {
       .innerJoin(assetFamilies, eq(assetFamilies.id, listings.assetFamilyId))
       .leftJoin(assetModels, eq(assetModels.id, listings.assetModelId))
       .leftJoin(assetTypes, eq(assetTypes.id, assetModels.assetTypeId))
-      .leftJoin(manufacturers, eq(manufacturers.id, assetModels.manufacturerId))
   }
 
   private async stagesFor(ids: string[]) {
@@ -128,7 +129,7 @@ export class MarketplaceService {
       eq(providers.status, 'ACTIVE'),
       q.family ? eq(assetFamilies.code, q.family) : undefined,
       q.type ? eq(assetTypes.code, q.type) : undefined,
-      q.manufacturerId ? eq(assetModels.manufacturerId, q.manufacturerId) : undefined,
+      q.manufacturerId ? referenceMatches(q.manufacturerId) : undefined,
       q.providerId ? eq(listings.providerId, q.providerId) : undefined,
       q.currency ? eq(listings.currency, q.currency) : undefined,
       q.availability ? eq(listings.availability, q.availability) : undefined,

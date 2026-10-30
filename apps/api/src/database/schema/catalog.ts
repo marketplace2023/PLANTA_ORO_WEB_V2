@@ -1,5 +1,4 @@
-import { sql } from 'drizzle-orm'
-import { boolean, check, integer, jsonb, pgSchema, primaryKey, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core'
+import { boolean, integer, jsonb, pgSchema, primaryKey, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core'
 import { createdAt, pk, updatedAt } from './common'
 import { networkMaster } from './plant'
 import { stageMaster } from './process'
@@ -90,7 +89,6 @@ export const assetModels = catalogSchema.table(
     assetTypeId: uuid('asset_type_id')
       .notNull()
       .references(() => assetTypes.id),
-    manufacturerId: uuid('manufacturer_id').references(() => manufacturers.id),
     modelName: varchar('model_name', { length: 200 }).notNull(),
     /** Identificador del registro del catálogo importado; no es el TAG de un activo de planta. */
     catalogTag: varchar('catalog_tag', { length: 100 }).unique(),
@@ -107,7 +105,6 @@ export const assetModels = catalogSchema.table(
     /** Sirve de versión en la URL de la imagen: al cambiarla, los navegadores no sirven la anterior de caché. */
     imageUpdatedAt: timestamp('image_updated_at', { withTimezone: true }),
   },
-  (t) => [check('asset_models_duplicate_identity_requires_tag', sql`not ${t.duplicateIdentityAllowed} or nullif(trim(${t.catalogTag}), '') is not null`)],
 )
 
 /**
@@ -119,6 +116,7 @@ export const assetModelStageKeys = catalogSchema.table(
   {
     assetModelId: uuid('asset_model_id').notNull().references(() => assetModels.id, { onDelete: 'cascade' }),
     assetTypeId: uuid('asset_type_id').notNull(),
+    /** Huella del conjunto de referencias, no un ID del antiguo maestro. */
     manufacturerId: uuid('manufacturer_id').notNull(),
     modelName: varchar('model_name', { length: 200 }).notNull(),
     stageMasterId: uuid('stage_master_id').notNull(),

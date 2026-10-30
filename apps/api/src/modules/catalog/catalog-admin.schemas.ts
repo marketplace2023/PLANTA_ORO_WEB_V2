@@ -14,6 +14,13 @@ const country = z
   .transform((c) => c.toUpperCase())
 const url = z.url({ protocol: /^https?$/ })
 const json = z.record(z.string(), z.unknown())
+const technicalData = z.object({
+  fabricantesReferencia: z.array(z.object({
+    nombre: z.string().trim().min(1).max(160),
+    alcance: z.string().trim().max(2000).nullable().optional(),
+    sitioWeb: z.url({ protocol: /^https?$/ }).max(2048).nullable().optional().or(z.literal('')),
+  })).max(2000).optional(),
+}).catchall(z.unknown())
 
 export const createFamilySchema = z.object({ code, name, description: text.optional(), icon: z.string().trim().max(40).optional() })
 export const updateFamilySchema = z
@@ -36,23 +43,21 @@ export const updateManufacturerSchema = z
   .partial()
   .refine((v) => Object.keys(v).length > 0, 'Indique al menos un campo')
 
-export const createModelSchema = z.object({
+export const createModelSchema = z.strictObject({
   typeCode: code,
   /** Etapas donde participa (subconjunto de las del tipo). Vacío o ausente = hereda todas las del tipo. */
   stageCodes: masterCodes.optional(),
   /** Redes propias del modelo. Vacío o ausente = sin asignar. */
   networkCodes: masterCodes.optional(),
-  manufacturerId: z.uuid().optional(),
   modelName: z.string().trim().min(1).max(200),
   specifications: json.default({}),
-  technicalData: json.default({}),
+  technicalData: technicalData.default({}),
 })
 export const updateModelSchema = z
-  .object({
+  .strictObject({
     modelName: z.string().trim().min(1).max(200),
-    manufacturerId: z.uuid().nullable(),
     specifications: json,
-    technicalData: json,
+    technicalData,
     /** Etapas donde participa (subconjunto de las del tipo). Vacío = vuelve a heredar todas las del tipo. */
     stageCodes: masterCodes,
     networkCodes: masterCodes,

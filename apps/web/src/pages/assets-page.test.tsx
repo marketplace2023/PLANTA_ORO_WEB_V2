@@ -224,7 +224,7 @@ describe('Activos Físicos (listado)', () => {
         'GET /plants/revemin-ii/stages': { body: STAGES },
         'GET /plants/revemin-ii/networks': { body: NETWORKS },
         'GET /catalog/families': { body: FAMILIES },
-        'GET /catalog/assets': { body: page([{ id: 'm1', modelName: 'Bolas 16.5x24 ft', type: { name: 'Molino de bolas' }, manufacturer: { name: 'Metso' } }]) },
+        'GET /catalog/assets': { body: page([{ id: 'm1', modelName: 'Bolas 16.5x24 ft', networkCodes: ['FUR-PTE'], type: { name: 'Molino de bolas' }, manufacturer: { name: 'Metso' } }]) },
         'GET /plants/revemin-ii/assets': { body: page([asset()]) },
         'POST /plants/revemin-ii/assets': post,
       })
@@ -246,9 +246,13 @@ describe('Activos Físicos (listado)', () => {
       renderAssets()
       const dialog = await openForm(mock as never)
 
-      expect(await within(dialog).findByRole('checkbox', { name: /FUR-IOT/ })).toBeInTheDocument()
-      expect(within(dialog).getByRole('checkbox', { name: /FUR-PTE/ })).toBeInTheDocument()
-      expect(within(dialog).queryByRole('checkbox', { name: /FUR-MNT/ })).not.toBeInTheDocument() // deshabilitada
+      const network = within(dialog).getByRole('combobox', { name: 'Red transversal' })
+      await waitFor(() => expect(network).toBeEnabled())
+      await userEvent.click(network)
+      expect(await screen.findByRole('option', { name: /FUR-IOT/ })).toBeInTheDocument()
+      expect(screen.getByRole('option', { name: /FUR-PTE/ })).toBeInTheDocument()
+      expect(screen.queryByRole('option', { name: /FUR-MNT/ })).not.toBeInTheDocument() // deshabilitada
+      await userEvent.keyboard('{Escape}')
 
       await userEvent.click(within(dialog).getByRole('combobox', { name: 'Etapa' }))
       const options = (await screen.findAllByRole('option')).map((o) => o.textContent)
@@ -262,10 +266,12 @@ describe('Activos Físicos (listado)', () => {
       const dialog = await openForm(mock as never)
 
       await userEvent.type(within(dialog).getByLabelText('Tag'), 'mb-401')
-      await userEvent.type(within(dialog).getByLabelText('Nombre'), 'Molino nuevo')
       await userEvent.click(within(dialog).getByRole('combobox', { name: 'Modelo del catálogo' }))
       await userEvent.click(await screen.findByRole('option', { name: /Bolas 16.5x24 ft/ }))
-      await userEvent.click(await within(dialog).findByRole('checkbox', { name: /FUR-IOT/ }))
+      await userEvent.clear(within(dialog).getByLabelText('Nombre'))
+      await userEvent.type(within(dialog).getByLabelText('Nombre'), 'Molino nuevo')
+      await userEvent.click(within(dialog).getByRole('combobox', { name: 'Red transversal' }))
+      await userEvent.click(await screen.findByRole('option', { name: /FUR-IOT/ }))
       await userEvent.click(within(dialog).getByRole('button', { name: 'Crear activo' }))
 
       expect(await screen.findByText('Ficha del activo')).toBeInTheDocument()

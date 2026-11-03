@@ -6,11 +6,11 @@ import { mockApi } from '@/test/fetch-mock'
 import { detail, MODELS, NETWORKS, page, STAGES } from '@/test/assets-fixtures'
 import { AssetFormDialog } from './asset-form-dialog'
 
-const template = { ...MODELS[0], specifications: { 'Potencia (kW)': '30–37', 'Tensión (V)': 480 }, technicalData: { componentes: ['Impulsor', 'Rodamientos'] } }
-function setup({ empty = false, failFirst = false } = {}) {
+const template = { ...MODELS[0], networkCodes: ['FUR-PTE'], specifications: { 'Potencia (kW)': '30–37', 'Tensión (V)': 480 }, technicalData: { componentes: ['Impulsor', 'Rodamientos'] } }
+function setup({ empty = false, failFirst = false, catalogModels = [template] } = {}) {
   let attempts = 0
   return mockApi({
-    'GET /catalog/assets': () => failFirst && attempts++ === 0 ? { status: 500, body: { message: 'Error de catálogo' } } : { body: page(empty ? [] : [template]) },
+    'GET /catalog/assets': () => failFirst && attempts++ === 0 ? { status: 500, body: { message: 'Error de catálogo' } } : { body: page(empty ? [] : catalogModels) },
     'GET /plants/revemin-ii/stages': { body: STAGES },
     'GET /plants/revemin-ii/networks': { body: NETWORKS },
     'POST /plants/revemin-ii/assets': { status: 201, body: detail() },
@@ -30,6 +30,7 @@ describe('Ficha propia del activo', () => {
     await userEvent.click(within(dialog).getByRole('combobox', { name: 'Modelo del catálogo' }))
     await userEvent.click(await screen.findByRole('option', { name: /Bolas 16.5x24 ft/ }))
     expect(within(dialog).getByLabelText('Nombre')).toHaveValue(template.modelName)
+    expect(within(dialog).getByRole('combobox', { name: 'Red transversal' })).toHaveTextContent('FUR-PTE')
     await userEvent.clear(within(dialog).getByLabelText('Nombre'))
     await userEvent.type(within(dialog).getByLabelText('Nombre'), 'Agitador instalado')
     expect(within(dialog).getByLabelText('Valor de especificación 1')).toHaveValue('30–37')
@@ -42,7 +43,7 @@ describe('Ficha propia del activo', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Crear activo' }))
     await waitFor(() => expect(onSaved).toHaveBeenCalledOnce())
     const body = JSON.parse(api.calls.find(call => call.method === 'POST')!.init.body as string)
-    expect(body).toMatchObject({ name: 'Agitador instalado', specifications: { 'Potencia (kW)': '37', 'Tensión (V)': 480 }, components: ['Impulsor instalado'] })
+    expect(body).toMatchObject({ name: 'Agitador instalado', networkCodes: ['FUR-PTE'], specifications: { 'Potencia (kW)': '37', 'Tensión (V)': 480 }, components: ['Impulsor instalado'] })
     expect(template.specifications['Potencia (kW)']).toBe('30–37')
     expect(template.technicalData.componentes).toEqual(['Impulsor', 'Rodamientos'])
   })
@@ -173,5 +174,57 @@ describe('Ficha propia del activo', () => {
     fireEvent(document.body, closedWheel)
     expect(closedWheel.defaultPrevented).toBe(true)
     expect(screen.getByRole('dialog', { name: 'Nuevo activo' })).toBeInTheDocument()
+  })
+
+  it('sugiere solo la primera red habilitada del modelo y permite reemplazarla por una sola red', async () => {
+    const api = setup({ catalogModels: [{ ...template, networkCodes: ['FUR-MNT', 'FUR-PTE', 'FUR-IOT'] }] })
+    renderWithProviders(<AssetFormDialog open onOpenChange={vi.fn()} plantSlug="revemin-ii" />)
+    await userEvent.click(await screen.findByRole('combobox', { name: 'Modelo del catálogo' }))
+    await userEvent.click(await screen.findByRole('option', { name: /Bolas 16.5x24 ft/ }))
+    const network = screen.getByRole('combobox', { name: 'Red transversal' })
+    expect(network).toHaveTextContent('FUR-PTE')
+    await userEvent.click(network)
+    expect(screen.queryByRole('option', { name: /FUR-MNT/ })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('option', { name: /FUR-IOT/ }))
+    await userEvent.type(screen.getByLabelText('Tag'), 'AG-RED')
+    await userEvent.click(screen.getByRole('button', { name: 'Crear activo' }))
+    await waitFor(() => expect(api.count('POST /plants/revemin-ii/assets')).toBe(1))
+    expect(JSON.parse(api.calls.find(call => call.method === 'POST')!.init.body as string).networkCodes).toEqual(['FUR-IOT'])
+  })
+
+  it('al cambiar de modelo limpia la red anterior si no hay ninguna habilitada en el nuevo', async () => {
+    const api = setup({ catalogModels: [template, { ...template, id: 'm2', modelName: 'Modelo sin red', networkCodes: [] }, { ...template, id: 'm3', modelName: 'Modelo de mantenimiento', networkCodes: ['FUR-MNT'] }] })
+    renderWithProviders(<AssetFormDialog open onOpenChange={vi.fn()} plantSlug="revemin-ii" />)
+    const picker = await screen.findByRole('combobox', { name: 'Modelo del catálogo' })
+    await userEvent.click(picker)
+    await userEvent.click(await screen.findByRole('option', { name: /Bolas 16.5x24 ft/ }))
+    expect(screen.getByRole('combobox', { name: 'Red transversal' })).toHaveTextContent('FUR-PTE')
+    await userEvent.click(picker)
+    await userEvent.click(await screen.findByRole('option', { name: /Modelo sin red/ }))
+    expect(screen.getByRole('combobox', { name: 'Red transversal' })).toHaveTextContent('Sin red asignada')
+    await userEvent.click(picker)
+    await userEvent.click(await screen.findByRole('option', { name: /Modelo de mantenimiento/ }))
+    expect(screen.getByRole('combobox', { name: 'Red transversal' })).toHaveTextContent('Sin red asignada')
+    await userEvent.type(screen.getByLabelText('Tag'), 'AG-SIN-RED')
+    await userEvent.click(screen.getByRole('button', { name: 'Crear activo' }))
+    await waitFor(() => expect(api.count('POST /plants/revemin-ii/assets')).toBe(1))
+    expect(JSON.parse(api.calls.find(call => call.method === 'POST')!.init.body as string).networkCodes).toEqual([])
+  })
+
+  it('conserva las redes de un activo existente hasta elegir expresamente una sola', async () => {
+    const api = setup()
+    const own = detail({ networks: NETWORKS.filter(network => network.isEnabled) })
+    const first = renderWithProviders(<AssetFormDialog open onOpenChange={vi.fn()} plantSlug="revemin-ii" asset={own} />)
+    expect(await screen.findByRole('combobox', { name: 'Red transversal' })).toHaveTextContent('Conservar redes actuales (2)')
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() => expect(api.count('PATCH /plants/revemin-ii/assets/a1')).toBe(1))
+    expect(JSON.parse(api.calls.find(call => call.method === 'PATCH')!.init.body as string).networkCodes).toEqual(['FUR-IOT', 'FUR-PTE'])
+    first.unmount()
+    renderWithProviders(<AssetFormDialog open onOpenChange={vi.fn()} plantSlug="revemin-ii" asset={own} />)
+    await userEvent.click(await screen.findByRole('combobox', { name: 'Red transversal' }))
+    await userEvent.click(await screen.findByRole('option', { name: /FUR-PTE/ }))
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() => expect(api.count('PATCH /plants/revemin-ii/assets/a1')).toBe(2))
+    expect(JSON.parse(api.calls.filter(call => call.method === 'PATCH')[1].init.body as string).networkCodes).toEqual(['FUR-PTE'])
   })
 })

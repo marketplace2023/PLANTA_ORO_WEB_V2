@@ -25,6 +25,8 @@ import { ApiError } from '@/lib/api'
 import { ASSET_CRITICALITIES, ASSET_STATUSES, criticalityLabel, statusLabel, type AssetCriticality, type AssetStatus } from '@/lib/assets'
 
 const NO_STAGE = '__none__'
+const NO_NETWORK = '__none__'
+const KEEP_NETWORKS = '__keep__'
 
 type Props = {
   open: boolean
@@ -64,7 +66,8 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
     criticality: (asset?.criticality ?? 'MEDIUM') as AssetCriticality,
     location: asset?.location ?? '',
     isPublic: asset?.isPublic ?? false,
-    networkCodes: asset?.networks.map((n) => n.code) ?? ([] as string[]),
+    // null mantiene la red sugerida por el modelo hasta que se elija otra.
+    networkCodes: asset?.networks.map((n) => n.code) ?? (null as string[] | null),
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState<string>()
@@ -72,11 +75,18 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }))
   const statusChanged = editing && form.status !== asset.status
   const template = models.data?.items.find(model => model.id === form.assetModelId) ?? (selectedModel?.id === form.assetModelId ? selectedModel : null)
+  const enabledStages = stages.data?.filter((s) => s.isEnabled) ?? []
+  const enabledNetworks = networks.data?.filter((n) => n.isEnabled) ?? []
+  const modelNetwork = selectedModel?.networkCodes.find(code => enabledNetworks.some(network => network.code === code))
+  const networkCodes = form.networkCodes ?? (modelNetwork ? [modelNetwork] : [])
   function selectModel(model: CatalogModel) {
     set('assetModelId', model.id)
     set('name', model.modelName)
     setSelectedModel(model)
-    if (!editing) setTechnical(technicalDraft(model.specifications, model.technicalData))
+    if (!editing) {
+      setTechnical(technicalDraft(model.specifications, model.technicalData))
+      set('networkCodes', null)
+    }
   }
 
   async function onSubmit(e: FormEvent) {
@@ -101,7 +111,7 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
       assetModelId: form.assetModelId,
       criticality: form.criticality,
       isPublic: form.isPublic,
-      networkCodes: form.networkCodes,
+      networkCodes,
       status: form.status,
     }
     const stageCode = form.stageCode === NO_STAGE ? null : form.stageCode
@@ -145,9 +155,6 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
         {errors[key]}
       </p>
     )
-
-  const enabledStages = stages.data?.filter((s) => s.isEnabled) ?? []
-  const enabledNetworks = networks.data?.filter((n) => n.isEnabled) ?? []
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -277,27 +284,23 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
                 <Input id="serialNumber" className="h-11 min-w-0 bg-background" value={form.serialNumber} onChange={(e) => set('serialNumber', e.target.value)} />
               </div>
 
-              <fieldset className="min-w-0 space-y-3">
-                <legend className="text-sm font-medium">Redes transversales</legend>
-                {enabledNetworks.length === 0 ? (
-                  <p className="text-sm text-fur-gray-600">La planta no tiene redes habilitadas.</p>
-                ) : (
-                  <div className="grid min-w-0 gap-2 sm:grid-cols-2">
-                    {enabledNetworks.map((n) => (
-                      <label key={n.code} className={'flex min-w-0 cursor-pointer items-center gap-3 rounded-lg border px-3 py-3 text-sm transition-colors ' + (form.networkCodes.includes(n.code) ? 'border-fur-gold-500/60 bg-fur-gold-500/10' : 'border-border bg-background hover:bg-muted/50')}>
-                        <Checkbox
-                          checked={form.networkCodes.includes(n.code)}
-                          onCheckedChange={(on) =>
-                            set('networkCodes', on ? [...form.networkCodes, n.code] : form.networkCodes.filter((c) => c !== n.code))
-                          }
-                        />
-                        <span className="min-w-0 leading-snug"><span className="fur-code mr-2 text-xs">{n.code}</span><span className="break-words">{n.name}</span></span>
-                      </label>
-                    ))}
-                  </div>
-                )}
+              <div className="min-w-0 space-y-2">
+                <Label htmlFor="networkCode">Red transversal</Label>
+                <Select value={networkCodes.length > 1 ? KEEP_NETWORKS : networkCodes[0] ?? NO_NETWORK} onValueChange={code => { if (code !== KEEP_NETWORKS) set('networkCodes', code === NO_NETWORK ? [] : [code]) }} disabled={networks.isPending || networks.isError}>
+                  <SelectTrigger id="networkCode" className="h-11 w-full min-w-0 max-w-full bg-background data-[size=default]:h-11 *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:truncate *:data-[slot=select-value]:block" aria-label="Red transversal" {...a11y('networkCodes')}>
+                    <SelectValue placeholder="Selecciona una red" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {networkCodes.length > 1 && <SelectItem value={KEEP_NETWORKS}>Conservar redes actuales ({networkCodes.length})</SelectItem>}
+                    <SelectItem value={NO_NETWORK}>Sin red asignada</SelectItem>
+                    {enabledNetworks.map(network => <SelectItem key={network.code} value={network.code}>{network.code} · {network.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  {networks.isPending ? 'Cargando redes de la planta…' : networks.isError ? 'No se pudieron cargar las redes de la planta.' : networkCodes.length > 1 ? 'Este activo ya tiene varias redes. Se conservarán hasta que selecciones una sola.' : enabledNetworks.length === 0 ? 'La planta no tiene redes habilitadas.' : editing ? 'Selecciona una sola red para este activo.' : 'Se sugiere la primera red del modelo habilitada en esta planta. Puedes cambiarla.'}
+                </p>
                 {fieldError('networkCodes')}
-              </fieldset>
+              </div>
 
               <label className="flex cursor-pointer items-start gap-3 rounded-lg bg-muted/35 p-3 text-sm">
                 <Checkbox checked={form.isPublic} onCheckedChange={(on) => set('isPublic', on === true)} className="mt-0.5" />

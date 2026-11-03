@@ -38,6 +38,9 @@ export const assets = assetSchema.table(
     assetModelId: uuid('asset_model_id')
       .notNull()
       .references(() => assetModels.id),
+    /** Copia inicial del modelo; los cambios de la unidad física no modifican el catálogo. */
+    specifications: jsonb('specifications').notNull().default({}),
+    technicalData: jsonb('technical_data').notNull().default({}),
     /** Ficha Única de Registro: identificador persistente y legible, p. ej. FUR-REV-II-00042. */
     furCode: varchar('fur_code', { length: 60 }).notNull(),
     tag: varchar('tag', { length: 60 }).notNull(),

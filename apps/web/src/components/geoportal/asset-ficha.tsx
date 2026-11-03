@@ -22,7 +22,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 /** Fecha corta (AAAA-MM-DD) de una marca de tiempo ISO. */
 const shortDate = (iso: string) => iso.slice(0, 10)
 
-/** Especificaciones del modelo que se muestran como filas (las primeras; el resto está en la ficha completa). */
+/** Especificaciones propias del activo (las primeras; el resto está en la ficha completa). */
 const MAX_SPECS = 5
 
 /**
@@ -61,6 +61,9 @@ export function AssetFicha({
   const meta = STATUS_META[asset.status as AssetStatus]
   const detail = fur.data?.asset
   const specs = Object.entries(detail?.specifications ?? {}).slice(0, MAX_SPECS)
+  const components = Array.isArray(detail?.technicalData?.componentes)
+    ? detail.technicalData.componentes.filter((value): value is string => typeof value === 'string').slice(0, 5)
+    : []
   const sections = variableSections(variables.data ?? [], asset, networkCode)
   // «Variables clave»: nombres de las variables marcadas como clave que aplican a este activo.
   const keyLabels = [...new Set(sections.flatMap((s) => s.items.filter((i) => i.def.isKey).map((i) => i.def.label.toLowerCase())))]
@@ -184,8 +187,8 @@ export function AssetFicha({
       ))}
 
       {(fur.isLoading || specs.length > 0) && (
-        <section aria-label="Especificaciones del modelo" className="border-t border-border px-3 py-2">
-          <h3 className="mb-0.5 text-xs font-semibold tracking-wide text-fur-navy-900 uppercase">Especificaciones del modelo</h3>
+        <section aria-label="Especificaciones del activo" className="border-t border-border px-3 py-2">
+          <h3 className="mb-0.5 text-xs font-semibold tracking-wide text-fur-navy-900 uppercase">Especificaciones del activo</h3>
           {fur.isLoading ? (
             <div className="space-y-1.5 py-1" aria-label="Cargando especificaciones">
               <Skeleton className="h-5" />
@@ -200,6 +203,15 @@ export function AssetFicha({
               ))}
             </dl>
           )}
+        </section>
+      )}
+
+      {components.length > 0 && (
+        <section aria-label="Componentes del activo" className="border-t border-border px-3 py-2">
+          <h3 className="mb-1 text-xs font-semibold tracking-wide text-fur-navy-900 uppercase">Componentes del activo</h3>
+          <ul className="list-inside list-disc space-y-1 text-sm text-fur-navy-900">
+            {components.map((component, index) => <li key={index}>{component}</li>)}
+          </ul>
         </section>
       )}
 

@@ -92,8 +92,8 @@ export class AssetsService {
         modelName: assetModels.modelName,
         /** Ruta (relativa a la API) de la foto del modelo; null si no tiene. */
         modelImageUrl: sql<string | null>`case when ${assetModels.imageKey} is null then null else '/catalog/models/' || ${assetModels.id}::text || '/image?v=' || (extract(epoch from ${assetModels.imageUpdatedAt}) * 1000)::bigint::text end`,
-        specifications: assetModels.specifications,
-        technicalData: assetModels.technicalData,
+        specifications: assets.specifications,
+        technicalData: assets.technicalData,
         typeCode: assetTypes.code,
         typeName: assetTypes.name,
         typeDescription: assetTypes.description,
@@ -375,8 +375,9 @@ export class AssetsService {
   }
 
   private async assertModel(modelId: string) {
-    const [model] = await this.db.select({ id: assetModels.id }).from(assetModels).where(and(eq(assetModels.id, modelId), eq(assetModels.status, 'ACTIVE'))).limit(1)
+    const [model] = await this.db.select({ id: assetModels.id, specifications: assetModels.specifications, technicalData: assetModels.technicalData }).from(assetModels).where(and(eq(assetModels.id, modelId), eq(assetModels.status, 'ACTIVE'))).limit(1)
     if (!model) throw new BadRequestException('El modelo de catálogo no existe o está inactivo')
+    return model
   }
 
   /** El padre debe ser de la misma planta y no puede crear ciclos en la jerarquía. */
@@ -402,7 +403,7 @@ export class AssetsService {
   }
 
   async create(plant: PlantRow, dto: CreateAssetDto, req: AppRequest) {
-    await this.assertModel(dto.assetModelId)
+    const model = await this.assertModel(dto.assetModelId)
     const plantStageId = dto.stageCode ? await this.resolveStage(plant.id, dto.stageCode) : null
     const networkIds = await this.resolveNetworks(plant.id, dto.networkCodes)
     if (dto.parentAssetId) await this.assertParent(plant.id, dto.parentAssetId)
@@ -426,6 +427,8 @@ export class AssetsService {
             plantId: plant.id,
             plantStageId,
             assetModelId: dto.assetModelId,
+            specifications: dto.specifications ?? model.specifications,
+            technicalData: { ...(model.technicalData as Record<string, unknown>), ...(dto.components !== undefined && { componentes: dto.components }) },
             furCode: buildFurCode(plant.code, seq),
             tag: dto.tag,
             name: dto.name,
@@ -505,6 +508,8 @@ export class AssetsService {
     if (dto.status === 'DECOMMISSIONED') throw new BadRequestException('Para dar de baja un activo use la acción de baja')
 
     const patch: Partial<typeof assets.$inferInsert> = { updatedAt: new Date() }
+    if (dto.specifications !== undefined) patch.specifications = dto.specifications
+    if (dto.components !== undefined) patch.technicalData = { ...(before.technicalData as Record<string, unknown>), componentes: dto.components }
     if (dto.tag !== undefined) patch.tag = dto.tag
     if (dto.name !== undefined) patch.name = dto.name
     if (dto.serialNumber !== undefined) patch.serialNumber = dto.serialNumber

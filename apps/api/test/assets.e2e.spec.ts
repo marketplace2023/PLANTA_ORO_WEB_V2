@@ -1,7 +1,7 @@
 import type { INestApplication } from '@nestjs/common'
 import { and, eq } from 'drizzle-orm'
 import request from 'supertest'
-import { assets, assetStatusHistory, auditEvents, plantSettings, plants } from '../src/database/schema'
+import { assetModels, assets, assetStatusHistory, auditEvents, plantSettings, plants } from '../src/database/schema'
 import { bearer, createApp, login, type Session, TestDb } from './helpers'
 
 type Plant = typeof plants.$inferSelect
@@ -392,6 +392,69 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
     it('un activo dado de baja no se puede modificar y la baja es idempotente', async () => {
       await patch(id, { name: 'resucitado' }).expect(409)
       await http().delete(`${A}/${id}`).set('Authorization', bearer(pa)).expect(204)
+    })
+  })
+
+  describe('ficha técnica independiente por activo', () => {
+    let sourceId: string
+    let firstId: string
+    let secondId: string
+    const initialSpecs = { 'Potencia (kW)': '30–37', dimensions: { height: 2, unit: 'm' } }
+    const initialData = { componentes: ['Impulsor', 'Rodamientos'], descripcion: 'Modelo de referencia' }
+
+    it('copia la plantilla al crear dos unidades, incluso en plantas distintas', async () => {
+      sourceId = (await t.model('MOLINO_BOLAS', 'E2E plantilla independiente', 'E2E Referencia')).id
+      await t.db.update(assetModels).set({ specifications: initialSpecs, technicalData: initialData }).where(eq(assetModels.id, sourceId))
+      const first = await post({ tag: 'SNAP-01', name: 'Unidad A', assetModelId: sourceId }).expect(201)
+      const second = await post({ tag: 'SNAP-02', name: 'Unidad B', assetModelId: sourceId }, admin, '/api/v1/plants/e2e-b1/assets').expect(201)
+      firstId = first.body.id
+      secondId = second.body.id
+      for (const result of [first, second]) expect(result.body).toMatchObject({ specifications: initialSpecs, technicalData: initialData })
+    })
+
+    it('guarda las modificaciones de la unidad sin tocar el modelo ni la otra planta', async () => {
+      const ownSpecs = { 'Potencia (kW)': '37', 'Tensión (V)': 480 }
+      await patch(firstId, { specifications: ownSpecs, components: ['Impulsor instalado', 'Motor 37 kW'] }).expect(200)
+      const own = await http().get(`${A}/${firstId}/fur`).set('Authorization', bearer(pa)).expect(200)
+      expect(own.body.asset).toMatchObject({ specifications: ownSpecs, technicalData: { ...initialData, componentes: ['Impulsor instalado', 'Motor 37 kW'] } })
+      const other = await http().get(`/api/v1/plants/e2e-b1/assets/${secondId}`).set('Authorization', bearer(admin)).expect(200)
+      expect(other.body).toMatchObject({ specifications: initialSpecs, technicalData: initialData })
+      const [source] = await t.db.select().from(assetModels).where(eq(assetModels.id, sourceId))
+      expect(source).toMatchObject({ specifications: initialSpecs, technicalData: initialData })
+      const [event] = await t.db.select().from(auditEvents).where(and(eq(auditEvents.entityId, firstId), eq(auditEvents.action, 'updated')))
+      expect(event.newData).toMatchObject({ specifications: ownSpecs, technicalData: { componentes: ['Impulsor instalado', 'Motor 37 kW'] } })
+    })
+
+    it('un cambio posterior del catálogo no cambia las copias; las altas nuevas usan la nueva versión', async () => {
+      await t.db.update(assetModels).set({ specifications: { 'Potencia (kW)': '55' }, technicalData: { componentes: ['Motor 55 kW'] } }).where(eq(assetModels.id, sourceId))
+      const first = await http().get(`${A}/${firstId}`).set('Authorization', bearer(pa)).expect(200)
+      expect(first.body.specifications['Potencia (kW)']).toBe('37')
+      const second = await http().get(`/api/v1/plants/e2e-b1/assets/${secondId}`).set('Authorization', bearer(admin)).expect(200)
+      expect(second.body).toMatchObject({ specifications: initialSpecs, technicalData: initialData })
+      const fresh = await post({ tag: 'SNAP-03', name: 'Nueva unidad', assetModelId: sourceId }).expect(201)
+      expect(fresh.body).toMatchObject({ specifications: { 'Potencia (kW)': '55' }, technicalData: { componentes: ['Motor 55 kW'] } })
+    })
+
+    it('permite reemplazar la plantilla al crear, y dejar especificaciones y componentes vacíos', async () => {
+      const customized = await post({ tag: 'SNAP-04', name: 'Personalizado', assetModelId: sourceId, specifications: { 'Potencia (kW)': '22' }, components: ['Motor 22 kW'] }).expect(201)
+      expect(customized.body).toMatchObject({ specifications: { 'Potencia (kW)': '22' }, technicalData: { componentes: ['Motor 22 kW'] } })
+      await patch(customized.body.id, { specifications: {}, components: [] }).expect(200)
+      const empty = await http().get(`${A}/${customized.body.id}`).set('Authorization', bearer(pa)).expect(200)
+      expect(empty.body).toMatchObject({ specifications: {}, technicalData: { componentes: [] } })
+      const createdEmpty = await post({ tag: 'SNAP-05', name: 'Vacío', assetModelId: sourceId, specifications: {}, components: [] }).expect(201)
+      expect(createdEmpty.body).toMatchObject({ specifications: {}, technicalData: { componentes: [] } })
+    })
+
+    it('cambiar el modelo conserva la ficha propia y valida permisos, aislamiento y componentes', async () => {
+      await patch(firstId, { assetModelId: motorModelId }).expect(200)
+      const result = await http().get(`${A}/${firstId}`).set('Authorization', bearer(pa)).expect(200)
+      expect(result.body.specifications['Potencia (kW)']).toBe('37')
+      expect(result.body.technicalData.componentes).toEqual(['Impulsor instalado', 'Motor 37 kW'])
+      await patch(firstId, { components: ['Cambio no permitido'] }, consumer).expect(403)
+      await http().patch(`/api/v1/plants/e2e-b1/assets/${firstId}`).set('Authorization', bearer(admin)).send({ components: [] }).expect(404)
+      await patch(firstId, { components: [null] }).expect(400)
+      await patch(firstId, { components: ['   '] }).expect(400)
+      await patch(firstId, { specifications: [] }).expect(400)
     })
   })
 

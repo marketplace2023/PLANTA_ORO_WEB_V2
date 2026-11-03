@@ -469,13 +469,21 @@ export function AssetFurPage() {
           </TabsContent>
           <TabsContent value="specs" className="space-y-6">
             <section>
-              <h2 className="mb-3 text-lg text-fur-navy-900">Especificaciones del modelo</h2>
+              <h2 className="mb-3 text-lg text-fur-navy-900">Especificaciones del activo</h2>
               <KeyValueTable data={asset.specifications} />
             </section>
-            {asset.technicalData && (
+            {Array.isArray(asset.technicalData?.componentes) && asset.technicalData.componentes.length > 0 && (
+              <section aria-label="Componentes del activo">
+                <h2 className="mb-3 text-lg text-fur-navy-900">Componentes del activo</h2>
+                <ul className="list-inside list-disc space-y-2 text-sm">
+                  {asset.technicalData.componentes.map((component, index) => <li key={index}>{String(component)}</li>)}
+                </ul>
+              </section>
+            )}
+            {asset.technicalData && Object.keys(asset.technicalData).some(key => key !== 'componentes') && (
               <section>
                 <h2 className="mb-3 text-lg text-fur-navy-900">Datos técnicos</h2>
-                <KeyValueTable data={asset.technicalData} />
+                <KeyValueTable data={Object.fromEntries(Object.entries(asset.technicalData).filter(([key]) => key !== 'componentes'))} />
               </section>
             )}
             {generalSections.length > 0 && (

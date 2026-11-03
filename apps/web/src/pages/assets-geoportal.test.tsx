@@ -55,7 +55,7 @@ function setup(assets: unknown = page(ASSETS, 3, 1, 100), summary: unknown = SUM
     'GET /catalog/families': { body: FAMILIES },
     'GET /plants/revemin-ii/assets': { body: assets },
     'GET /catalog/models/m1/variables': { body: VARIABLES },
-    'GET /plants/revemin-ii/assets/a1/fur': { body: fur({}, { id: 'a1', specifications: { powerKw: 3000, voltageV: 4160 } }) },
+    'GET /plants/revemin-ii/assets/a1/fur': { body: fur({}, { id: 'a1', specifications: { powerKw: 3000, voltageV: 4160 }, technicalData: { componentes: ['Motor instalado de la unidad'] } }) },
     'GET /plants/revemin-ii/assets/a2/fur': { body: fur({}, { id: 'a2', tag: 'MT-301', name: 'Motor del molino', status: 'MAINTENANCE', specifications: { poles: 6 } }) },
     'GET /plants/revemin-ii/assets/a3/fur': { body: fur({}, { id: 'a3', tag: 'HC-801', name: 'Hidrociclón', specifications: {} }) },
     'PATCH /plants/revemin-ii/assets/a1': { body: {} },
@@ -176,9 +176,10 @@ describe('Geoportal de Activos Físicos', () => {
       expect(within(data).getByText('Ubicación').nextElementSibling).toHaveTextContent('REVEMIN II - Nave de molienda')
       expect(within(data).getByText('Última actualización').nextElementSibling).toHaveTextContent('2026-10-01')
       await waitFor(() => expect(within(data).getByText('Estado documental').nextElementSibling).toHaveTextContent('Sin documentos'))
-      const specs = await within(ficha).findByRole('region', { name: 'Especificaciones del modelo' })
+      const specs = await within(ficha).findByRole('region', { name: 'Especificaciones del activo' })
       expect(await within(specs).findByText('Potencia (kW)')).toBeInTheDocument()
       expect(within(specs).getByText('Tensión (V)').nextElementSibling).toHaveTextContent('4160')
+      expect(within(ficha).getByRole('region', { name: 'Componentes del activo' })).toHaveTextContent('Motor instalado de la unidad')
       expect(within(ficha).getByRole('link', { name: /Abrir la ficha completa/ })).toHaveAttribute('href', '/plants/revemin-ii/assets/a1')
     })
 

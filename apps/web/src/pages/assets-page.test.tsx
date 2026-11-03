@@ -252,7 +252,7 @@ describe('Activos Físicos (listado)', () => {
 
       await userEvent.click(within(dialog).getByRole('combobox', { name: 'Etapa' }))
       const options = (await screen.findAllByRole('option')).map((o) => o.textContent)
-      expect(options).toEqual(expect.arrayContaining(['Sin etapa asignada', 'D06 — Molienda Primaria', 'D07 — Molienda Secundaria']))
+      expect(options).toEqual(expect.arrayContaining(['Sin etapa asignada', 'D06 - Molienda Primaria', 'D07 - Molienda Secundaria']))
       expect(options.some((o) => o?.includes('D11'))).toBe(false) // deshabilitada
     })
 
@@ -274,6 +274,8 @@ describe('Activos Físicos (listado)', () => {
         tag: 'mb-401',
         name: 'Molino nuevo',
         assetModelId: 'm1',
+        specifications: {},
+        components: [],
         criticality: 'MEDIUM',
         isPublic: false,
         networkCodes: ['FUR-IOT'],

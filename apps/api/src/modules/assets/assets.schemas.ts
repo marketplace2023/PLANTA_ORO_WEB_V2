@@ -32,11 +32,16 @@ export const listAssetsQuerySchema = z.object({
 })
 
 const text = (max: number) => z.string().trim().min(1).max(max)
+const specifications = z.record(z.string().min(1).max(200).refine(key => key.trim().length > 0), z.unknown())
+  .refine(value => Object.keys(value).length <= 500, 'Máximo 500 especificaciones')
+const components = z.array(text(2000)).max(500)
 
 export const createAssetSchema = z.object({
   tag: text(60).transform((t) => t.toUpperCase()),
   name: text(200),
   assetModelId: z.uuid(),
+  specifications: specifications.optional(),
+  components: components.optional(),
   stageCode: stageCode.optional(),
   serialNumber: text(120).optional(),
   installationDate: z.iso.date().optional(),
@@ -57,6 +62,8 @@ export const updateAssetSchema = z
     tag: text(60).transform((t) => t.toUpperCase()),
     name: text(200),
     assetModelId: z.uuid(),
+    specifications,
+    components,
     stageCode: stageCode.nullable(),
     serialNumber: text(120).nullable(),
     installationDate: z.iso.date().nullable(),

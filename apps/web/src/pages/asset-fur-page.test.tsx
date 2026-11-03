@@ -108,14 +108,16 @@ describe('Ficha FUR del activo', () => {
     expect(within(panel).getByText('FUR-IOT')).toBeInTheDocument()
   })
 
-  it('Datos técnicos: especificaciones del modelo y datos técnicos', async () => {
-    setup()
+  it('Datos técnicos: muestra las especificaciones y componentes propios del activo', async () => {
+    setup(fur({}, { technicalData: { weightT: 400, componentes: ['Motor instalado 37 kW', 'Impulsor de la unidad'] } }))
     renderFur()
     await userEvent.click(await screen.findByRole('tab', { name: 'Datos técnicos' }))
     const panel = await screen.findByRole('tabpanel')
     expect(within(panel).getByText('powerKw')).toBeInTheDocument()
     expect(within(panel).getByText('3000')).toBeInTheDocument()
     expect(within(panel).getByText('weightT')).toBeInTheDocument()
+    expect(within(panel).getByRole('heading', { name: 'Especificaciones del activo' })).toBeInTheDocument()
+    expect(within(panel).getByRole('region', { name: 'Componentes del activo' })).toHaveTextContent('Motor instalado 37 kW')
   })
 
   describe('Inventario / BOM', () => {

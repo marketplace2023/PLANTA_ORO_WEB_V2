@@ -135,7 +135,7 @@ export class CatalogController {
     const [items, [{ total }]] = await Promise.all([
       this.modelSelect()
         .where(where)
-        .orderBy(asc(assetFamilies.name), asc(assetTypes.name), asc(assetModels.modelName), asc(assetModels.id))
+        .orderBy(asc(assetModels.modelName), asc(assetFamilies.name), asc(assetTypes.name), asc(assetModels.id))
         .limit(q.pageSize)
         .offset((q.page - 1) * q.pageSize),
       this.db

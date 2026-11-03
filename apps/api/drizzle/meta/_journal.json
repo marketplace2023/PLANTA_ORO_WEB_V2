@@ -260,6 +260,13 @@
       "when": 1793302535022,
       "tag": "0036_reference_manufacturers",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1793716830935,
+      "tag": "0037_asset_technical_snapshot",
+      "breakpoints": true
     }
   ]
 }

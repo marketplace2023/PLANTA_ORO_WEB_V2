@@ -62,7 +62,7 @@ describe('Procesos y redes transversales (e2e)', () => {
 
     const model = (await t.model('MOLINO_BOLAS', 'E2E Bolas proc')).id
     const mk = async (tag: string, stageCode: string | undefined, over: object = {}, networks: string[] = []) =>
-      (await http().post(`${B}/assets`).set('Authorization', bearer(pa)).send({ tag, name: tag, assetModelId: model, stageCode, networkCodes: networks, ...over }).expect(201)).body.id as string
+      (await t.legacyAsset(plantA.id, model, tag, { stageCode, networkCodes: networks, ...over })).id
     await mk('A-6a', 'D06', { isPublic: true, criticality: 'CRITICAL' }, ['FUR-IOT'])
     const a6b = await mk('A-6b', 'D06', { isPublic: false, criticality: 'MEDIUM' }, ['FUR-IOT', 'FUR-PTE'])
     const a7 = await mk('A-7a', 'D07', { isPublic: true, criticality: 'HIGH' }, ['FUR-IOT'])

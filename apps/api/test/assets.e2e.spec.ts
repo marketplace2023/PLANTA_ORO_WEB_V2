@@ -20,9 +20,11 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
   let consumer: Session // sin rol en ninguna planta
   let modelId: string
   let motorModelId: string
+  let millTagCode: string
+  const legacyUnits: Array<{ id: string; tag: string }> = []
 
   const A = '/api/v1/plants/e2e-a1/assets'
-  const post = (body: object, s: Session = pa, base = A) => http().post(base).set('Authorization', bearer(s)).send(body)
+  const post = (body: object, s: Session = pa, base = A) => http().post(base).set('Authorization', bearer(s)).send({ stageCode: 'D06', networkCodes: ['FUR-IOT'], ...body })
   const patch = (id: string, body: object, s: Session = pa) => http().patch(`${A}/${id}`).set('Authorization', bearer(s)).send(body)
   const base = () => ({ tag: 'MB-301', name: 'Molino de bolas 1', assetModelId: modelId })
 
@@ -34,7 +36,7 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
     plantA = await t.plant('a1', 'PUBLIC')
     plantB = await t.plant('b1', 'PUBLIC')
     privPlant = await t.plant('priv', 'PRIVATE')
-    for (const p of [plantA, plantB]) {
+    for (const p of [plantA, plantB, privPlant]) {
       await t.enableStage(p.id, 'D06')
       await t.enableStage(p.id, 'D07')
       await t.enableNetwork(p.id, 'FUR-IOT')
@@ -45,6 +47,8 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
 
     modelId = (await t.model('MOLINO_BOLAS', 'E2E Bolas 16.5x24', 'E2E Metso')).id
     motorModelId = (await t.model('MOTOR_ELECTRICO', 'E2E Motor 4 MW', 'E2E WEG')).id
+    const { rows } = await t.pool.query('select f.tag_code from catalog.asset_families f join catalog.asset_types t on t.family_id=f.id where t.code=$1', ['MOLINO_BOLAS'])
+    millTagCode = rows[0].tag_code
 
     const [adminU, paU, maintU] = await Promise.all([
       t.user('admin', { isGlobalAdmin: true }),
@@ -79,7 +83,7 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
         ...base(),
         tag: 'mb-301',
         stageCode: 'D06',
-        networkCodes: ['FUR-IOT', 'FUR-PTE'],
+        networkCodes: ['FUR-IOT'],
         criticality: 'CRITICAL',
         location: 'Nave de molienda',
         serialNumber: 'SN-0001',
@@ -87,7 +91,7 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
 
       expect(res.body).toMatchObject({
         furCode: 'FUR-E2E-A1-00001',
-        tag: 'MB-301', // el tag se normaliza a mayúsculas
+        tag: `FUR-IOT-D06-${millTagCode}-001`, // el cliente no decide el TAG
         status: 'OPERATIVE',
         criticality: 'CRITICAL',
         isPublic: false, // privado por defecto
@@ -97,7 +101,8 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
         family: { code: 'MOLINOS' },
         manufacturer: 'E2E Metso', // fabricante heredado del modelo
       })
-      expect(res.body.networks.map((n: { code: string }) => n.code)).toEqual(['FUR-PTE', 'FUR-IOT'])
+      expect(res.body.networks.map((n: { code: string }) => n.code)).toEqual(['FUR-IOT'])
+      legacyUnits.push({ id: res.body.id, tag: 'MB-301' })
 
       const history = await t.db.select().from(assetStatusHistory).where(eq(assetStatusHistory.assetId, res.body.id))
       expect(history).toMatchObject([{ oldStatus: null, newStatus: 'OPERATIVE', reason: 'Alta del activo' }])
@@ -105,13 +110,15 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
       expect(audit).toMatchObject({ module: 'assets', plantId: plantA.id })
     })
 
-    it('el siguiente activo toma el FUR siguiente y un tag repetido da 409 sin quemar números', async () => {
+    it('el siguiente activo toma el FUR siguiente y una alta inválida no consume números', async () => {
       const second = await post({ tag: 'MT-301', name: 'Motor del molino', assetModelId: motorModelId }).expect(201)
       expect(second.body.furCode).toBe('FUR-E2E-A1-00002')
+      legacyUnits.push({ id: second.body.id, tag: 'MT-301' })
 
-      await post(base()).expect(409) // MB-301 ya existe
+      await post({ ...base(), networkCodes: [] }).expect(400)
       const third = await post({ tag: 'MT-302', name: 'Motor 2', assetModelId: motorModelId }).expect(201)
       expect(third.body.furCode).toBe('FUR-E2E-A1-00003') // la transacción revertida no consumió el 3
+      legacyUnits.push({ id: third.body.id, tag: 'MT-302' })
 
       // El mismo tag en OTRA planta sí es válido: el tag es único por planta.
       const other = await post(base(), admin, '/api/v1/plants/e2e-b1/assets').expect(201)
@@ -135,8 +142,8 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
     })
 
     it('rechaza redes no habilitadas en la planta (§47.3)', async () => {
-      const res = await post({ ...base(), tag: 'X4', networkCodes: ['FUR-IOT', 'FUR-CAM', 'FUR-MNT'] }).expect(400)
-      expect(res.body.message).toMatch(/FUR-CAM.*FUR-MNT|FUR-MNT.*FUR-CAM/)
+      const res = await post({ ...base(), tag: 'X4', networkCodes: ['FUR-MNT'] }).expect(400)
+      expect(res.body.message).toContain('FUR-MNT')
     })
 
     it('valida modelo, padre y datos', async () => {
@@ -147,7 +154,7 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
       await post({ ...base(), tag: 'X7', parentAssetId: inB.body.items[0].id }).expect(400) // padre de otra planta
 
       const bad = await post({ tag: '', name: '', assetModelId: modelId, status: 'ROTO', criticality: 'ALTA', installationDate: '15/03/2022' }).expect(400)
-      expect(bad.body.errors.map((e: { path: string }) => e.path).sort()).toEqual(['criticality', 'installationDate', 'name', 'status', 'tag'])
+      expect(bad.body.errors.map((e: { path: string }) => e.path).sort()).toEqual(['criticality', 'installationDate', 'name', 'status'])
     })
 
     it('un activo no puede crearse ya dado de baja', async () => {
@@ -159,7 +166,9 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
     let boot: string // id de un activo para otras pruebas
 
     beforeAll(async () => {
-      const mk = (tag: string, extra: object) => post({ tag, name: `Activo ${tag}`, assetModelId: modelId, ...extra }).expect(201)
+      // Datos anteriores al cambio: el listado y la FUR deben conservar sus TAG originales.
+      for (const unit of legacyUnits) await t.db.update(assets).set({ tag: unit.tag }).where(eq(assets.id, unit.id))
+      const mk = (tag: string, extra: object) => t.legacyAsset(plantA.id, modelId, tag, { name: `Activo ${tag}`, ...extra })
       await mk('LST-A', { stageCode: 'D07', status: 'MAINTENANCE', criticality: 'HIGH', location: 'Nave sur', isPublic: true, networkCodes: ['FUR-IOT'] })
       await mk('LST-B', { stageCode: 'D07', status: 'STANDBY', criticality: 'LOW', location: 'Nave norte', isPublic: true })
       await mk('LST-C', { status: 'STOCK', criticality: 'LOW', location: 'Almacén central' })
@@ -273,7 +282,7 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
       expect(res.body.asset).toMatchObject({ furCode: 'FUR-E2E-A1-00001', tag: 'MB-301', serialNumber: 'SN-0001' })
       expect(res.body.plant).toMatchObject({ slug: 'e2e-a1', code: 'E2E-A1' })
       expect(res.body.stage).toMatchObject({ code: 'D06' })
-      expect(res.body.networks).toHaveLength(2)
+      expect(res.body.networks).toHaveLength(1)
       expect(res.body.history).toHaveLength(1)
       expect(res.body.history[0]).toMatchObject({ newStatus: 'OPERATIVE', reason: 'Alta del activo', changedBy: expect.stringContaining('pa') })
       // Módulos de fases futuras: presentes pero vacíos.
@@ -334,10 +343,11 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
       expect((await patch(id, { networkCodes: [] }).expect(200)).body.networks).toEqual([])
     })
 
-    it('el tag puede cambiar pero no chocar con otro; el FUR nunca cambia', async () => {
-      await patch(id, { tag: 'MB-301' }).expect(409)
-      const res = await patch(id, { tag: 'ed-1b', furCode: 'FUR-HACK-1' }).expect(200)
-      expect(res.body.tag).toBe('ED-1B')
+    it('ni el TAG ni el FUR pueden sobreescribirse desde el cliente', async () => {
+      const before = (await http().get(`${A}/${id}`).set('Authorization', bearer(pa)).expect(200)).body
+      await patch(id, { tag: 'MB-301' }).expect(400)
+      const res = await patch(id, { name: 'Identidad estable', tag: 'ed-1b', furCode: 'FUR-HACK-1' }).expect(200)
+      expect(res.body.tag).toBe(before.tag)
       expect(res.body.furCode).toMatch(/^FUR-E2E-A1-\d{5}$/)
     })
 
@@ -359,7 +369,7 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
   describe('baja lógica', () => {
     let id: string
     beforeAll(async () => {
-      id = (await post({ tag: 'BAJA-1', name: 'Para dar de baja', assetModelId: modelId, isPublic: true }).expect(201)).body.id
+      id = (await t.legacyAsset(plantA.id, modelId, 'BAJA-1', { name: 'Para dar de baja', isPublic: true })).id
     })
 
     it('exige asset.delete: solo el administrador de planta', async () => {

@@ -61,8 +61,8 @@ describe('Costos de órdenes de trabajo y de activos (e2e)', () => {
     ;[admin, pa, lead, tech, tech2, op, mgr, outsider] = await Promise.all(names.map((n) => login(app, n)))
     void admin
 
-    asset = (await http().post(`${P}/assets`).set('Authorization', bearer(pa)).send({ tag: 'MB-1', name: 'Molino 1', assetModelId: model }).expect(201)).body.id
-    otherAsset = (await http().post(`${P}/assets`).set('Authorization', bearer(pa)).send({ tag: 'MB-2', name: 'Molino 2', assetModelId: model }).expect(201)).body.id
+    asset = (await t.legacyAsset(plant.id, model, 'MB-1', { name: 'Molino 1' })).id
+    otherAsset = (await t.legacyAsset(plant.id, model, 'MB-2', { name: 'Molino 2' })).id
 
     // Libro de precios: mano de obra en USD, equipo en soles (con tipo de cambio) y un recurso en una moneda SIN tipo de cambio.
     await send('put', `${B}/exchange-rates`, pa, { currency: 'PEN', rate: 0.27 }).expect(200)
@@ -380,7 +380,7 @@ describe('Costos de órdenes de trabajo y de activos (e2e)', () => {
     it('un activo sin costos devuelve ceros, no errores', async () => {
       const { body } = await costs(lead, asset).expect(200)
       expect(body.orderCount).toBeGreaterThan(0) // el activo "asset" sí tiene órdenes de las pruebas anteriores…
-      const empty = (await http().post(`${P}/assets`).set('Authorization', bearer(pa)).send({ tag: 'MB-3', name: 'Molino 3', assetModelId: (await t.model('MOLINO_BOLAS', 'E2E Bolas costos 2')).id }).expect(201)).body.id
+      const empty = (await t.legacyAssetBySlug('e2e-mc1', (await t.model('MOLINO_BOLAS', 'E2E Bolas costos 2')).id, 'MB-3', { name: 'Molino 3' })).id
       const res = (await costs(lead, empty).expect(200)).body
       expect(res.totals).toEqual({ parts: 0, labor: 0, equipment: 0, transport: 0, service: 0, other: 0, total: 0, partsWithoutCost: 0 })
       expect(res.orders).toEqual([])
@@ -420,7 +420,7 @@ describe('Costos de órdenes de trabajo y de activos (e2e)', () => {
       const s = await login(app, 'mcdel')
       const P3 = '/api/v1/plants/e2e-mc3'
       const model = (await t.model('MOLINO_BOLAS', 'E2E Bolas costos 3')).id
-      const a = (await send('post', `${P3}/assets`, s, { tag: 'D-1', name: 'D1', assetModelId: model }).expect(201)).body.id
+      const a = (await t.legacyAsset(plant.id, model, 'D-1', { name: 'D1' })).id
       const res = (await send('post', `${P3}/budgets/resources`, s, { code: 'L-1', name: 'Mec', resourceType: 'LABOR', unit: 'hh', unitPrice: 4, currency: 'USD' }).expect(201)).body
       const wo = (await send('post', `${P3}/maintenance/work-orders`, s, { assetId: a, title: 'X' }).expect(201)).body
       await send('post', `${P3}/maintenance/work-orders/${wo.id}/transition`, s, { to: 'PLANNED' }).expect(201)

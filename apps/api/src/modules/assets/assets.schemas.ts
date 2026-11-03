@@ -36,13 +36,15 @@ const specifications = z.record(z.string().min(1).max(200).refine(key => key.tri
   .refine(value => Object.keys(value).length <= 500, 'Máximo 500 especificaciones')
 const components = z.array(text(2000)).max(500)
 
+export const assetTagPreviewSchema = z.object({ assetModelId: z.uuid(), stageCode, networkCode })
+export type AssetTagPreviewQuery = z.infer<typeof assetTagPreviewSchema>
+
 export const createAssetSchema = z.object({
-  tag: text(60).transform((t) => t.toUpperCase()),
   name: text(200),
   assetModelId: z.uuid(),
   specifications: specifications.optional(),
   components: components.optional(),
-  stageCode: stageCode.optional(),
+  stageCode,
   serialNumber: text(120).optional(),
   installationDate: z.iso.date().optional(),
   commissionDate: z.iso.date().optional(),
@@ -54,12 +56,11 @@ export const createAssetSchema = z.object({
   // Privado por defecto: exponer un activo públicamente debe ser explícito.
   isPublic: z.boolean().default(false),
   metadata: z.record(z.string(), z.unknown()).default({}),
-  networkCodes: z.array(networkCode).max(20).default([]),
+  networkCodes: z.array(networkCode).length(1, 'Selecciona una sola red para generar el TAG'),
 })
 
 export const updateAssetSchema = z
   .object({
-    tag: text(60).transform((t) => t.toUpperCase()),
     name: text(200),
     assetModelId: z.uuid(),
     specifications,

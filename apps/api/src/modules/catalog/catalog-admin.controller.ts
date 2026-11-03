@@ -63,9 +63,19 @@ export class CatalogAdminController {
 
   // ---------- Familias ----------
 
+  private familyConflict(err: unknown, integrationCode?: string, tagCode?: string): never {
+    if (isUniqueViolation(err)) {
+      const error = err as { constraint?: string; cause?: { constraint?: string } }
+      const constraint = error.constraint ?? error.cause?.constraint
+      if (constraint === 'asset_families_tag_code_unique') this.conflict(`una familia con el código TAG ${tagCode}`)
+      this.conflict(`una familia con el código de integración ${integrationCode}`)
+    }
+    throw err
+  }
+
   @Post('families')
   async createFamily(@Body(new ZodValidationPipe(createFamilySchema)) dto: CreateFamilyDto, @Req() req: AppRequest) {
-    const [row] = await this.db.insert(assetFamilies).values(dto).returning().catch((e) => (isUniqueViolation(e) ? this.conflict(`una familia con el código ${dto.code}`) : Promise.reject(e)))
+    const [row] = await this.db.insert(assetFamilies).values(dto).returning().catch(e => this.familyConflict(e, dto.code, dto.tagCode))
     await this.record(req, 'asset_family', row.id, 'created', { new: dto })
     return row
   }
@@ -74,7 +84,7 @@ export class CatalogAdminController {
   async updateFamily(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(updateFamilySchema)) dto: UpdateFamilyDto, @Req() req: AppRequest) {
     const [before] = await this.db.select().from(assetFamilies).where(eq(assetFamilies.id, id))
     if (!before) throw new NotFoundException('Familia no encontrada')
-    const [row] = await this.db.update(assetFamilies).set(dto).where(eq(assetFamilies.id, id)).returning()
+    const [row] = await this.db.update(assetFamilies).set(dto).where(eq(assetFamilies.id, id)).returning().catch(e => this.familyConflict(e, before.code, dto.tagCode))
     await this.record(req, 'asset_family', id, 'updated', { old: before, new: dto })
     return row
   }

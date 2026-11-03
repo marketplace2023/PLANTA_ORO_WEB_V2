@@ -1,4 +1,5 @@
-import { boolean, integer, jsonb, pgSchema, primaryKey, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core'
+import { boolean, check, integer, jsonb, pgSchema, primaryKey, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
 import { createdAt, pk, updatedAt } from './common'
 import { networkMaster } from './plant'
 import { stageMaster } from './process'
@@ -10,6 +11,8 @@ export const catalogSchema = pgSchema('catalog')
 export const assetFamilies = catalogSchema.table('asset_families', {
   id: pk(),
   code: varchar('code', { length: 40 }).notNull().unique(),
+  /** Abreviatura única para nuevas altas. Editarla no renumera los TAG ya asignados. */
+  tagCode: varchar('tag_code', { length: 12 }).notNull().default('').unique(),
   /** Código CA del maestro Excel; permite actualizar el nombre sin duplicar la familia. */
   categoryCode: varchar('category_code', { length: 20 }).unique(),
   name: varchar('name', { length: 120 }).notNull(),
@@ -17,7 +20,7 @@ export const assetFamilies = catalogSchema.table('asset_families', {
   description: text('description'),
   /** Nombre de ícono de Lucide. */
   icon: varchar('icon', { length: 40 }),
-})
+}, (t) => [check('asset_families_tag_code_format', sql`${t.tagCode} ~ '^[A-Z][A-Z0-9]{2,11}$'`)])
 
 export const manufacturers = catalogSchema.table('manufacturers', {
   id: pk(),

@@ -2,6 +2,7 @@ import { drizzle } from 'drizzle-orm/node-postgres'
 import { and, eq, notInArray, sql } from 'drizzle-orm'
 import { Pool } from 'pg'
 import { PERMISSIONS, ROLE_PERMISSIONS } from '../modules/iam/permissions.catalog'
+import { SEEDED_ASSET_FAMILIES } from './seed-asset-families'
 import {
   assetFamilies,
   assetTypes,
@@ -241,6 +242,13 @@ export async function runSeed(url: string, { includeDemoAssets = false }: { incl
     }
 
     await db.insert(ecosystems).values({ code: 'FUR', name: 'Ecosistema FUR' }).onConflictDoNothing({ target: ecosystems.code })
+
+    // Catálogo real: se restaura incluso sin datos de demostración. No pisa ediciones existentes.
+    for (const family of SEEDED_ASSET_FAMILIES) {
+      const existing = await db.select({ id: assetFamilies.id }).from(assetFamilies)
+        .where(sql`${assetFamilies.code} = ${family.code} or ${assetFamilies.categoryCode} = ${family.categoryCode}`).limit(1)
+      if (existing.length === 0) await db.insert(assetFamilies).values(family).onConflictDoNothing()
+    }
 
     if (!includeDemoAssets) {
       console.log(`Seed base OK: ${STAGES.length} etapas, ${NETWORKS.length} redes, roles y permisos. Catálogo de ejemplo desactivado.`)

@@ -86,8 +86,8 @@ describe('Mantenimiento: órdenes de trabajo y planes (e2e)', () => {
     whId = byName.wh.id
     ;[admin, pa, lead, tech, tech2, op, mgr, wh, consumer] = await Promise.all(['admin', 'pa', 'lead', 'tech', 'tech2', 'op', 'mgr', 'wh', 'consumer'].map((n) => login(app, n)))
 
-    const mkAsset = async (slug: string, s: Session, tag: string) =>
-      (await http().post(`/api/v1/plants/${slug}/assets`).set('Authorization', bearer(s)).send({ tag, name: tag, assetModelId: model }).expect(201)).body.id as string
+    const mkAsset = async (slug: string, _s: Session, tag: string) =>
+      (await t.legacyAssetBySlug(slug, model, tag)).id
     a1 = await mkAsset('e2e-m1', pa, 'MB-1')
     a2 = await mkAsset('e2e-m1', pa, 'MB-2')
     aDecommissioned = await mkAsset('e2e-m1', pa, 'OLD-1')
@@ -450,7 +450,7 @@ describe('Mantenimiento: órdenes de trabajo y planes (e2e)', () => {
     beforeAll(async () => {
       plantD = await t.plant('m2', 'PUBLIC')
       const model = (await t.model('MOLINO_BOLAS', 'E2E Bolas kpi')).id
-      dAsset = (await http().post('/api/v1/plants/e2e-m2/assets').set('Authorization', bearer(admin)).send({ tag: 'K-1', name: 'K', assetModelId: model }).expect(201)).body.id
+      dAsset = (await t.legacyAssetBySlug('e2e-m2', model, 'K-1', { name: 'K' })).id
 
       type Seed = Partial<typeof workOrders.$inferInsert> & { status: string; type: string }
       const rows: Seed[] = [
@@ -613,7 +613,7 @@ describe('Mantenimiento: órdenes de trabajo y planes (e2e)', () => {
     it('borrar la planta elimina en cascada órdenes y planes', async () => {
       const tmp = await t.plant('mtmp', 'PUBLIC')
       const model = (await t.model('MOLINO_BOLAS', 'E2E Bolas tmp')).id
-      const asset = (await http().post('/api/v1/plants/e2e-mtmp/assets').set('Authorization', bearer(admin)).send({ tag: 'T-1', name: 'T', assetModelId: model }).expect(201)).body.id
+      const asset = (await t.legacyAssetBySlug('e2e-mtmp', model, 'T-1', { name: 'T' })).id
       await send('post', '/api/v1/plants/e2e-mtmp/maintenance/work-orders', admin, { assetId: asset, title: 'tmp' }).expect(201)
       await send('post', '/api/v1/plants/e2e-mtmp/maintenance/plans', admin, plan({ assetId: asset })).expect(201)
       await t.db.delete(plants).where(eq(plants.id, tmp.id))
@@ -624,7 +624,7 @@ describe('Mantenimiento: órdenes de trabajo y planes (e2e)', () => {
 
   describe('ficha FUR del activo', () => {
     it('muestra a quien tiene maintenance.read el resumen: abiertas, atrasadas, último y próximo mantenimiento, recientes', async () => {
-      const asset = (await http().post('/api/v1/plants/e2e-m1/assets').set('Authorization', bearer(pa)).send({ tag: 'FUR-M', name: 'Para FUR', assetModelId: (await t.model('MOLINO_BOLAS', 'E2E Bolas fur')).id, isPublic: true }).expect(201)).body.id
+      const asset = (await t.legacyAsset(plantA.id, (await t.model('MOLINO_BOLAS', 'E2E Bolas fur')).id, 'FUR-M', { name: 'Para FUR', isPublic: true })).id
       const wo = await mkOrder(lead, { assetId: asset, title: 'Cerrada', plannedEnd: iso(-day) })
       await advance(wo.id, 'CLOSED')
       await mkOrder(lead, { assetId: asset, title: 'Abierta atrasada', plannedEnd: iso(-day) })

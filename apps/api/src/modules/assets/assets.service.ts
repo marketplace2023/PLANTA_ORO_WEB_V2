@@ -27,8 +27,9 @@ import { PlansService } from '../maintenance/plans.service'
 import { InventoryService } from '../inventory/inventory.service'
 import { WorkOrdersService } from '../maintenance/work-orders.service'
 import { PlantsService, toPlantSummary } from '../plants/plants.service'
-import type { CreateAssetDto, ListAssetsQuery, UpdateAssetDto } from './assets.schemas'
+import type { AssetTagPreviewQuery, CreateAssetDto, ListAssetsQuery, UpdateAssetDto } from './assets.schemas'
 import { buildFurCode } from './fur-code'
+import { nextAssetTag, previewAssetTag } from './asset-tag'
 
 type Tx = Parameters<Parameters<Database['transaction']>[0]>[0]
 type Row = Awaited<ReturnType<AssetsService['selectRows']>>[number]
@@ -375,7 +376,10 @@ export class AssetsService {
   }
 
   private async assertModel(modelId: string) {
-    const [model] = await this.db.select({ id: assetModels.id, specifications: assetModels.specifications, technicalData: assetModels.technicalData }).from(assetModels).where(and(eq(assetModels.id, modelId), eq(assetModels.status, 'ACTIVE'))).limit(1)
+    const [model] = await this.db.select({ id: assetModels.id, specifications: assetModels.specifications, technicalData: assetModels.technicalData, familyId: assetFamilies.id, familyTagCode: assetFamilies.tagCode })
+      .from(assetModels).innerJoin(assetTypes, eq(assetTypes.id, assetModels.assetTypeId))
+      .innerJoin(assetFamilies, eq(assetFamilies.id, assetTypes.familyId))
+      .where(and(eq(assetModels.id, modelId), eq(assetModels.status, 'ACTIVE'))).limit(1)
     if (!model) throw new BadRequestException('El modelo de catálogo no existe o está inactivo')
     return model
   }
@@ -402,9 +406,20 @@ export class AssetsService {
     }
   }
 
+  async tagPreview(plant: PlantRow, query: AssetTagPreviewQuery) {
+    const model = await this.assertModel(query.assetModelId)
+    const plantStageId = await this.resolveStage(plant.id, query.stageCode)
+    const [plantNetworkId] = await this.resolveNetworks(plant.id, [query.networkCode])
+    const tag = await previewAssetTag(this.db, {
+      plantId: plant.id, plantStageId, plantNetworkId, familyId: model.familyId,
+      familyTagCode: model.familyTagCode, stageCode: query.stageCode, networkCode: query.networkCode,
+    })
+    return { tag }
+  }
+
   async create(plant: PlantRow, dto: CreateAssetDto, req: AppRequest) {
     const model = await this.assertModel(dto.assetModelId)
-    const plantStageId = dto.stageCode ? await this.resolveStage(plant.id, dto.stageCode) : null
+    const plantStageId = await this.resolveStage(plant.id, dto.stageCode)
     const networkIds = await this.resolveNetworks(plant.id, dto.networkCodes)
     if (dto.parentAssetId) await this.assertParent(plant.id, dto.parentAssetId)
 
@@ -421,6 +436,12 @@ export class AssetsService {
         const [{ max }] = await tx.select({ max: sql<number>`coalesce(max(${assets.sortOrder}), 0)::int` }).from(assets).where(eq(assets.plantId, plant.id))
         const next = max + 1
 
+        const tag = await nextAssetTag(tx, {
+          plantId: plant.id, plantStageId, plantNetworkId: networkIds[0],
+          networkCode: dto.networkCodes[0], stageCode: dto.stageCode,
+          familyId: model.familyId, familyTagCode: model.familyTagCode,
+        })
+
         const [asset] = await tx
           .insert(assets)
           .values({
@@ -430,7 +451,7 @@ export class AssetsService {
             specifications: dto.specifications ?? model.specifications,
             technicalData: { ...(model.technicalData as Record<string, unknown>), ...(dto.components !== undefined && { componentes: dto.components }) },
             furCode: buildFurCode(plant.code, seq),
-            tag: dto.tag,
+            tag,
             name: dto.name,
             serialNumber: dto.serialNumber,
             installationDate: dto.installationDate,
@@ -455,7 +476,7 @@ export class AssetsService {
         return asset
       })
       .catch((err) => {
-        if (isUniqueViolation(err)) throw new ConflictException(`Ya existe un activo con el tag ${dto.tag} en esta planta`)
+        if (isUniqueViolation(err)) throw new ConflictException('No se pudo reservar un TAG único para esta planta. Inténtalo de nuevo.')
         throw err
       })
 
@@ -510,7 +531,6 @@ export class AssetsService {
     const patch: Partial<typeof assets.$inferInsert> = { updatedAt: new Date() }
     if (dto.specifications !== undefined) patch.specifications = dto.specifications
     if (dto.components !== undefined) patch.technicalData = { ...(before.technicalData as Record<string, unknown>), componentes: dto.components }
-    if (dto.tag !== undefined) patch.tag = dto.tag
     if (dto.name !== undefined) patch.name = dto.name
     if (dto.serialNumber !== undefined) patch.serialNumber = dto.serialNumber
     if (dto.installationDate !== undefined) patch.installationDate = dto.installationDate
@@ -552,7 +572,7 @@ export class AssetsService {
         }
       })
       .catch((err) => {
-        if (isUniqueViolation(err)) throw new ConflictException(`Ya existe un activo con el tag ${dto.tag} en esta planta`)
+        if (isUniqueViolation(err)) throw new ConflictException(`Ya existe un activo con el TAG ${before.tag} en esta planta`)
         throw err
       })
 

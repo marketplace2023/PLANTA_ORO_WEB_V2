@@ -2,7 +2,7 @@ import { vi } from 'vitest'
 
 /** `raw` entrega bytes/texto tal cual (descargas de archivos); `body` se serializa como JSON. */
 type Reply = { status?: number; body?: unknown; raw?: string | Uint8Array; headers?: Record<string, string> }
-type Handler = Reply | ((req: { path: string; init: RequestInit }) => Reply | Promise<Reply>)
+type Handler = Reply | ((req: { path: string; query: URLSearchParams; init: RequestInit }) => Reply | Promise<Reply>)
 
 export type Call = { method: string; path: string; query: URLSearchParams; init: RequestInit; headers: Headers }
 
@@ -20,7 +20,7 @@ export function mockApi(routes: Record<string, Handler>) {
 
     const handler = routes[`${method} ${path}`]
     if (!handler) throw new Error(`Ruta no simulada: ${method} ${path}`)
-    const reply = typeof handler === 'function' ? await handler({ path, init }) : handler
+    const reply = typeof handler === 'function' ? await handler({ path, query: parsed.searchParams, init }) : handler
     const status = reply.status ?? 200
     const payload = status === 204 ? null : reply.raw !== undefined ? reply.raw : JSON.stringify(reply.body ?? {})
     return new Response(payload as BodyInit | null, {

@@ -6,13 +6,20 @@ import { mockApi } from '@/test/fetch-mock'
 import { detail, MODELS, NETWORKS, page, STAGES } from '@/test/assets-fixtures'
 import { AssetFormDialog } from './asset-form-dialog'
 
-const template = { ...MODELS[0], networkCodes: ['FUR-PTE'], specifications: { 'Potencia (kW)': '30–37', 'Tensión (V)': 480 }, technicalData: { componentes: ['Impulsor', 'Rodamientos'] } }
-function setup({ empty = false, failFirst = false, catalogModels = [template] } = {}) {
+const template = { ...MODELS[0], family: { ...MODELS[0].family, tagCode: 'MOL' }, networkCodes: ['FUR-PTE'], specifications: { 'Potencia (kW)': '30–37', 'Tensión (V)': 480 }, technicalData: { componentes: ['Impulsor', 'Rodamientos'] } }
+async function selectStage() {
+  await userEvent.click(await screen.findByRole('combobox', { name: 'Etapa' }))
+  await userEvent.click(await screen.findByRole('option', { name: 'D06 - Molienda Primaria' }))
+}
+function setup({ empty = false, failFirst = false, catalogModels = [template], previewFails = false } = {}) {
   let attempts = 0
   return mockApi({
     'GET /catalog/assets': () => failFirst && attempts++ === 0 ? { status: 500, body: { message: 'Error de catálogo' } } : { body: page(empty ? [] : catalogModels) },
     'GET /plants/revemin-ii/stages': { body: STAGES },
     'GET /plants/revemin-ii/networks': { body: NETWORKS },
+    'GET /plants/revemin-ii/assets/tag-preview': ({ query }) => previewFails
+      ? { status: 500, body: { message: 'Error de vista previa' } }
+      : { body: { tag: `${query.get('networkCode')}-${query.get('stageCode')}-MOL-${query.get('stageCode') === 'D07' ? '004' : '007'}` } },
     'POST /plants/revemin-ii/assets': { status: 201, body: detail() },
     'PATCH /plants/revemin-ii/assets/a1': { body: detail() },
   })
@@ -25,12 +32,14 @@ describe('Ficha propia del activo', () => {
     const onSaved = vi.fn()
     renderWithProviders(<AssetFormDialog open onOpenChange={vi.fn()} plantSlug="revemin-ii" onSaved={onSaved} />)
     const dialog = await screen.findByRole('dialog')
-    await userEvent.type(within(dialog).getByLabelText('Tag'), 'AG-01')
+    expect(within(dialog).getByLabelText('Tag')).toHaveAttribute('readonly')
     await waitFor(() => expect(within(dialog).getByRole('combobox', { name: 'Modelo del catálogo' })).toBeEnabled())
     await userEvent.click(within(dialog).getByRole('combobox', { name: 'Modelo del catálogo' }))
     await userEvent.click(await screen.findByRole('option', { name: /Bolas 16.5x24 ft/ }))
     expect(within(dialog).getByLabelText('Nombre')).toHaveValue(template.modelName)
     expect(within(dialog).getByRole('combobox', { name: 'Red transversal' })).toHaveTextContent('FUR-PTE')
+    await selectStage()
+    await waitFor(() => expect(within(dialog).getByLabelText('Tag')).toHaveValue('FUR-PTE-D06-MOL-007'))
     await userEvent.clear(within(dialog).getByLabelText('Nombre'))
     await userEvent.type(within(dialog).getByLabelText('Nombre'), 'Agitador instalado')
     expect(within(dialog).getByLabelText('Valor de especificación 1')).toHaveValue('30–37')
@@ -44,6 +53,7 @@ describe('Ficha propia del activo', () => {
     await waitFor(() => expect(onSaved).toHaveBeenCalledOnce())
     const body = JSON.parse(api.calls.find(call => call.method === 'POST')!.init.body as string)
     expect(body).toMatchObject({ name: 'Agitador instalado', networkCodes: ['FUR-PTE'], specifications: { 'Potencia (kW)': '37', 'Tensión (V)': 480 }, components: ['Impulsor instalado'] })
+    expect(body).not.toHaveProperty('tag')
     expect(template.specifications['Potencia (kW)']).toBe('30–37')
     expect(template.technicalData.componentes).toEqual(['Impulsor', 'Rodamientos'])
   })
@@ -186,7 +196,7 @@ describe('Ficha propia del activo', () => {
     await userEvent.click(network)
     expect(screen.queryByRole('option', { name: /FUR-MNT/ })).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole('option', { name: /FUR-IOT/ }))
-    await userEvent.type(screen.getByLabelText('Tag'), 'AG-RED')
+    await selectStage()
     await userEvent.click(screen.getByRole('button', { name: 'Crear activo' }))
     await waitFor(() => expect(api.count('POST /plants/revemin-ii/assets')).toBe(1))
     expect(JSON.parse(api.calls.find(call => call.method === 'POST')!.init.body as string).networkCodes).toEqual(['FUR-IOT'])
@@ -205,10 +215,10 @@ describe('Ficha propia del activo', () => {
     await userEvent.click(picker)
     await userEvent.click(await screen.findByRole('option', { name: /Modelo de mantenimiento/ }))
     expect(screen.getByRole('combobox', { name: 'Red transversal' })).toHaveTextContent('Sin red asignada')
-    await userEvent.type(screen.getByLabelText('Tag'), 'AG-SIN-RED')
+    await selectStage()
     await userEvent.click(screen.getByRole('button', { name: 'Crear activo' }))
-    await waitFor(() => expect(api.count('POST /plants/revemin-ii/assets')).toBe(1))
-    expect(JSON.parse(api.calls.find(call => call.method === 'POST')!.init.body as string).networkCodes).toEqual([])
+    expect(await screen.findByText('Selecciona una red para generar el TAG')).toBeInTheDocument()
+    expect(api.count('POST /plants/revemin-ii/assets')).toBe(0)
   })
 
   it('conserva las redes de un activo existente hasta elegir expresamente una sola', async () => {
@@ -226,5 +236,44 @@ describe('Ficha propia del activo', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
     await waitFor(() => expect(api.count('PATCH /plants/revemin-ii/assets/a1')).toBe(2))
     expect(JSON.parse(api.calls.filter(call => call.method === 'PATCH')[1].init.body as string).networkCodes).toEqual(['FUR-PTE'])
+  })
+
+  it('muestra el TAG progresivo en input y cabecera y consulta el correlativo sin crear el activo', async () => {
+    const api = setup()
+    renderWithProviders(<AssetFormDialog open onOpenChange={vi.fn()} plantSlug="revemin-ii" />)
+    const input = await screen.findByLabelText('Tag')
+    const headerTag = screen.getByLabelText('Vista previa del TAG')
+    const expectTag = (tag: string) => { expect(input).toHaveValue(tag); expect(headerTag).toHaveTextContent(tag) }
+    expectTag('XXX-XXX-XXX-001')
+    expect(api.count('GET /plants/revemin-ii/assets/tag-preview')).toBe(0)
+    const network = screen.getByRole('combobox', { name: 'Red transversal' })
+    await waitFor(() => expect(network).toBeEnabled())
+    await userEvent.click(network)
+    await userEvent.click(await screen.findByRole('option', { name: /FUR-PTE/ }))
+    expectTag('FUR-PTE-XXX-XXX-001')
+    await selectStage()
+    expectTag('FUR-PTE-D06-XXX-001')
+    expect(api.count('GET /plants/revemin-ii/assets/tag-preview')).toBe(0)
+    await userEvent.click(screen.getByRole('combobox', { name: 'Modelo del catálogo' }))
+    await userEvent.click(await screen.findByRole('option', { name: /Bolas 16.5x24 ft/ }))
+    await waitFor(() => expectTag('FUR-PTE-D06-MOL-007'))
+    await userEvent.click(screen.getByRole('combobox', { name: 'Etapa' }))
+    await userEvent.click(await screen.findByRole('option', { name: 'D07 - Molienda Secundaria' }))
+    await waitFor(() => expectTag('FUR-PTE-D07-MOL-004'))
+    expect(api.count('POST /plants/revemin-ii/assets')).toBe(0)
+    const query = api.calls.filter(call => call.path.endsWith('tag-preview')).at(-1)!.query
+    expect(Object.fromEntries(query)).toEqual({ assetModelId: 'm1', stageCode: 'D07', networkCode: 'FUR-PTE' })
+  })
+
+  it('el error de vista previa conserva los segmentos elegidos y no bloquea el alta', async () => {
+    const api = setup({ previewFails: true })
+    renderWithProviders(<AssetFormDialog open onOpenChange={vi.fn()} plantSlug="revemin-ii" />)
+    await userEvent.click(await screen.findByRole('combobox', { name: 'Modelo del catálogo' }))
+    await userEvent.click(await screen.findByRole('option', { name: /Bolas 16.5x24 ft/ }))
+    await selectStage()
+    expect(await screen.findByText('No se pudo actualizar la vista previa. El TAG se asignará al guardar.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Tag')).toHaveValue('FUR-PTE-D06-MOL-…')
+    await userEvent.click(screen.getByRole('button', { name: 'Crear activo' }))
+    await waitFor(() => expect(api.count('POST /plants/revemin-ii/assets')).toBe(1))
   })
 })

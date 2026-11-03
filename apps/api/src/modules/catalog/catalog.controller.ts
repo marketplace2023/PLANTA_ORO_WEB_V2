@@ -106,7 +106,7 @@ export class CatalogController {
         stageInherited: modelStagesInherited,
         networkCodes: modelNetworkCodes,
         type: { id: assetTypes.id, code: assetTypes.code, name: assetTypes.name, description: assetTypes.description, stageCodes: typeStageCodes },
-        family: { id: assetFamilies.id, code: assetFamilies.code, name: assetFamilies.name, icon: assetFamilies.icon },
+        family: { id: assetFamilies.id, code: assetFamilies.code, tagCode: assetFamilies.tagCode, name: assetFamilies.name, icon: assetFamilies.icon },
         referenceManufacturers: sql<Array<{ nombre: string; alcance: string | null; sitioWeb: string | null }>>`case when jsonb_typeof(${assetModels.technicalData}->'fabricantesReferencia') = 'array' then ${assetModels.technicalData}->'fabricantesReferencia' else '[]'::jsonb end`,
       })
       .from(assetModels)

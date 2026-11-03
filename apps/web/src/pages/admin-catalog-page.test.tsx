@@ -17,7 +17,7 @@ const INACTIVE_MODEL = { ...MODELS[1], id: 'm2', status: 'INACTIVE' }
 
 function setup(routes: Record<string, Reply | (() => Reply)> = {}) {
   return mockApi({
-    'GET /catalog/families': { body: FAMILIES },
+    'GET /catalog/families': { body: FAMILIES.map(family => ({ ...family, tagCode: family.code === 'MOLINOS' ? 'MOL' : 'MOT' })) },
     'GET /catalog/types': { body: TYPES },
     'GET /catalog/manufacturers': { body: MAKERS },
     'GET /catalog/assets': { body: page([MODELS[0], INACTIVE_MODEL], 2, 1, 50) },
@@ -58,13 +58,14 @@ describe('Administrar catálogo', () => {
       expect(within(dialog).getByText(/No se puede cambiar después/)).toBeInTheDocument()
 
       await userEvent.click(within(dialog).getByRole('button', { name: 'Crear familia' }))
-      expect(await within(dialog).findAllByText('Requerido')).toHaveLength(2) // código y nombre
+      expect(await within(dialog).findAllByText('Requerido')).toHaveLength(3) // integración, TAG y nombre
       expect(m.calls.some((c) => c.method === 'POST')).toBe(false)
 
-      await userEvent.type(within(dialog).getByLabelText('Código'), 'GRUAS')
+      await userEvent.type(within(dialog).getByLabelText('Código de integración'), 'GRUAS')
+      await userEvent.type(within(dialog).getByLabelText('Código TAG'), 'gru')
       await userEvent.type(within(dialog).getByLabelText('Nombre'), 'Grúas')
       await userEvent.click(within(dialog).getByRole('button', { name: 'Crear familia' }))
-      await waitFor(() => expect(body(m, 'POST', '/catalog/families')).toEqual({ code: 'GRUAS', name: 'Grúas' }))
+      await waitFor(() => expect(body(m, 'POST', '/catalog/families')).toEqual({ code: 'GRUAS', tagCode: 'GRU', name: 'Grúas' }))
     })
 
     it('un código repetido (409) o inválido (400) se muestra y el diálogo sigue abierto', async () => {
@@ -72,23 +73,29 @@ describe('Administrar catálogo', () => {
       renderWithProviders(<AdminCatalogPage />, { route: '/admin/catalog' })
       await userEvent.click(await screen.findByRole('button', { name: /Nueva familia/ }))
       const dialog = await screen.findByRole('dialog')
-      await userEvent.type(within(dialog).getByLabelText('Código'), 'MOLINOS')
+      await userEvent.type(within(dialog).getByLabelText('Código de integración'), 'MOLINOS')
+      await userEvent.type(within(dialog).getByLabelText('Código TAG'), 'MOL')
       await userEvent.type(within(dialog).getByLabelText('Nombre'), 'Otra')
       await userEvent.click(within(dialog).getByRole('button', { name: 'Crear familia' }))
       expect(await within(dialog).findByText(/Ya existe una familia con el código MOLINOS/)).toBeInTheDocument()
       expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
 
-    it('editar: no pide el código (inmutable) y envía solo nombre e ícono', async () => {
+    it('editar: precarga y permite cambiar el código TAG sin cambiar el de integración', async () => {
       const m = setup({ 'PATCH /catalog/families/f1': { body: {} } })
       renderWithProviders(<AdminCatalogPage />, { route: '/admin/catalog' })
       await userEvent.click(await screen.findByRole('button', { name: 'Editar Molinos' }))
       const dialog = await screen.findByRole('dialog')
       expect(within(dialog).queryByLabelText('Código')).not.toBeInTheDocument()
+      expect(within(dialog).getByLabelText('Código TAG')).toHaveValue('MOL')
+      await userEvent.clear(within(dialog).getByLabelText('Código TAG'))
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Guardar cambios' }))
+      expect(await within(dialog).findByText('Requerido')).toBeInTheDocument()
+      await userEvent.type(within(dialog).getByLabelText('Código TAG'), 'msg')
       await userEvent.clear(within(dialog).getByLabelText('Nombre'))
       await userEvent.type(within(dialog).getByLabelText('Nombre'), 'Molinos y SAG')
       await userEvent.click(within(dialog).getByRole('button', { name: 'Guardar cambios' }))
-      await waitFor(() => expect(body(m, 'PATCH', '/catalog/families/f1')).toEqual({ name: 'Molinos y SAG', icon: 'cog' }))
+      await waitFor(() => expect(body(m, 'PATCH', '/catalog/families/f1')).toEqual({ tagCode: 'MSG', name: 'Molinos y SAG', icon: 'cog' }))
     })
   })
 

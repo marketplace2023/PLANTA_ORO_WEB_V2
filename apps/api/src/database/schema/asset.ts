@@ -1,13 +1,22 @@
 import { boolean, date, index, integer, jsonb, pgSchema, primaryKey, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core'
-import { assetModels, manufacturers } from './catalog'
+import { assetFamilies, assetModels, manufacturers } from './catalog'
 import { createdAt, pk, updatedAt } from './common'
 import { plants } from './core'
 import { users } from './iam'
-import { plantNetworks } from './plant'
-import { plantStages } from './process'
+import { networkMaster, plantNetworks } from './plant'
+import { plantStages, stageMaster } from './process'
 
 // Arquitectura §13: instancias físicas que una planta realmente posee/usa.
 export const assetSchema = pgSchema('asset')
+
+/** Secuencia sin reinicio anual por planta, red, etapa y familia. No depende del número de activos vivos. */
+export const assetTagSequences = assetSchema.table('tag_sequences', {
+  plantId: uuid('plant_id').notNull().references(() => plants.id, { onDelete: 'cascade' }),
+  networkMasterId: uuid('network_master_id').notNull().references(() => networkMaster.id),
+  stageMasterId: uuid('stage_master_id').notNull().references(() => stageMaster.id),
+  familyId: uuid('family_id').notNull().references(() => assetFamilies.id),
+  lastValue: integer('last_value').notNull(),
+}, (t) => [primaryKey({ columns: [t.plantId, t.networkMasterId, t.stageMasterId, t.familyId] })])
 
 /** Estados del activo (arquitectura §13.2, design.md §16). */
 export const ASSET_STATUSES = [

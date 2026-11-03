@@ -72,7 +72,8 @@ function Families() {
   const update = useUpdateFamily()
   const [dialog, setDialog] = useState<{ item?: CatalogFamily } | null>(null)
   const fields = (editing: boolean): Field[] => [
-    ...(editing ? [] : [{ name: 'code', label: 'Código', required: true, help: 'Mayúsculas, números y guion bajo. No se puede cambiar después.' }]),
+    { name: 'tagCode', label: 'Código TAG', required: true, placeholder: 'MOT', help: 'Único. De 3 a 12 letras o números, empezando por una letra. Cambiarlo solo afecta a futuras altas de activos.' },
+    ...(editing ? [] : [{ name: 'code', label: 'Código de integración', required: true, help: 'Mayúsculas, números y guion bajo. No se puede cambiar después.' }]),
     { name: 'name', label: 'Nombre', required: true },
     { name: 'icon', label: 'Ícono (Lucide)', placeholder: 'cog' },
     { name: 'description', label: 'Descripción', type: 'textarea' },
@@ -82,11 +83,12 @@ function Families() {
       {families.isError ? <ErrorState onRetry={() => void families.refetch()} /> : families.isLoading ? <Loading /> : (
         <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <Table>
-            <TableHeader><TableRow><TableHead>Código</TableHead><TableHead>Nombre</TableHead><TableHead>Ícono</TableHead><TableHead><span className="sr-only">Acciones</span></TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Código TAG</TableHead><TableHead>Código de integración</TableHead><TableHead>Nombre</TableHead><TableHead>Ícono</TableHead><TableHead><span className="sr-only">Acciones</span></TableHead></TableRow></TableHeader>
             <TableBody>
               {families.data!.map((f) => (
                 <TableRow key={f.id}>
-                  <TableCell className="fur-code">{f.code}</TableCell>
+                  <TableCell className="fur-code font-semibold">{f.tagCode ?? '—'}</TableCell>
+                  <TableCell className="fur-code text-muted-foreground">{f.code}</TableCell>
                   <TableCell>{f.name}</TableCell>
                   <TableCell className="text-fur-gray-600">{f.icon ?? '—'}</TableCell>
                   <TableCell className="text-right">
@@ -102,13 +104,13 @@ function Families() {
         <FieldsDialog
           title={dialog.item ? `Editar ${dialog.item.name}` : 'Nueva familia'}
           fields={fields(!!dialog.item)}
-          initial={dialog.item ? { name: dialog.item.name, icon: dialog.item.icon ?? '' } : {}}
+          initial={dialog.item ? { tagCode: dialog.item.tagCode ?? '', name: dialog.item.name, icon: dialog.item.icon ?? '' } : {}}
           submitLabel={dialog.item ? 'Guardar cambios' : 'Crear familia'}
           onClose={() => setDialog(null)}
           onSubmit={(v: FieldValues) =>
             dialog.item
-              ? update.mutateAsync({ id: dialog.item.id, name: String(v.name), icon: orNull(v.icon) })
-              : create.mutateAsync({ code: String(v.code), name: String(v.name), icon: orUndef(v.icon), description: orUndef(v.description) })
+              ? update.mutateAsync({ id: dialog.item.id, tagCode: String(v.tagCode).trim().toUpperCase(), name: String(v.name), icon: orNull(v.icon) })
+              : create.mutateAsync({ code: String(v.code), tagCode: String(v.tagCode).trim().toUpperCase(), name: String(v.name), icon: orUndef(v.icon), description: orUndef(v.description) })
           }
         />
       )}

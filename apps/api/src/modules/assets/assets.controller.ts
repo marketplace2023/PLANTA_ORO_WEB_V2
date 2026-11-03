@@ -1,9 +1,11 @@
 import { z } from 'zod'
-import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Put, Query, Req } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Header, HttpCode, Param, ParseUUIDPipe, Patch, Post, Put, Query, Req } from '@nestjs/common'
 import type { AppRequest, AuthUser, PlantRow } from '../../common/types'
 import { ZodValidationPipe } from '../../common/zod-validation.pipe'
 import { CurrentPlant, CurrentUser, Public, RequirePermission } from '../iam/decorators'
 import {
+  assetTagPreviewSchema,
+  type AssetTagPreviewQuery,
   type CreateAssetDto,
   createAssetSchema,
   type ListAssetsQuery,
@@ -41,6 +43,13 @@ export class AssetsController {
     @CurrentUser() user?: AuthUser,
   ) {
     return this.assets.summary(plantId, user, query.network)
+  }
+
+  @RequirePermission('asset.create')
+  @Get('tag-preview')
+  @Header('Cache-Control', 'no-store')
+  tagPreview(@CurrentPlant() plant: PlantRow, @Query(new ZodValidationPipe(assetTagPreviewSchema)) query: AssetTagPreviewQuery) {
+    return this.assets.tagPreview(plant, query)
   }
 
   @RequirePermission('asset.create')

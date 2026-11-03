@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import {
   useCatalogModels,
+  useAssetTagPreview,
   useCreateAsset,
   useUpdateAsset,
   type AssetDetail,
@@ -56,7 +57,6 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
   const networks = usePlantNetworks(plantSlug)
 
   const [form, setForm] = useState({
-    tag: asset?.tag ?? '',
     name: asset?.name ?? '',
     assetModelId: asset?.model.id ?? '',
     stageCode: asset?.stage?.code ?? NO_STAGE,
@@ -79,6 +79,11 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
   const enabledNetworks = networks.data?.filter((n) => n.isEnabled) ?? []
   const modelNetwork = selectedModel?.networkCodes.find(code => enabledNetworks.some(network => network.code === code))
   const networkCodes = form.networkCodes ?? (modelNetwork ? [modelNetwork] : [])
+  const tagSelection = form.assetModelId && form.stageCode !== NO_STAGE && networkCodes.length === 1
+    ? { assetModelId: form.assetModelId, stageCode: form.stageCode, networkCode: networkCodes[0] } : null
+  const suggestedTag = useAssetTagPreview(plantSlug, tagSelection, open && !editing)
+  const partialTag = `${networkCodes.length === 1 ? networkCodes[0] : 'XXX'}-${form.stageCode !== NO_STAGE ? form.stageCode : 'XXX'}-${template?.family?.tagCode ?? 'XXX'}-${tagSelection ? '…' : '001'}`
+  const tagPreview = suggestedTag.data?.tag ?? partialTag
   function selectModel(model: CatalogModel) {
     set('assetModelId', model.id)
     set('name', model.modelName)
@@ -95,9 +100,10 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
     setFormError(undefined)
 
     const next: Record<string, string> = {}
-    if (!form.tag.trim()) next.tag = 'Requerido'
     if (!form.name.trim()) next.name = 'Requerido'
     if (!form.assetModelId) next.assetModelId = 'Selecciona un modelo del catálogo'
+    if (!editing && form.stageCode === NO_STAGE) next.stageCode = 'Selecciona una etapa para generar el TAG'
+    if (!editing && networkCodes.length !== 1) next.networkCodes = 'Selecciona una red para generar el TAG'
     if (Object.keys(next).length > 0) return setErrors(next)
 
     let ownTechnical: ReturnType<typeof technicalPayload>
@@ -106,7 +112,6 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
 
     const common: AssetInput = {
       ...ownTechnical,
-      tag: form.tag.trim(),
       name: form.name.trim(),
       assetModelId: form.assetModelId,
       criticality: form.criticality,
@@ -163,9 +168,12 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
           <div className="flex min-w-0 items-start gap-3">
             <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-fur-gold-500/15 text-fur-navy-900"><Package className="size-5" aria-hidden /></span>
             <div className="min-w-0 flex-1 space-y-1.5">
-              <DialogTitle className="truncate text-xl leading-snug font-semibold tracking-tight" title={editing ? asset.tag : undefined}>{editing ? 'Editar ' + asset.tag : 'Nuevo activo'}</DialogTitle>
+              <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
+                <DialogTitle className="truncate text-xl leading-snug font-semibold tracking-tight" title={editing ? asset.tag : undefined}>{editing ? 'Editar ' + asset.tag : 'Nuevo activo'}</DialogTitle>
+                {!editing && <span aria-label="Vista previa del TAG" aria-live="polite" aria-atomic="true" title={tagPreview} className="fur-code max-w-full truncate rounded-lg border border-fur-gold-500/30 bg-fur-gold-500/10 px-2.5 py-1 text-xs font-medium text-fur-navy-900">{tagPreview}</span>}
+              </div>
               <DialogDescription className="text-sm leading-relaxed [overflow-wrap:anywhere]">
-                {editing ? 'El código FUR (' + asset.furCode + ') es permanente.' : 'El código FUR se genera automáticamente al guardar.'}
+                {editing ? 'El código FUR (' + asset.furCode + ') es permanente.' : 'El TAG y el código FUR se asignan al guardar.'}
               </DialogDescription>
             </div>
             <DialogClose asChild><Button type="button" variant="ghost" size="icon-sm" className="shrink-0 rounded-lg" aria-label="Cerrar"><X className="size-4" /></Button></DialogClose>
@@ -200,7 +208,8 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
               <div className="grid min-w-0 gap-4 sm:grid-cols-2">
                 <div className="min-w-0 space-y-2">
                   <Label htmlFor="tag">Tag</Label>
-                  <Input id="tag" className="fur-code h-11 min-w-0 bg-background" value={form.tag} onChange={(e) => set('tag', e.target.value)} {...a11y('tag')} />
+                  <Input id="tag" className="fur-code h-11 min-w-0 bg-muted/40" readOnly value={editing ? asset.tag : tagPreview} placeholder="Se genera al guardar" {...a11y('tag')} aria-describedby={errors.tag ? 'tag-error' : 'asset-tag-hint'} />
+                  <p id="asset-tag-hint" className="text-xs leading-relaxed text-muted-foreground">{editing ? 'El TAG es permanente.' : suggestedTag.isError ? 'No se pudo actualizar la vista previa. El TAG se asignará al guardar.' : suggestedTag.isFetching ? 'Consultando el siguiente correlativo…' : 'Vista previa. El TAG definitivo se asigna al guardar.'}</p>
                   {fieldError('tag')}
                 </div>
                 <div className="min-w-0 space-y-2">

@@ -63,18 +63,26 @@ describe('Administración del catálogo y roles asignables (e2e)', () => {
 
   describe('familias', () => {
     it('crea (código en mayúsculas), rechaza duplicados y códigos inválidos', async () => {
-      const res = await post('/api/v1/catalog/families', admin, { code: 'e2e_fam', name: 'Familia de prueba', icon: 'cog' }).expect(201)
+      const res = await post('/api/v1/catalog/families', admin, { code: 'e2e_fam', tagCode: 'efm', name: 'Familia de prueba', icon: 'cog' }).expect(201)
+      expect(res.body.tagCode).toBe('EFM')
       famId = res.body.id
       expect(res.body).toMatchObject({ code: 'E2E_FAM', name: 'Familia de prueba', icon: 'cog' })
-      await post('/api/v1/catalog/families', admin, { code: 'E2E_FAM', name: 'Otra' }).expect(409)
-      const bad = await post('/api/v1/catalog/families', admin, { code: 'con espacios', name: 'x' }).expect(400)
+      await post('/api/v1/catalog/families', admin, { code: 'E2E_FAM', tagCode: 'EFO', name: 'Otra' }).expect(409)
+      const duplicate = await post('/api/v1/catalog/families', admin, { code: 'E2E_OTHER_FAM', tagCode: 'EFM', name: 'Otra' }).expect(409)
+      expect(duplicate.body.message).toContain('código TAG EFM')
+      await post('/api/v1/catalog/families', admin, { code: 'E2E_MISSING', name: 'Sin código TAG' }).expect(400)
+      const bad = await post('/api/v1/catalog/families', admin, { code: 'con espacios', tagCode: 'EFX', name: 'x' }).expect(400)
       expect(bad.body.errors[0].path).toBe('code')
-      await post('/api/v1/catalog/families', admin, { code: 'E2E_OK', name: '' }).expect(400)
+      await post('/api/v1/catalog/families', admin, { code: 'E2E_OK', tagCode: 'EFX', name: '' }).expect(400)
+      for (const tagCode of ['', 'AB', 'A-B', '1AB', 'ABCDEFGHIJKLM']) await post('/api/v1/catalog/families', admin, { code: 'E2E_INVALID_TAG', tagCode, name: 'Inválida' }).expect(400)
     })
 
-    it('edita nombre/ícono; el código es inmutable', async () => {
-      const res = await patch(`/api/v1/catalog/families/${famId}`, admin, { name: 'Familia renombrada', icon: null }).expect(200)
-      expect(res.body).toMatchObject({ name: 'Familia renombrada', icon: null, code: 'E2E_FAM' })
+    it('edita el código TAG, nombre e ícono; el código de integración se conserva', async () => {
+      const res = await patch(`/api/v1/catalog/families/${famId}`, admin, { tagCode: 'efn', name: 'Familia renombrada', icon: null }).expect(200)
+      expect(res.body).toMatchObject({ name: 'Familia renombrada', tagCode: 'EFN', icon: null, code: 'E2E_FAM' })
+      const duplicate = await patch(`/api/v1/catalog/families/${famId}`, admin, { tagCode: 'MOT' }).expect(409)
+      expect(duplicate.body.message).toContain('código TAG MOT')
+      await patch(`/api/v1/catalog/families/${famId}`, admin, { tagCode: '' }).expect(400)
       await patch(`/api/v1/catalog/families/${famId}`, admin, { code: 'E2E_OTRO' }).expect(400) // solo campo desconocido → vacío
       await patch(`/api/v1/catalog/families/${famId}`, admin, {}).expect(400)
       await patch('/api/v1/catalog/families/018f0000-0000-7000-8000-000000000000', admin, { name: 'xx' }).expect(404)
@@ -159,8 +167,10 @@ describe('Administración del catálogo y roles asignables (e2e)', () => {
 
     it('un modelo inactivo no se puede usar para crear activos nuevos', async () => {
       const plant = (await t.db.select().from(assetFamilies).limit(1), await t.plant('cat2', 'PUBLIC'))
+      await t.enableStage(plant.id, 'D06')
+      await t.enableNetwork(plant.id, 'FUR-PROC')
       await patch(`/api/v1/catalog/models/${modelId}`, admin, { status: 'INACTIVE' }).expect(200)
-      const res = await post(`/api/v1/plants/${plant.slug}/assets`, admin, { tag: 'X-1', name: 'x', assetModelId: modelId }).expect(400)
+      const res = await post(`/api/v1/plants/${plant.slug}/assets`, admin, { name: 'x', assetModelId: modelId, stageCode: 'D06', networkCodes: ['FUR-PROC'] }).expect(400)
       expect(res.body.message).toContain('inactivo')
     })
 

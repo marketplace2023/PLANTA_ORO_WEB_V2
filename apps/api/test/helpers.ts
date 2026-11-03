@@ -9,6 +9,7 @@ import { AppModule } from '../src/app.module'
 import { configureApp } from '../src/app.setup'
 import * as schema from '../src/database/schema'
 import { TEST_DATABASE_URL } from './test-url'
+import { buildFurCode } from '../src/modules/assets/fur-code'
 
 export const PASSWORD = 'correcto-caballo-12'
 /** Todo lo que crean los tests lleva estos prefijos, para limpiarlo sin tocar el resto de la base. */
@@ -123,6 +124,31 @@ export class TestDb {
   async override(userId: string, plantId: string, permission: string, effect: 'ALLOW' | 'DENY') {
     const [perm] = await this.db.select().from(schema.permissions).where(eq(schema.permissions.code, permission))
     await this.db.insert(schema.userPlantOverrides).values({ userId, plantId, permissionId: perm.id, effect })
+  }
+
+  /** Fixture de una unidad anterior al TAG automático: permite probar datos legados sin etapa o con varias redes. */
+  async legacyAssetBySlug(slug: string, assetModelId: string, tag: string, extra: Parameters<TestDb['legacyAsset']>[3] = {}) {
+    const [plant] = await this.db.select({ id: schema.plants.id }).from(schema.plants).where(eq(schema.plants.slug, slug))
+    return this.legacyAsset(plant.id, assetModelId, tag, extra)
+  }
+
+  async legacyAsset(plantId: string, assetModelId: string, tag: string, extra: Partial<typeof schema.assets.$inferInsert> & { stageCode?: string; networkCodes?: string[] } = {}) {
+    const { stageCode, networkCodes = [], ...data } = extra
+    const [plant] = await this.db.select().from(schema.plants).where(eq(schema.plants.id, plantId))
+    const [model] = await this.db.select().from(schema.assetModels).where(eq(schema.assetModels.id, assetModelId))
+    const stages = stageCode ? await this.db.select({ id: schema.plantStages.id }).from(schema.plantStages)
+      .innerJoin(schema.stageMaster, eq(schema.stageMaster.id, schema.plantStages.stageMasterId))
+      .where(sql`${schema.plantStages.plantId} = ${plantId} and ${schema.stageMaster.code} = ${stageCode}`) : []
+    const networks = networkCodes.length ? await this.db.select({ id: schema.plantNetworks.id }).from(schema.plantNetworks)
+      .innerJoin(schema.networkMaster, eq(schema.networkMaster.id, schema.plantNetworks.networkMasterId))
+      .where(sql`${schema.plantNetworks.plantId} = ${plantId} and ${inArray(schema.networkMaster.code, networkCodes)}`) : []
+    return this.db.transaction(async tx => {
+      const [counter] = await tx.insert(schema.plantSettings).values({ plantId, assetSeq: 1 }).onConflictDoUpdate({ target: schema.plantSettings.plantId, set: { assetSeq: sql`${schema.plantSettings.assetSeq} + 1` } }).returning()
+      const [row] = await tx.insert(schema.assets).values({ plantId, assetModelId, tag: tag.toUpperCase(), name: tag, plantStageId: stages[0]?.id, furCode: buildFurCode(plant.code, counter.assetSeq), specifications: model.specifications, technicalData: model.technicalData, sortOrder: counter.assetSeq, ...data }).returning()
+      if (networks.length) await tx.insert(schema.assetNetworks).values(networks.map(network => ({ assetId: row.id, plantNetworkId: network.id })))
+      await tx.insert(schema.assetStatusHistory).values({ assetId: row.id, newStatus: row.status, reason: 'Alta del activo' })
+      return row
+    })
   }
 
   /** Elimina todo lo creado por los tests (cascada a asignaciones, etapas, redes y tokens). */

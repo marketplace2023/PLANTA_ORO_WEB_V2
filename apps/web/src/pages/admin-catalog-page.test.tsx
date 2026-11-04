@@ -17,6 +17,7 @@ const INACTIVE_MODEL = { ...MODELS[1], id: 'm2', status: 'INACTIVE' }
 
 function setup(routes: Record<string, Reply | (() => Reply)> = {}) {
   return mockApi({
+    'GET /catalog/specifications': { body: [{ id: 'power', familyId: 'f1', label: 'Potencia', unit: 'kW', key: 'Potencia (kW)', valueType: 'NUMBER', required: true, sortOrder: 1 }] },
     'GET /catalog/families': { body: FAMILIES.map(family => ({ ...family, tagCode: family.code === 'MOLINOS' ? 'MOL' : 'MOT' })) },
     'GET /catalog/types': { body: TYPES },
     'GET /catalog/manufacturers': { body: MAKERS },
@@ -42,11 +43,11 @@ describe('Administrar catálogo', () => {
     expect(m.calls).toHaveLength(0)
   })
 
-  it('tiene 4 pestañas y abre en Familias', async () => {
+  it('tiene 5 pestañas y abre en Familias', async () => {
     setup()
     renderWithProviders(<AdminCatalogPage />, { route: '/admin/catalog' })
     expect(await screen.findByText('Molinos')).toBeInTheDocument()
-    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Familias', 'Tipos', 'Fabricantes', 'Modelos'])
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Familias', 'Tipos', 'Fabricantes', 'Modelos', 'Especificaciones'])
   })
 
   describe('familias', () => {
@@ -151,26 +152,18 @@ describe('Administrar catálogo', () => {
       await waitFor(() => expect(m.calls.filter((c) => c.path === '/catalog/assets').at(-1)!.query.get('search')).toBe('motor'))
     })
 
-    it('crear: JSON de especificaciones validado en el cliente', async () => {
+    it('crear: carga parámetros de la familia y envía sus valores tipados', async () => {
       const m = setup({ 'POST /catalog/models': { status: 201, body: {} } })
       renderWithProviders(<AdminCatalogPage />, { route: '/admin/catalog?tab=models' })
       await userEvent.click(await screen.findByRole('button', { name: /Nuevo modelo/ }))
       const dialog = await screen.findByRole('dialog')
-
       await userEvent.click(within(dialog).getByRole('combobox', { name: 'Tipo' }))
       await userEvent.click(await screen.findByRole('option', { name: /Molino de bolas/ }))
       await userEvent.type(within(dialog).getByLabelText('Modelo'), 'Bolas 20x32 ft')
-      await userEvent.clear(within(dialog).getByLabelText(/Especificaciones/))
-      await userEvent.type(within(dialog).getByLabelText(/Especificaciones/), 'esto no es json')
+      expect(within(dialog).queryByLabelText(/Especificaciones.*JSON/)).not.toBeInTheDocument()
+      await userEvent.type(await within(dialog).findByLabelText(/Potencia/), '5600')
       await userEvent.click(within(dialog).getByRole('button', { name: 'Crear modelo' }))
-      expect(await within(dialog).findByText('JSON inválido')).toBeInTheDocument()
-      expect(m.calls.some((c) => c.method === 'POST')).toBe(false)
-
-      await userEvent.clear(within(dialog).getByLabelText(/Especificaciones/))
-      await userEvent.click(within(dialog).getByLabelText(/Especificaciones/))
-      await userEvent.paste('{"powerKw": 5600}')
-      await userEvent.click(within(dialog).getByRole('button', { name: 'Crear modelo' }))
-      await waitFor(() => expect(body(m, 'POST', '/catalog/models')).toEqual({ typeCode: 'MOLINO_BOLAS', modelName: 'Bolas 20x32 ft', specifications: { powerKw: 5600 }, technicalData: { fabricantesReferencia: [] } }))
+      await waitFor(() => expect(body(m, 'POST', '/catalog/models')).toEqual({ typeCode: 'MOLINO_BOLAS', modelName: 'Bolas 20x32 ft', specifications: { 'Potencia (kW)': 5600 }, technicalData: { fabricantesReferencia: [] } }))
     })
 
     it('muestra los errores del servidor en referencias dentro del formulario', async () => {

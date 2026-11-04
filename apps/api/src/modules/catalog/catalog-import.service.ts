@@ -1,3 +1,5 @@
+import { validateSpecificationValues } from './family-specifications'
+import { familySpecifications } from '../../database/schema'
 import { createHash } from 'node:crypto'
 import { BadRequestException, ConflictException, Inject, Injectable } from '@nestjs/common'
 import { eq, sql } from 'drizzle-orm'
@@ -21,7 +23,8 @@ async function snapshot(db: Connection) {
   const typeStages = await db.select().from(assetTypeStages)
   const modelStages = await db.select().from(assetModelStages)
   const modelNetworks = await db.select().from(assetModelNetworks)
-  return { families, types, models, stages, networks, typeStages, modelStages, modelNetworks }
+  const definitions = await db.select().from(familySpecifications)
+  return { families, types, models, stages, networks, typeStages, modelStages, modelNetworks, definitions }
 }
 type State = Awaited<ReturnType<typeof snapshot>>
 type Action = 'create' | 'update'
@@ -29,7 +32,7 @@ export type CatalogImportPreview = {
   fingerprint: string; issues: ImportIssue[]
   networks: Array<{ code: string; name: string }>
   summary: { models: { create: number; update: number }; families: { create: number; update: number }; types: { create: number; update: number }; manufacturers: { create: number; update: number; merged: number }; specifications: number }
-  rows: Array<{ tag: string; name: string; family: string; type: string; manufacturer: string; stages: string[]; components: string[]; referenceManufacturers: ImportReferenceManufacturer[] | null; specifications: Record<string, string>; action: Action }>
+  rows: Array<{ tag: string; name: string; family: string; type: string; manufacturer: string; stages: string[]; components: string[]; referenceManufacturers: ImportReferenceManufacturer[] | null; specifications: Record<string, unknown>; action: Action }>
 }
 
 function plan(book: MasterWorkbook, state: State, networkCodes: string[]) {
@@ -49,7 +52,7 @@ function plan(book: MasterWorkbook, state: State, networkCodes: string[]) {
   }
   const familyOps = new Map<string, { id: string; code: string; categoryCode: string; name: string; action: Action }>()
   const typeOps = new Map<string, { id: string; code: string; name: string; familyId: string; stageIds: Set<string>; action: Action }>()
-  const models: Array<{ id: string; catalogTag: string; modelName: string; assetTypeId: string; specifications: Record<string, string>; technicalData: Record<string, unknown>; stageId: string; action: Action; duplicateIdentityAllowed: boolean }> = []
+  const models: Array<{ id: string; catalogTag: string; modelName: string; assetTypeId: string; specifications: Record<string, unknown>; technicalData: Record<string, unknown>; stageId: string; action: Action; duplicateIdentityAllowed: boolean }> = []
   const previewRows: CatalogImportPreview['rows'] = []
   const sourceRows = new Map(book.rows.map(row => [row.tag, row.row]))
   const existingTags = new Map<string, State['models']>()
@@ -102,11 +105,18 @@ function plan(book: MasterWorkbook, state: State, networkCodes: string[]) {
     // Solo se adopta un modelo anterior sin TAG si coincide también en la etapa.
     const existing = unique(state.models.filter(m => !m.catalogTag && !models.some(planned => planned.id === m.id) && m.assetTypeId === type!.id && (r.referenceManufacturers === null || referenceIdentity(m.technicalData) === referenceIdentity({ fabricantesReferencia: r.referenceManufacturers })) && m.modelName === r.name && effectiveStages(m.id, m.assetTypeId).includes(stage.id)), `modelo ${r.name} en la etapa ${stage.code}`)
     const action: Action = existing ? 'update' : 'create'
+    let specifications: Record<string, unknown> = r.specifications
+    try {
+      specifications = validateSpecificationValues(state.definitions.filter(d => d.familyId === family!.id), r.specifications, existing?.specifications as Record<string, unknown> | undefined, true)
+    } catch (error) {
+      const response = (error as { getResponse?: () => { errors?: Array<{ message: string }> } }).getResponse?.()
+      issue(response?.errors?.[0]?.message ?? 'Especificaciones inválidas para la familia', r.row)
+    }
     const technicalData = record(existing?.technicalData)
-    models.push({ id: existing?.id ?? uuidv7(), catalogTag: r.tag, modelName: r.name, assetTypeId: type.id, specifications: r.specifications,
+    models.push({ id: existing?.id ?? uuidv7(), catalogTag: r.tag, modelName: r.name, assetTypeId: type.id, specifications,
       technicalData: { ...technicalData, identificacion: { ...record(technicalData.identificacion), 'TAG ACTIVO': r.tag }, componentes: r.components,
         ...(r.referenceManufacturers === null ? {} : { fabricantesReferencia: r.referenceManufacturers }) }, stageId: stage.id, action, duplicateIdentityAllowed: false })
-    previewRows.push({ tag: r.tag, name: r.name, family: r.family, type: r.type, manufacturer: (r.referenceManufacturers ?? []).map(m => m.nombre).join(', '), stages: [stage.code], components: r.components, referenceManufacturers: r.referenceManufacturers, specifications: r.specifications, action })
+    previewRows.push({ tag: r.tag, name: r.name, family: r.family, type: r.type, manufacturer: (r.referenceManufacturers ?? []).map(m => m.nombre).join(', '), stages: [stage.code], components: r.components, referenceManufacturers: r.referenceManufacturers, specifications, action })
   }
   // Compara el estado final de los modelos nuevos y de los modelos anteriores sin TAG que se adoptan.
   // La misma regla usa el conjunto de fabricantes de referencia, independientemente del orden.
@@ -165,7 +175,7 @@ export class CatalogImportService {
     return this.db.transaction(async tx => {
       await tx.execute(sql`select pg_advisory_xact_lock(hashtext('catalog-master-import'))`)
       // Bloquea también las altas/ediciones manuales mientras se revalida y aplica la carga.
-      await tx.execute(sql`lock table catalog.asset_families, catalog.asset_types, catalog.asset_models, catalog.asset_type_stages, catalog.asset_model_stages, catalog.asset_model_networks, process.stage_master, plant.network_master in share row exclusive mode`)
+      await tx.execute(sql`lock table catalog.family_specifications, catalog.asset_families, catalog.asset_types, catalog.asset_models, catalog.asset_type_stages, catalog.asset_model_stages, catalog.asset_model_networks, process.stage_master, plant.network_master in share row exclusive mode`)
       const state = await snapshot(tx)
       const p = plan(book, state, networkCodes)
       const blockingIssues = p.preview.issues.filter(i => !(allowMissingSpecifications && i.code === 'MISSING_SPECIFICATIONS') && !(allowDuplicateModels && i.code === 'DUPLICATE_MODEL_IDENTITY'))

@@ -76,7 +76,7 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
   const selectedFamily = families.data?.find(family => family.id === form.familyId || (!form.familyId && family.code === asset?.family.code))
   const familyId = selectedFamily?.id ?? form.familyId
   const [references, setReferences] = useState<NonNullable<AssetDetail['referenceModels']>>(asset?.referenceModels ?? [])
-  const models = useCatalogModels({ family: selectedFamily?.code ?? '__none__', stage: form.stageCode !== NO_STAGE ? form.stageCode : undefined, search: search || undefined, status: 'ACTIVE' }, 100)
+  const models = useCatalogModels({ family: selectedFamily?.code ?? '__none__', stage: form.stageCode !== NO_STAGE ? form.stageCode : undefined, network: form.networkCodes.length === 1 ? form.networkCodes[0] : undefined, search: search || undefined, status: 'ACTIVE' }, 100)
   const enabledStages = stages.data?.filter(s => s.isEnabled) ?? []
   const enabledNetworks = networks.data?.filter(n => n.isEnabled) ?? []
   const networkCodes = form.networkCodes
@@ -177,7 +177,7 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
               <h3 className="flex items-center gap-2 text-sm font-semibold"><ClipboardList className="size-4 text-fur-navy-900" aria-hidden /> Clasificación e identificación</h3>
               <div className="min-w-0 space-y-2">
                 <Label htmlFor="networkCode">Red transversal</Label>
-                <Select value={networkCodes.length > 1 ? KEEP_NETWORKS : networkCodes[0] ?? NO_NETWORK} onValueChange={code => { if (code !== KEEP_NETWORKS) set('networkCodes', code === NO_NETWORK ? [] : [code]) }} disabled={networks.isPending || networks.isError}>
+                <Select value={networkCodes.length > 1 ? KEEP_NETWORKS : networkCodes[0] ?? NO_NETWORK} onValueChange={code => { if (code !== KEEP_NETWORKS && (networkCodes.length !== 1 || networkCodes[0] !== code)) { set('networkCodes', code === NO_NETWORK ? [] : [code]); setReferences([]); setModelSearch('') } }} disabled={networks.isPending || networks.isError}>
                   <SelectTrigger id="networkCode" className="h-11 w-full min-w-0 max-w-full bg-background data-[size=default]:h-11 *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:truncate *:data-[slot=select-value]:block" aria-label="Red transversal" {...a11y('networkCodes')}>
                     <SelectValue placeholder="Selecciona una red" />
                   </SelectTrigger>
@@ -212,7 +212,7 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
               <div className="min-w-0 space-y-2">
                 <Label htmlFor="familyId">Familia</Label>
                 <FamilyPicker value={familyId} items={families.data ?? []} loading={families.isPending} failed={families.isError} onRetry={() => void families.refetch()} invalid={!!errors.familyId}
-                  onChange={id => { if (id !== familyId) { set('familyId', id); setReferences([]); setModelSearch('') } }} />
+                  onChange={id => { if (id !== familyId) { set('familyId', id); setReferences([]); setModelSearch(''); setTechnical(current => ({ ...current, specifications: [] })) } }} />
                 {fieldError('familyId')}
               </div>
 
@@ -290,16 +290,16 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
 
             </section>
 
-            <AssetTechnicalFields value={technical} onChange={setTechnical} />
+            <AssetTechnicalFields familyId={familyId} value={technical} onChange={setTechnical} />
             {fieldError('specifications')}
             {fieldError('components')}
 
             <section className="min-w-0 space-y-3 border-t border-border pt-6" aria-label="Referencias del catálogo">
               <h3 className="text-sm font-semibold">Referencias del catálogo (opcional)</h3>
-              <p className="text-sm text-muted-foreground">Relaciona modelos de la familia y la etapa seleccionadas como referencia.</p>
-              {familyId && form.stageCode !== NO_STAGE ? <CatalogModelPicker value="" selected={null} selectedIds={references.map(reference => reference.id)} items={models.data?.items ?? []} total={models.data?.total ?? 0}
+              <p className="text-sm text-muted-foreground">Relaciona modelos de la familia, la etapa y la red seleccionadas como referencia.</p>
+              {familyId && form.stageCode !== NO_STAGE && networkCodes.length === 1 ? <CatalogModelPicker value="" selected={null} selectedIds={references.map(reference => reference.id)} items={models.data?.items ?? []} total={models.data?.total ?? 0}
                 search={modelSearch} onSearchChange={setModelSearch} onSelect={model => { setReferences(current => current.some(reference => reference.id === model.id) ? current.filter(reference => reference.id !== model.id) : [...current, { id: model.id, modelName: model.modelName, catalogTag: model.catalogTag }]); setModelSearch('') }}
-                loading={models.isFetching || modelSearch.trim() !== search} failed={models.isError} onRetry={() => void models.refetch()} /> : <p className="text-sm text-muted-foreground">Selecciona una familia y una etapa para consultar sus modelos.</p>}
+                loading={models.isFetching || modelSearch.trim() !== search} failed={models.isError} onRetry={() => void models.refetch()} /> : <p className="text-sm text-muted-foreground">Selecciona una familia, una etapa y una sola red para consultar sus modelos.</p>}
               <ul className="space-y-2">{references.map(reference => <li key={reference.id} className="flex min-w-0 items-center justify-between gap-3 rounded-lg border p-3 text-sm">
                 <span className="min-w-0 truncate" title={reference.modelName}>{reference.catalogTag ? reference.catalogTag + ' · ' : ''}{reference.modelName}</span>
                 <Button type="button" variant="ghost" size="icon-sm" aria-label={'Quitar referencia ' + reference.modelName} onClick={() => setReferences(current => current.filter(item => item.id !== reference.id))}><X /></Button>

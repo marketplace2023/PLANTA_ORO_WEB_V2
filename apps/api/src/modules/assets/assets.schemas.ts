@@ -32,7 +32,7 @@ export const listAssetsQuerySchema = z.object({
 })
 
 const text = (max: number) => z.string().trim().min(1).max(max)
-const specifications = z.record(z.string().min(1).max(200).refine(key => key.trim().length > 0), z.unknown())
+const specifications = z.record(z.string().min(1).max(300).refine(key => key.trim().length > 0), z.unknown())
   .refine(value => Object.keys(value).length <= 500, 'Máximo 500 especificaciones')
 const components = z.array(text(2000)).max(500)
 

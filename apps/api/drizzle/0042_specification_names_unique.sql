@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "family_specifications_family_label_ci_unique" ON "catalog"."family_specifications" USING btree ("family_id",lower("label"));

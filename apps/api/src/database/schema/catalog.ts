@@ -1,4 +1,4 @@
-import { boolean, check, integer, jsonb, pgSchema, primaryKey, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core'
+import { boolean, check, integer, jsonb, pgSchema, primaryKey, text, timestamp, unique, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import { createdAt, pk, updatedAt } from './common'
 import { networkMaster } from './plant'
@@ -21,6 +21,21 @@ export const assetFamilies = catalogSchema.table('asset_families', {
   /** Nombre de ícono de Lucide. */
   icon: varchar('icon', { length: 40 }),
 }, (t) => [check('asset_families_tag_code_format', sql`${t.tagCode} ~ '^[A-Z][A-Z0-9]{2,11}$'`)])
+
+/** Maestro de parámetros técnicos: una definición pertenece exclusivamente a una familia. */
+export const familySpecifications = catalogSchema.table('family_specifications', {
+  id: pk(),
+  familyId: uuid('family_id').notNull().references(() => assetFamilies.id, { onDelete: 'cascade' }),
+  label: varchar('label', { length: 200 }).notNull(),
+  unit: varchar('unit', { length: 60 }),
+  valueType: varchar('value_type', { length: 10 }).notNull().$type<'NUMBER' | 'TEXT' | 'RANGE' | 'LIST' | 'BOOLEAN'>(),
+  required: boolean('required').notNull().default(false),
+  sortOrder: integer('sort_order').notNull().default(0),
+}, t => [
+  unique('family_specifications_family_label_unique').on(t.familyId, t.label),
+  uniqueIndex('family_specifications_family_label_ci_unique').on(t.familyId, sql`lower(${t.label})`),
+  check('family_specifications_value_type_check', sql`${t.valueType} in ('NUMBER', 'TEXT', 'RANGE', 'LIST', 'BOOLEAN')`),
+])
 
 export const manufacturers = catalogSchema.table('manufacturers', {
   id: pk(),

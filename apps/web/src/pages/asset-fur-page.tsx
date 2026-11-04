@@ -1,3 +1,4 @@
+import { formatSpecificationValue } from '@/lib/specification-value'
 import { Archive, Boxes, LockKeyhole, Pencil, SearchX, Star, Upload, Wrench } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -40,7 +41,7 @@ function KeyValueTable({ data }: { data: Record<string, unknown> | undefined }) 
     <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
       {entries.map(([k, v]) => (
         <Fact key={k} label={k}>
-          <span className="fur-code font-normal">{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
+          <span className="fur-code font-normal">{formatSpecificationValue(v)}</span>
         </Fact>
       ))}
     </dl>

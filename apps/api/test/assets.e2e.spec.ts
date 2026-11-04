@@ -1,5 +1,6 @@
+import { assetFamilies, familySpecifications } from '../src/database/schema'
 import type { INestApplication } from '@nestjs/common'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import request from 'supertest'
 import { assetModels, assets, assetStatusHistory, auditEvents, plantSettings, plants } from '../src/database/schema'
 import { bearer, createApp, login, type Session, TestDb } from './helpers'
@@ -18,6 +19,7 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
   let pa: Session // administrador de planta A: todos los permisos
   let maint: Session // jefe de mantenimiento A: asset.read + asset.update, sin create/delete
   let consumer: Session // sin rol en ninguna planta
+  let specificationIds: string[] = []
   let modelId: string
   let motorModelId: string
   let millTagCode: string
@@ -32,6 +34,8 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
     app = await createApp()
     t = new TestDb()
     await t.cleanup()
+    const [family] = await t.db.select().from(assetFamilies).where(eq(assetFamilies.code, 'MOLINOS'))
+    specificationIds = (await t.db.insert(familySpecifications).values([{ familyId: family.id, label: 'Potencia', unit: 'kW', valueType: 'TEXT' as const }, { familyId: family.id, label: 'Tensión', unit: 'V', valueType: 'NUMBER' as const }]).onConflictDoNothing().returning()).map(d => d.id)
 
     plantA = await t.plant('a1', 'PUBLIC')
     plantB = await t.plant('b1', 'PUBLIC')
@@ -64,6 +68,7 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
   })
 
   afterAll(async () => {
+    if (specificationIds.length) await t.db.delete(familySpecifications).where(inArray(familySpecifications.id, specificationIds))
     await t.cleanup()
     await t.close()
     await app.close()

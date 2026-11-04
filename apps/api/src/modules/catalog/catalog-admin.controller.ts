@@ -1,3 +1,4 @@
+import { validateFamilySpecifications } from './family-specifications'
 import { randomUUID } from 'node:crypto'
 import { Body, ConflictException, Controller, Delete, HttpCode, Inject, NotFoundException, Param, ParseUUIDPipe, Patch, Post, Req, UploadedFile, UseInterceptors } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
@@ -268,8 +269,9 @@ export class CatalogAdminController {
 
   @Post('models')
   async createModel(@Body(new ZodValidationPipe(createModelSchema)) dto: CreateModelDto, @Req() req: AppRequest) {
-    const [type] = await this.db.select({ id: assetTypes.id }).from(assetTypes).where(eq(assetTypes.code, dto.typeCode))
+    const [type] = await this.db.select({ id: assetTypes.id, familyId: assetTypes.familyId }).from(assetTypes).where(eq(assetTypes.code, dto.typeCode))
     if (!type) throw validationError('typeCode', `El tipo ${dto.typeCode} no existe`)
+    dto.specifications = await validateFamilySpecifications(this.db, type.familyId, dto.specifications)
     const stageIds = await this.modelStageIds(type.id, dto.stageCodes ?? []) // valida antes de crear nada
     const networkIds = await this.masterIds('networkCodes', dto.networkCodes ?? [])
 
@@ -288,6 +290,10 @@ export class CatalogAdminController {
   async updateModel(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(updateModelSchema)) dto: UpdateModelDto, @Req() req: AppRequest) {
     const [before] = await this.db.select().from(assetModels).where(eq(assetModels.id, id))
     if (!before) throw new NotFoundException('Modelo no encontrado')
+    if (dto.specifications !== undefined) {
+      const [type] = await this.db.select().from(assetTypes).where(eq(assetTypes.id, before.assetTypeId))
+      dto.specifications = await validateFamilySpecifications(this.db, type.familyId, dto.specifications, before.specifications as Record<string, unknown>)
+    }
     const { stageCodes, networkCodes, ...fields } = dto
     const stageIds = stageCodes ? await this.modelStageIds(before.assetTypeId, stageCodes) : undefined
     const networkIds = networkCodes ? await this.masterIds('networkCodes', networkCodes) : undefined

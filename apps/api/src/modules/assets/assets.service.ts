@@ -1,3 +1,4 @@
+import { validateFamilySpecifications } from '../catalog/family-specifications'
 import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { and, asc, desc, eq, ilike, inArray, ne, or, sql, type SQL } from 'drizzle-orm'
 import { isUniqueViolation } from '../../common/db-errors'
@@ -445,6 +446,7 @@ export class AssetsService {
   async create(plant: PlantRow, dto: CreateAssetDto, req: AppRequest) {
     const legacy = !dto.familyId && dto.assetModelId ? await this.assertModel(dto.assetModelId) : null
     const model = dto.familyId ? await this.assertFamily(dto.familyId) : legacy!
+    const ownSpecifications = legacy && dto.specifications === undefined ? legacy.specifications : await validateFamilySpecifications(this.db, model.familyId, dto.specifications ?? {})
     const references = await this.validateReferences(dto.referenceModelIds, model.familyId)
     const plantStageId = await this.resolveStage(plant.id, dto.stageCode)
     const networkIds = await this.resolveNetworks(plant.id, dto.networkCodes)
@@ -476,7 +478,7 @@ export class AssetsService {
             plantStageId,
             familyId: model.familyId,
             assetModelId: legacy ? dto.assetModelId : null,
-            specifications: dto.specifications ?? legacy?.specifications ?? {},
+            specifications: ownSpecifications,
             technicalData: { ...((legacy?.technicalData ?? {}) as Record<string, unknown>), componentes: dto.components ?? (legacy?.technicalData as { componentes?: unknown } | undefined)?.componentes ?? [] },
             furCode: buildFurCode(plant.code, seq),
             tag,
@@ -565,7 +567,10 @@ export class AssetsService {
     }
     const referenceIds = dto.referenceModelIds ?? (dto.familyId && dto.familyId !== before.familyId ? [] : undefined)
     if (referenceIds) await this.validateReferences(referenceIds, dto.familyId ?? before.familyId ?? (await this.assertModel(before.assetModelId!)).familyId)
-    if (dto.specifications !== undefined) patch.specifications = dto.specifications
+    if (dto.specifications !== undefined || (dto.familyId !== undefined && dto.familyId !== before.familyId)) {
+      const familyId = dto.familyId ?? before.familyId ?? (await this.assertModel(before.assetModelId!)).familyId
+      patch.specifications = await validateFamilySpecifications(this.db, familyId, dto.specifications ?? {}, dto.familyId && dto.familyId !== before.familyId ? undefined : before.specifications as Record<string, unknown>)
+    }
     if (dto.components !== undefined) patch.technicalData = { ...(before.technicalData as Record<string, unknown>), componentes: dto.components }
     if (dto.name !== undefined) patch.name = dto.name
     if (dto.serialNumber !== undefined) patch.serialNumber = dto.serialNumber

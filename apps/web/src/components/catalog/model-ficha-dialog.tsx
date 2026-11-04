@@ -1,3 +1,4 @@
+import { formatSpecificationValue } from '@/lib/specification-value'
 import { ClipboardList, ExternalLink, Factory, Info, ListChecks, Maximize2, Package, Settings2, X, type LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
@@ -227,7 +228,7 @@ export function ModelFichaDialog({
 
           <Section n={2} icon={Settings2} title="Especificaciones Técnicas">
             {specs.length > 0 ? (
-              <KeyValue rows={specs.map(([k, v]) => [humanizeKey(k), String(v)])} />
+              <KeyValue rows={specs.map(([k, v]) => [humanizeKey(k), formatSpecificationValue(v)])} />
             ) : (
               <p className="px-5 py-5 text-sm text-fur-gray-600">Sin especificaciones técnicas registradas.</p>
             )}

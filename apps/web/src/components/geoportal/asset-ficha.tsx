@@ -1,3 +1,4 @@
+import { formatSpecificationValue } from '@/lib/specification-value'
 import { ClipboardList, ExternalLink, Package } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -199,7 +200,7 @@ export function AssetFicha({
             <dl>
               {specs.map(([key, value]) => (
                 <Row key={key} label={specLabel(key)}>
-                  {String(value)}
+                  {formatSpecificationValue(value)}
                 </Row>
               ))}
             </dl>

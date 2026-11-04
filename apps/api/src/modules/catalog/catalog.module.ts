@@ -1,3 +1,4 @@
+import { FamilySpecificationsController, FamilySpecificationsAdminController } from './family-specifications.controller'
 import { Module } from '@nestjs/common'
 import { MulterModule } from '@nestjs/platform-express'
 import { memoryStorage } from 'multer'
@@ -20,7 +21,7 @@ import { CatalogImagesService } from './catalog-images.service'
     // En memoria porque se valida el contenido antes de escribir; el tope evita agotar la RAM del servidor.
     MulterModule.register({ storage: memoryStorage(), limits: { fileSize: MODEL_IMAGE_MAX_BYTES, files: 1, fields: 5 } }),
   ],
-  controllers: [CatalogController, CatalogAdminController, CatalogVariablesController, CatalogVariablesAdminController, CatalogImportController, CatalogDeleteController, CatalogImagesController],
+  controllers: [FamilySpecificationsController, FamilySpecificationsAdminController, CatalogController, CatalogAdminController, CatalogVariablesController, CatalogVariablesAdminController, CatalogImportController, CatalogDeleteController, CatalogImagesController],
   providers: [CatalogImportService, CatalogDeleteService, CatalogImagesService],
 })
 export class CatalogModule {}

@@ -1,7 +1,7 @@
 import type { INestApplication } from '@nestjs/common'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import request from 'supertest'
-import { assetFamilies, assetModels, assetTypes, auditEvents } from '../src/database/schema'
+import { familySpecifications, assetFamilies, assetModels, assetTypes, auditEvents } from '../src/database/schema'
 import { bearer, createApp, login, type Session, TestDb } from './helpers'
 
 describe('Administración del catálogo y roles asignables (e2e)', () => {
@@ -25,11 +25,14 @@ describe('Administración del catálogo y roles asignables (e2e)', () => {
   let typeId: string
   let makerId: string
   let modelId: string
+  let specificationIds: string[] = []
 
   beforeAll(async () => {
     app = await createApp()
     t = new TestDb()
     await t.cleanup()
+    const [family] = await t.db.select().from(assetFamilies).where(eq(assetFamilies.code, 'MOLINOS'))
+    specificationIds = (await t.db.insert(familySpecifications).values(['powerKw', 'poles'].map(label => ({ familyId: family.id, label, valueType: 'NUMBER' as const }))).onConflictDoNothing().returning()).map(d => d.id)
     const plant = await t.plant('cat1', 'PUBLIC')
     const [adminU, paU, maintU] = await Promise.all([t.user('admin', { isGlobalAdmin: true }), t.user('pa'), t.user('maint'), t.user('consumer')])
     void adminU
@@ -39,6 +42,7 @@ describe('Administración del catálogo y roles asignables (e2e)', () => {
   })
 
   afterAll(async () => {
+    if (specificationIds.length) await t.db.delete(familySpecifications).where(inArray(familySpecifications.id, specificationIds))
     await t.cleanup()
     await t.close()
     await app.close()

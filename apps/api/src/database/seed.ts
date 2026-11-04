@@ -1,3 +1,5 @@
+import { SEEDED_FAMILY_SPECIFICATIONS } from './seed-family-specifications'
+import { familySpecifications } from './schema'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { and, eq, notInArray, sql } from 'drizzle-orm'
 import { Pool } from 'pg'
@@ -249,6 +251,13 @@ export async function runSeed(url: string, { includeDemoAssets = false }: { incl
         .where(sql`${assetFamilies.code} = ${family.code} or ${assetFamilies.categoryCode} = ${family.categoryCode}`).limit(1)
       if (existing.length === 0) await db.insert(assetFamilies).values(family).onConflictDoNothing()
     }
+
+    const specFamilies = new Map((await db.select().from(assetFamilies)).map(f => [f.code, f.id]))
+    const specRows = SEEDED_FAMILY_SPECIFICATIONS.flatMap(([id, familyCode, label, unit, valueType, required, sortOrder]) => {
+      const familyId = specFamilies.get(familyCode)
+      return familyId ? [{ id, familyId, label, unit, valueType, required, sortOrder }] : []
+    })
+    for (let i = 0; i < specRows.length; i += 200) await db.insert(familySpecifications).values(specRows.slice(i, i + 200)).onConflictDoNothing()
 
     if (!includeDemoAssets) {
       console.log(`Seed base OK: ${STAGES.length} etapas, ${NETWORKS.length} redes, roles y permisos. Catálogo de ejemplo desactivado.`)

@@ -1,8 +1,8 @@
 import type { INestApplication } from '@nestjs/common'
 import ExcelJS from 'exceljs'
-import { eq, like } from 'drizzle-orm'
+import { eq, like, inArray } from 'drizzle-orm'
 import request from 'supertest'
-import { assetFamilies, assetModels, assetModelNetworks, assetModelStages, assetTypes, assetTypeStages, assets, auditEvents, manufacturers } from '../src/database/schema'
+import { familySpecifications, assetFamilies, assetModels, assetModelNetworks, assetModelStages, assetTypes, assetTypeStages, assets, auditEvents, manufacturers } from '../src/database/schema'
 import { bearer, createApp, login, type Session, TestDb } from './helpers'
 
 async function workbook(options: { tags?: [string, string]; duplicate?: boolean; orphan?: boolean; rename?: boolean; splitFamily?: boolean; makers?: [string, string]; missingSpecifications?: boolean; invalidSpecification?: boolean; omitSpecificationsSheet?: boolean; components?: unknown[][]; references?: unknown[][] } = {}) {
@@ -43,7 +43,7 @@ describe('Importación del listado maestro del catálogo (e2e)', () => {
   const cleanup = async () => {
     await t.cleanup()
     await t.db.delete(assetTypes).where(eq(assetTypes.name, 'E2E Tipo maestro'))
-    await t.db.delete(assetFamilies).where(eq(assetFamilies.categoryCode, '97'))
+    await t.db.delete(assetFamilies).where(inArray(assetFamilies.categoryCode, ['97', '98']))
   }
   beforeAll(async () => {
     t = new TestDb()
@@ -61,6 +61,10 @@ describe('Importación del listado maestro del catálogo (e2e)', () => {
     await t.db.delete(assetFamilies).where(eq(assetFamilies.categoryCode, '97'))
     await t.db.delete(assetFamilies).where(eq(assetFamilies.categoryCode, '98'))
     await t.db.delete(manufacturers).where(like(manufacturers.name, 'E2E %'))
+    for (const code of ['97', '98']) {
+      const [family] = await t.db.insert(assetFamilies).values({ code: `N4_${code}`, categoryCode: code, tagCode: `TST${code}`, name: code === '97' ? 'E2E Familia canónica' : 'E2E Otra familia' }).returning()
+      await t.db.insert(familySpecifications).values([{ familyId: family.id, label: 'Material', valueType: 'TEXT' }, { familyId: family.id, label: 'Potencia del motor', unit: 'kW', valueType: 'TEXT' }])
+    }
   })
   const importInitial = async (networks = ['FUR-PROC']) => {
     const file = await workbook(), p = await preview(file, networks).expect(201)
@@ -109,7 +113,7 @@ describe('Importación del listado maestro del catálogo (e2e)', () => {
   it('la vista previa unifica por Código CA y cruza las hojas por TAG, sin escribir', async () => {
     const p = await preview(await workbook()).expect(201)
     expect(p.body.issues).toEqual([])
-    expect(p.body.summary).toMatchObject({ models: { create: 2, update: 0 }, families: { create: 1, update: 0 }, types: { create: 1, update: 0 }, specifications: 2 })
+    expect(p.body.summary).toMatchObject({ models: { create: 2, update: 0 }, families: { create: 0, update: 1 }, types: { create: 1, update: 0 }, specifications: 2 })
     expect(p.body.rows[1]).toMatchObject({ tag: 'E2E-IMPORT-02', family: 'E2E Familia canónica', stages: ['D06'], components: ['Motor, tambor, corona. Un solo componente.'], specifications: { 'Potencia del motor (kW)': '7,5–75' } })
     expect(await models()).toHaveLength(0)
   })
@@ -145,7 +149,7 @@ describe('Importación del listado maestro del catálogo (e2e)', () => {
     const p = await preview(await workbook({ splitFamily: true })).expect(201)
     expect(p.body.issues).toEqual([])
     expect(p.body.summary.types).toEqual({ create: 2, update: 0 })
-    expect(p.body.summary.families).toEqual({ create: 2, update: 0 })
+    expect(p.body.summary.families).toEqual({ create: 0, update: 2 })
   })
   it('aplica todo y publica cada modelo con sus especificaciones, componente y etapa', async () => {
     const file = await workbook(), p = await preview(file).expect(201)

@@ -8,7 +8,7 @@ Cada activo pertenece a una planta y tiene familia, nombre, especificaciones y c
 2. Selecciona la etapa.
 3. Busca la familia por nombre, código de integración o código TAG.
 4. Completa el nombre y los datos técnicos propios; comienzan vacíos.
-5. Al final, añade opcionalmente modelos del catálogo de esa familia y etapa como referencia. Seleccionarlos no copia ningún dato al activo. Se pueden quitar individualmente; cambiar la familia o la etapa limpia las referencias del formulario.
+5. Al final, añade opcionalmente modelos del catálogo de esa familia, etapa y red como referencia. Seleccionarlos no copia ningún dato al activo. Se pueden quitar individualmente; cambiar la familia, la etapa o la red limpia las referencias del formulario.
 6. Guarda. El TAG y el código FUR se asignan automáticamente. Los activos existentes conservan su TAG y su información técnica.
 
 Las referencias se guardan por separado en asset.catalog_references. La migración 0040_independent_plant_assets.sql asigna la familia propia a los activos existentes y conserva su modelo anterior como referencia, sin alterar su identidad. El vínculo legado asset_model_id es opcional y se mantiene por compatibilidad; los registros del nuevo formulario no lo utilizan.
@@ -23,7 +23,7 @@ El correlativo es independiente por **planta + red + etapa + familia**, empieza 
 
 El formulario muestra el TAG progresivo tanto en el input como en la cabecera: empieza en `XXX-XXX-XXX-001` y sustituye cada segmento al elegir familia, red y etapa. Con los datos completos consulta el siguiente correlativo del grupo; esa consulta no reserva números. El número definitivo se asigna al guardar y podría variar si alguien registra otro activo del mismo grupo mientras el formulario está abierto. El cliente no puede elegir o cambiar el TAG. Los TAG existentes se conservan. Cambiar después la red, etapa, modelo o familia conserva el identificador asignado al alta, igual que el código FUR. La migración `0038_asset_generated_tags.sql` agrega códigos y contadores sin renombrar activos existentes.
 
-Vaciar todas las especificaciones o todos los componentes es válido. Un vacío guardado no vuelve a heredar datos del catálogo. Las especificaciones tienen nombre y valor; sus nombres no deben repetirse. Los componentes son filas de texto independientes. Cada sección admite hasta 500 filas.
+Los componentes pueden vaciarse; las especificaciones se rigen por la obligatoriedad del maestro de su familia. Un vacío guardado no vuelve a heredar datos del catálogo. Los componentes son filas de texto independientes y admiten hasta 500 filas.
 
 Las fichas del geoportal y de la FUR consultan la información propia del activo. Los activos antiguos conservan la foto de su modelo legado; los nuevos muestran el estado sin imagen. Añadir referencias no copia sus imágenes ni variables. Las variables generales y por red gestionadas en Catálogo → Variables mantienen su funcionamiento en el catálogo. Esta funcionalidad no crea una BOM relacional de repuestos.
 
@@ -45,3 +45,15 @@ Las modificaciones del catálogo no alteran los datos propios del activo. Las re
 `0037_asset_technical_snapshot.sql` agrega las columnas y copia la ficha que cada activo mostraba desde su modelo al momento de migrar. Conserva identidad, TAG, FUR, planta, redes, ubicación, metadatos e historial. No requiere reiniciar ni reimportar la base.
 
 Al desplegar la API, el arranque aplica la migración pendiente. API y frontends deben desplegarse juntos para disponer del editor y del contrato actualizado.
+
+## Maestro de especificaciones por familia
+
+Administración → Catálogo de activos → Especificaciones mantiene los parámetros permitidos de cada familia: nombre, unidad, tipo, obligatoriedad y orden. No tienen alcance por red, etapa o tipo de activo. Catálogo y planta usan las mismas definiciones; sus valores se guardan por separado en cada modelo o activo.
+
+Las migraciones 0041 y 0042 crean el maestro, la unicidad del nombre por familia y las 1.521 definiciones de las 64 familias del Excel entregado el 2026-11-04. El seed base restaura las mismas definiciones por IDs estables, sin sobrescribir ediciones de administración. No transforma ni elimina especificaciones existentes.
+
+Al seleccionar familia se muestran sus campos; se escriben valores, no nombres. Los tipos admitidos son texto, número, sí/no, lista de textos y rango con mínimo y/o máximo. Cero y No son valores válidos. Las altas nuevas exigen los parámetros obligatorios. En registros anteriores se permiten campos obligatorios que ya faltaban para facilitar completar la ficha gradualmente; un obligatorio que ya tenía valor no puede vaciarse. Los datos anteriores fuera del maestro permanecen visibles en una sección de consulta y no pueden cambiarse como texto libre.
+
+`GET /catalog/specifications?familyId=UUID` es público. `POST /catalog/specifications`, `PATCH /catalog/specifications/:id` y `DELETE /catalog/specifications/:id` requieren administración global y quedan auditados. La familia de una definición es permanente. El nombre y unidad determinan la clave de almacenamiento `Nombre (unidad)`; si tiene valores guardados se protegen nombre, unidad y tipo, y no se permite eliminarla. Su obligatoriedad y orden pueden editarse.
+
+La API valida tanto modelos como activos. El importador masivo valida las mismas definiciones y muestra los errores por fila antes de guardar. Las opciones para admitir modelos duplicados o fichas sin especificaciones no permiten saltar errores del maestro. Una familia nueva debe definirse en administración antes de importar especificaciones. Excel admite números con coma decimal, sí/no, listas separadas por punto y coma y rangos JSON o como `10–20`, `≤ 20`, `≥ 10`.

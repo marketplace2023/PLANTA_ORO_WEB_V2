@@ -1,3 +1,5 @@
+import { SpecificationsAdmin } from '@/components/catalog/specifications-admin'
+import { FamilySpecificationFields } from '@/components/assets/family-specification-fields'
 import { ImageIcon, Pencil, Plus, ShieldAlert } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -36,6 +38,7 @@ const TABS = [
   ['types', 'Tipos'],
   ['manufacturers', 'Fabricantes'],
   ['models', 'Modelos'],
+  ['specifications', 'Especificaciones'],
 ] as const
 type TabKey = (typeof TABS)[number][0]
 
@@ -186,6 +189,8 @@ function Models() {
   const q = useDebouncedValue(search.trim(), 300)
   const models = useCatalogModels({ search: q || undefined, status: 'ALL' }, 50)
   const types = useCatalogTypes()
+  const families = useCatalogFamilies()
+  const [specDraft, setSpecDraft] = useState<{ typeCode: string; values: Record<string, unknown> } | null>(null)
   const create = useCreateModel()
   const update = useUpdateModel()
   const uploadImage = useUploadModelImage()
@@ -193,7 +198,8 @@ function Models() {
   const [references, setReferences] = useState<ReferenceManufacturer[]>([])
   const [image, setImage] = useState<ImageChange>({ file: null, remove: false })
   const [dialog, setDialog] = useState<{ item?: CatalogModel } | null>(null)
-  const openDialog = (item?: CatalogModel) => { setImage({ file: null, remove: false }); setReferences(item?.referenceManufacturers ?? []); setDialog({ item }) }
+  const specsFor = (typeCode: string) => specDraft?.typeCode === typeCode ? specDraft.values : dialog?.item?.type.code === typeCode ? dialog.item.specifications : {}
+  const openDialog = (item?: CatalogModel) => { setSpecDraft(null); setImage({ file: null, remove: false }); setReferences(item?.referenceManufacturers ?? []); setDialog({ item }) }
 
 
   return (
@@ -235,15 +241,14 @@ function Models() {
           fields={[
             ...(dialog.item ? [] : [{ name: 'typeCode', label: 'Tipo', type: 'select', required: true, options: (types.data ?? []).map((t) => ({ value: t.code, label: `${t.familyName} · ${t.name}` })) } as Field]),
             { name: 'modelName', label: 'Modelo', required: true },
-            { name: 'specifications', label: 'Especificaciones (JSON)', type: 'json', help: 'Ej.: {"powerKw": 500, "poles": 6}' },
             ...(dialog.item ? [{ name: 'status', label: 'Estado', type: 'select', options: [{ value: 'ACTIVE', label: 'Activo' }, { value: 'INACTIVE', label: 'Inactivo' }] } as Field] : []),
           ]}
-          initial={dialog.item ? { modelName: dialog.item.modelName, specifications: JSON.stringify(dialog.item.specifications, null, 2), status: dialog.item.status } : {}}
+          initial={dialog.item ? { modelName: dialog.item.modelName, status: dialog.item.status } : {}}
           submitLabel={dialog.item ? 'Guardar cambios' : 'Crear modelo'}
           onClose={() => setDialog(null)}
-          extra={<><ReferenceManufacturersFields value={references} onChange={setReferences} /><ModelImagePicker currentUrl={dialog.item?.imageUrl ?? null} value={image} onChange={setImage} /></>}
+          extra={v => { const typeCode = dialog.item?.type.code ?? String(v.typeCode ?? ''); const familyId = families.data?.find(f => f.code === types.data?.find(t => t.code === typeCode)?.familyCode)?.id ?? ''; return <><FamilySpecificationFields key={typeCode} familyId={familyId} value={specsFor(typeCode)} onChange={values => setSpecDraft({ typeCode, values })} /><ReferenceManufacturersFields value={references} onChange={setReferences} /><ModelImagePicker currentUrl={dialog.item?.imageUrl ?? null} value={image} onChange={setImage} /></> }}
           onSubmit={async (v) => {
-            const specifications = JSON.parse(String(v.specifications || '{}'))
+            const specifications = specsFor(dialog.item?.type.code ?? String(v.typeCode))
             const saved = dialog.item
               ? await update.mutateAsync({ id: dialog.item.id, modelName: String(v.modelName), technicalData: { ...dialog.item.technicalData, fabricantesReferencia: references }, specifications, status: v.status as 'ACTIVE' | 'INACTIVE' })
               : await create.mutateAsync({ typeCode: String(v.typeCode), modelName: String(v.modelName), technicalData: { fabricantesReferencia: references }, specifications })
@@ -295,6 +300,7 @@ export function AdminCatalogPage() {
       {tab === 'types' && <Types />}
       {tab === 'manufacturers' && <Manufacturers />}
       {tab === 'models' && <Models />}
+      {tab === 'specifications' && <SpecificationsAdmin />}
     </>
   )
 }

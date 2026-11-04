@@ -281,6 +281,13 @@
       "when": 1793737518366,
       "tag": "0039_editable_family_tag_codes",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1793802202990,
+      "tag": "0040_independent_plant_assets",
+      "breakpoints": true
     }
   ]
 }

@@ -114,8 +114,9 @@ export function AssetFicha({
           <span className="fur-code">{asset.tag}</span>
         </Row>
         <Row label="Nombre">{asset.name}</Row>
-        <Row label="Tipo">{asset.type.name}</Row>
-        <Row label="Modelo">{asset.manufacturer ? `${asset.model.name} · ${asset.manufacturer}` : asset.model.name}</Row>
+        {asset.type.code && <Row label="Tipo">{asset.type.name}</Row>}
+        {asset.model.id && <Row label="Modelo">{asset.manufacturer ? `${asset.model.name} · ${asset.manufacturer}` : asset.model.name}</Row>}
+        <Row label="Referencias del catálogo">{asset.referenceModels?.map(model => model.modelName).join(', ') || '—'}</Row>
         <Row label="Etapa">{asset.stage ? `${stageNumber(asset.stage.code)} - ${asset.stage.name}` : '—'}</Row>
         {networkCode ? (
           <Row label="Red activa">

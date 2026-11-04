@@ -1,17 +1,19 @@
-# Ficha técnica propia de cada activo físico
+# Activos propios de planta
 
-El catálogo global proporciona la plantilla. Cada unidad de una planta conserva su propia copia de especificaciones y datos técnicos; editarla no modifica el modelo ni las otras unidades.
+Cada activo pertenece a una planta y tiene familia, nombre, especificaciones y componentes propios. El catálogo se utiliza únicamente para referencias opcionales.
 
 ## Registro y edición
 
-1. En el panel de planta, abre **Activos → Nuevo activo**. El mismo formulario está disponible en **Activos Físicos** de la web principal.
-2. Busca el modelo por TAG, nombre o tipo y selecciónalo. Se precargan su nombre, especificaciones y componentes. También se sugiere su primera red habilitada en la planta.
-3. Ajusta, agrega o elimina las filas según el equipo instalado. Completa nombre, etapa, red transversal y demás datos de la unidad.
-4. Guarda. El TAG y el código FUR se generan automáticamente y la ficha técnica se almacena con el activo.
+1. Selecciona la red transversal habilitada en la planta.
+2. Selecciona la etapa.
+3. Busca la familia por nombre, código de integración o código TAG.
+4. Completa el nombre y los datos técnicos propios; comienzan vacíos.
+5. Al final, añade opcionalmente modelos del catálogo de esa familia y etapa como referencia. Seleccionarlos no copia ningún dato al activo. Se pueden quitar individualmente; cambiar la familia o la etapa limpia las referencias del formulario.
+6. Guarda. El TAG y el código FUR se asignan automáticamente. Los activos existentes conservan su TAG y su información técnica.
 
-Al editar se muestran los datos guardados del activo. Cambiar el modelo de referencia conserva esa ficha. **Reemplazar ficha por la del modelo** carga expresamente la plantilla en el formulario; solo se guarda al confirmar los cambios. Al crear un activo, seleccionar otro modelo vuelve a precargar sus datos.
+Las referencias se guardan por separado en asset.catalog_references. La migración 0040_independent_plant_assets.sql asigna la familia propia a los activos existentes y conserva su modelo anterior como referencia, sin alterar su identidad. El vínculo legado asset_model_id es opcional y se mantiene por compatibilidad; los registros del nuevo formulario no lo utilizan.
 
-En las altas son obligatorias una **etapa** y una sola **Red transversal** habilitadas en la planta. La sugerencia de red del modelo puede cambiarse; si ninguna de sus redes está habilitada, hay que elegir otra antes de guardar. La API conserva `networkCodes` como lista, con un elemento para el alta. Los activos anteriores con varias redes las conservan hasta que se elige expresamente una sola o se quita la asignación.
+La API acepta familyId y referenceModelIds en el alta y la edición. Las referencias deben pertenecer a la familia del activo. Para la vista previa del TAG se envía familyId, stageCode y networkCode. Se conserva temporalmente la entrada antigua assetModelId para clientes anteriores.
 
 ## TAG automático y permanente
 
@@ -19,24 +21,24 @@ Formato: `RED-ETAPA-FAMILIA-CORRELATIVO`, por ejemplo `FUR-PROC-D01-MOT-001`. Se
 
 El correlativo es independiente por **planta + red + etapa + familia**, empieza en `001`, no reinicia por año ni reutiliza números al dar de baja equipos. Después de `999` continúa `1000`. Se reserva dentro de la transacción del alta; las altas simultáneas no reciben el mismo TAG y un fallo de guardado revierte la reserva. Si se restauran activos con TAG del nuevo formato sin sus contadores, se continúa desde el mayor número existente de ese grupo.
 
-El formulario muestra el TAG progresivo tanto en el input como en la cabecera: empieza en `XXX-XXX-XXX-001` y sustituye cada segmento al elegir modelo, red y etapa. Con los datos completos consulta el siguiente correlativo del grupo; esa consulta no reserva números. El número definitivo se asigna al guardar y podría variar si alguien registra otro activo del mismo grupo mientras el formulario está abierto. El cliente no puede elegir o cambiar el TAG. Los TAG existentes se conservan. Cambiar después la red, etapa, modelo o familia conserva el identificador asignado al alta, igual que el código FUR. La migración `0038_asset_generated_tags.sql` agrega códigos y contadores sin renombrar activos existentes.
+El formulario muestra el TAG progresivo tanto en el input como en la cabecera: empieza en `XXX-XXX-XXX-001` y sustituye cada segmento al elegir familia, red y etapa. Con los datos completos consulta el siguiente correlativo del grupo; esa consulta no reserva números. El número definitivo se asigna al guardar y podría variar si alguien registra otro activo del mismo grupo mientras el formulario está abierto. El cliente no puede elegir o cambiar el TAG. Los TAG existentes se conservan. Cambiar después la red, etapa, modelo o familia conserva el identificador asignado al alta, igual que el código FUR. La migración `0038_asset_generated_tags.sql` agrega códigos y contadores sin renombrar activos existentes.
 
 Vaciar todas las especificaciones o todos los componentes es válido. Un vacío guardado no vuelve a heredar datos del catálogo. Las especificaciones tienen nombre y valor; sus nombres no deben repetirse. Los componentes son filas de texto independientes. Cada sección admite hasta 500 filas.
 
-Las fichas del geoportal y de la FUR consultan la información propia del activo. La foto sigue siendo la del modelo; las variables generales y por red gestionadas en Catálogo → Variables conservan su funcionamiento como referencias del catálogo. Esta funcionalidad independiza las especificaciones y los componentes; no crea una BOM relacional de repuestos.
+Las fichas del geoportal y de la FUR consultan la información propia del activo. Los activos antiguos conservan la foto de su modelo legado; los nuevos muestran el estado sin imagen. Añadir referencias no copia sus imágenes ni variables. Las variables generales y por red gestionadas en Catálogo → Variables mantienen su funcionamiento en el catálogo. Esta funcionalidad no crea una BOM relacional de repuestos.
 
 ## Persistencia y API
 
-- `asset.assets.asset_model_id` conserva el vínculo con el modelo de origen.
+- `asset.assets.family_id` identifica la familia propia; `asset_model_id` es un vínculo legado opcional.
 - `asset.assets.specifications` guarda las especificaciones de la unidad.
-- `asset.assets.technical_data` guarda la copia inicial de los datos técnicos; los componentes están en `componentes`.
-- `POST /api/v1/plants/:plantId/assets` acepta `specifications` y `components` opcionales. Si se omiten, copia los del modelo activo seleccionado; `{}` y `[]` son vacíos explícitos.
+- `asset.assets.technical_data` guarda los datos técnicos propios; los componentes están en `componentes`.
+- `POST /api/v1/plants/:plantId/assets` acepta `specifications` y `components` opcionales. En el flujo por familia, si se omiten se guardan vacíos; `{}` y `[]` son vacíos explícitos.
 - El alta exige `stageCode` y un único código en `networkCodes`. `tag` es un dato de respuesta generado en el servidor; no se admite su modificación en `PATCH`.
-- `GET /api/v1/plants/:plantId/assets/tag-preview?assetModelId=…&stageCode=D01&networkCode=FUR-PROC` devuelve `{ tag }` sin escrituras y requiere `asset.create` en esa planta. La respuesta no se almacena en caché HTTP.
+- `GET /api/v1/plants/:plantId/assets/tag-preview?familyId=…&stageCode=D01&networkCode=FUR-PROC` devuelve `{ tag }` sin escrituras y requiere `asset.create` en esa planta. La respuesta no se almacena en caché HTTP.
 - `PATCH /api/v1/plants/:plantId/assets/:assetId` reemplaza únicamente los datos técnicos enviados. Los componentes se cambian sin borrar las demás propiedades de `technical_data`.
 - Las escrituras requieren los permisos de activos de esa planta y quedan auditadas.
 
-Las modificaciones posteriores del catálogo no actualizan estas copias. Las altas futuras usan la versión del modelo que exista al registrarlas.
+Las modificaciones del catálogo no alteran los datos propios del activo. Las referencias solo relacionan modelos del catálogo, sin heredar sus valores.
 
 ## Migración de activos existentes
 

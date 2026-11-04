@@ -94,7 +94,7 @@ export function CatalogPage() {
 
   return (
     <>
-      <PageHeader title="Catálogo" description="Tipos y modelos de activos disponibles en todo el ecosistema. Los activos físicos de cada planta se crean a partir de estos modelos." />
+      <PageHeader title="Catálogo" description="Tipos y modelos de activos disponibles en todo el ecosistema. Consulta sus fichas y selecciónalos como referencia para los activos de tu planta." />
 
       <PlantMap />
 

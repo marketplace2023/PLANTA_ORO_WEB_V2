@@ -55,8 +55,9 @@ function Summary({ fur }: { fur: AssetFur }) {
         <span className="fur-code">{asset.furCode}</span>
       </Fact>
       <Fact label="Familia">{asset.family.name}</Fact>
-      <Fact label="Tipo">{asset.type.name}</Fact>
-      <Fact label="Modelo">{asset.model.name}</Fact>
+      {asset.type.code && <Fact label="Tipo">{asset.type.name}</Fact>}
+      {asset.model.id && <Fact label="Modelo">{asset.model.name}</Fact>}
+      <Fact label="Referencias del catálogo">{asset.referenceModels?.map(model => model.modelName).join(', ') || '—'}</Fact>
       <Fact label="Fabricante">{asset.manufacturer ?? '—'}</Fact>
       {'serialNumber' in asset && <Fact label="Número de serie">{asset.serialNumber ?? '—'}</Fact>}
       <Fact label="Ubicación">{asset.location ?? '—'}</Fact>

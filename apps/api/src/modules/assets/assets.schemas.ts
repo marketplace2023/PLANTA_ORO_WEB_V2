@@ -36,12 +36,14 @@ const specifications = z.record(z.string().min(1).max(200).refine(key => key.tri
   .refine(value => Object.keys(value).length <= 500, 'Máximo 500 especificaciones')
 const components = z.array(text(2000)).max(500)
 
-export const assetTagPreviewSchema = z.object({ assetModelId: z.uuid(), stageCode, networkCode })
+export const assetTagPreviewSchema = z.object({ familyId: z.uuid().optional(), assetModelId: z.uuid().optional(), stageCode, networkCode }).refine(v => !!v.familyId || !!v.assetModelId, 'Selecciona una familia')
 export type AssetTagPreviewQuery = z.infer<typeof assetTagPreviewSchema>
 
 export const createAssetSchema = z.object({
   name: text(200),
-  assetModelId: z.uuid(),
+  assetModelId: z.uuid().optional(),
+  familyId: z.uuid().optional(),
+  referenceModelIds: z.array(z.uuid()).max(100).default([]),
   specifications: specifications.optional(),
   components: components.optional(),
   stageCode,
@@ -57,12 +59,14 @@ export const createAssetSchema = z.object({
   isPublic: z.boolean().default(false),
   metadata: z.record(z.string(), z.unknown()).default({}),
   networkCodes: z.array(networkCode).length(1, 'Selecciona una sola red para generar el TAG'),
-})
+}).refine(v => !!v.familyId || !!v.assetModelId, 'Selecciona una familia')
 
 export const updateAssetSchema = z
   .object({
     name: text(200),
     assetModelId: z.uuid(),
+    familyId: z.uuid(),
+    referenceModelIds: z.array(z.uuid()).max(100),
     specifications,
     components,
     stageCode: stageCode.nullable(),

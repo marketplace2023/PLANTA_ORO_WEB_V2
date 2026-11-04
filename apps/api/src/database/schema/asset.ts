@@ -45,8 +45,8 @@ export const assets = assetSchema.table(
     /** Etapa habilitada de ESTA planta (se valida en el servicio). Nulo = aún sin asignar a una etapa. */
     plantStageId: uuid('plant_stage_id').references(() => plantStages.id, { onDelete: 'set null' }),
     assetModelId: uuid('asset_model_id')
-      .notNull()
       .references(() => assetModels.id),
+    familyId: uuid('family_id').references(() => assetFamilies.id),
     /** Copia inicial del modelo; los cambios de la unidad física no modifican el catálogo. */
     specifications: jsonb('specifications').notNull().default({}),
     technicalData: jsonb('technical_data').notNull().default({}),
@@ -79,6 +79,11 @@ export const assets = assetSchema.table(
 )
 
 /** Un activo puede relacionarse con varias redes, siempre habilitadas en su planta (§47.3). */
+export const assetCatalogReferences = assetSchema.table('catalog_references', {
+  assetId: uuid('asset_id').notNull().references(() => assets.id, { onDelete: 'cascade' }),
+  assetModelId: uuid('asset_model_id').notNull().references(() => assetModels.id, { onDelete: 'cascade' }),
+}, t => [primaryKey({ columns: [t.assetId, t.assetModelId] })])
+
 export const assetNetworks = assetSchema.table(
   'asset_networks',
   {

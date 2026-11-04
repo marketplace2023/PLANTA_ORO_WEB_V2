@@ -95,6 +95,7 @@ export class CatalogAdminController {
     const [before] = await this.db.select().from(assetFamilies).where(eq(assetFamilies.id, id))
     if (!before) throw new NotFoundException('Familia no encontrada')
     await this.assertUnused(`No se puede eliminar la familia «${before.name}»:`, [
+      { table: assets, column: assets.familyId, id, text: n => `la usan ${n} activo(s) de planta.` },
       { table: assetTypes, column: assetTypes.familyId, id, text: (n) => `tiene ${n} tipo(s). Elimina o mueve esos tipos a otra familia primero.` },
       { table: listings, column: listings.assetFamilyId, id, text: (n) => `la usan ${n} publicación(es) del marketplace.` },
     ])

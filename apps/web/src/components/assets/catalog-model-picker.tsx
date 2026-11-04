@@ -8,6 +8,7 @@ import type { CatalogModel } from '@/features/assets/use-assets'
 
 type Props = {
   value: string
+  selectedIds?: string[]
   selected: { modelName: string; catalogTag?: string | null } | null
   items: CatalogModel[]
   total: number
@@ -21,7 +22,7 @@ type Props = {
   describedBy?: string
 }
 
-export function CatalogModelPicker({ value, selected, items, total, search, onSearchChange, onSelect, loading, failed, onRetry, invalid, describedBy }: Props) {
+export function CatalogModelPicker({ value, selectedIds = [], selected, items, total, search, onSearchChange, onSelect, loading, failed, onRetry, invalid, describedBy }: Props) {
   const [open, setOpen] = useState(false)
   const label = selected ? `${selected.catalogTag ? `${selected.catalogTag} · ` : ''}${selected.modelName}` : ''
 
@@ -74,9 +75,9 @@ export function CatalogModelPicker({ value, selected, items, total, search, onSe
               <CommandItem
                 key={model.id}
                 value={model.id}
-                data-checked={value === model.id}
+                data-checked={value === model.id || selectedIds.includes(model.id)}
                 onSelect={() => { onSelect(model); setOpen(false) }}
-                className="min-w-0 gap-3 rounded-lg px-3 py-2.5 data-selected:bg-fur-gold-500/10 data-selected:text-foreground"
+                className="min-w-0 gap-3 rounded-lg px-3 py-2.5 data-selected:bg-fur-gold-500/10 data-selected:text-foreground data-[checked=true]:bg-fur-gold-500/10"
               >
                 <div className="min-w-0 flex-1 space-y-1">
                   <span className="block truncate text-sm font-medium" title={model.modelName}>{model.modelName}</span>
@@ -85,6 +86,7 @@ export function CatalogModelPicker({ value, selected, items, total, search, onSe
                     <span className="truncate" title={model.type.name}>{model.type.name}</span>
                   </span>
                 </div>
+                {(value === model.id || selectedIds.includes(model.id)) && <span className="sr-only">Seleccionado</span>}
               </CommandItem>
             ))}
           </CommandList>

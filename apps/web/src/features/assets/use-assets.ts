@@ -24,8 +24,9 @@ export type AssetItem = {
   model: { id: string; name: string; imageUrl: string | null }
   /** `description`: texto del tipo (p. ej. «Criba / parrilla de recepción de mineral ROM»); null si no tiene. */
   type: { code: string; name: string; description: string | null }
-  family: { code: string; name: string }
+  family: { id?: string; code: string; tagCode?: string; name: string }
   manufacturer: string | null
+  referenceModels?: Array<{ id: string; modelName: string; catalogTag?: string | null }>
   networks: NetworkRef[]
 }
 
@@ -64,6 +65,7 @@ export type AssetFur = {
   asset: AssetDetail
   plant: { id: string; name: string; slug: string; code: string }
   stage: AssetItem['stage']
+  referenceModels?: Array<{ id: string; modelName: string; catalogTag?: string | null }>
   networks: NetworkRef[]
   documents: DocumentItem[]
   /** Vacío si quien consulta no tiene maintenance.read. */
@@ -167,10 +169,12 @@ export const useAssetFur =(slug: string | undefined, assetId: string | undefined
   })
 
 export type AssetInput = {
+  familyId?: string
+  referenceModelIds?: string[]
   specifications?: Record<string, unknown>
   components?: string[]
   name: string
-  assetModelId: string
+  assetModelId?: string
   stageCode?: string | null
   serialNumber?: string | null
   status?: AssetStatus
@@ -183,7 +187,7 @@ export type AssetInput = {
   mapPosition?: { x: number; y: number } | null
 }
 
-export type AssetTagSelection = { assetModelId: string; stageCode: string; networkCode: string }
+export type AssetTagSelection = { familyId: string; stageCode: string; networkCode: string }
 
 /** Vista previa sin reservar correlativo; cada combinación tiene su propia consulta. */
 export function useAssetTagPreview(slug: string, selection: AssetTagSelection | null, active = true) {

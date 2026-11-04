@@ -7,6 +7,7 @@ import type { AppRequest, AuthUser, PlantRow } from '../../common/types'
 import { DB, type Database } from '../../database/database.module'
 import {
   assetFamilies,
+  assetCatalogReferences,
   assetModels,
   assetNetworks,
   assets,
@@ -99,6 +100,9 @@ export class AssetsService {
         typeName: assetTypes.name,
         typeDescription: assetTypes.description,
         familyCode: assetFamilies.code,
+        familyId: assetFamilies.id,
+        familyTagCode: assetFamilies.tagCode,
+        referenceModels: sql<Array<{ id: string; modelName: string; catalogTag: string | null }>>`coalesce((select jsonb_agg(jsonb_build_object('id',m.id,'modelName',m.model_name,'catalogTag',m.catalog_tag) order by m.model_name) from asset.catalog_references r join catalog.asset_models m on m.id=r.asset_model_id where r.asset_id=${assets.id}), '[]'::jsonb)`,
         familyName: assetFamilies.name,
         manufacturerName: sql<string | null>`coalesce(${manufacturers.name}, catalog.reference_manufacturer_names(${assetModels.technicalData}))`,
         stageCode: stageMaster.code,
@@ -107,9 +111,9 @@ export class AssetsService {
         stageGroup: stageMaster.stageGroup,
       })
       .from(assets)
-      .innerJoin(assetModels, eq(assetModels.id, assets.assetModelId))
-      .innerJoin(assetTypes, eq(assetTypes.id, assetModels.assetTypeId))
-      .innerJoin(assetFamilies, eq(assetFamilies.id, assetTypes.familyId))
+      .leftJoin(assetModels, eq(assetModels.id, assets.assetModelId))
+      .leftJoin(assetTypes, eq(assetTypes.id, assetModels.assetTypeId))
+      .innerJoin(assetFamilies, sql`${assetFamilies.id} = coalesce(${assets.familyId}, ${assetTypes.familyId})`)
       .leftJoin(manufacturers, eq(manufacturers.id, assets.manufacturerId))
       .leftJoin(plantStages, eq(plantStages.id, assets.plantStageId))
       .leftJoin(stageMaster, eq(stageMaster.id, plantStages.stageMasterId))
@@ -142,9 +146,10 @@ export class AssetsService {
       updatedAt: r.updatedAt,
       stage: r.stageCode ? { code: r.stageCode, name: r.stageOverride ?? r.stageName!, group: r.stageGroup! } : null,
       mapPosition: readMapPosition(r.metadata),
-      model: { id: r.modelId, name: r.modelName, imageUrl: r.modelImageUrl },
-      type: { code: r.typeCode, name: r.typeName, description: r.typeDescription },
-      family: { code: r.familyCode, name: r.familyName },
+      model: { id: r.modelId ?? '', name: r.modelName ?? '', imageUrl: r.modelImageUrl },
+      type: { code: r.typeCode ?? '', name: r.typeName ?? 'Activo de planta', description: r.typeDescription },
+      family: { id: r.familyId, code: r.familyCode, tagCode: r.familyTagCode, name: r.familyName },
+      referenceModels: r.referenceModels,
       manufacturer: r.manufacturerName,
       networks,
     }
@@ -207,9 +212,9 @@ export class AssetsService {
       this.db
         .select({ total: sql<number>`count(*)::int` })
         .from(assets)
-        .innerJoin(assetModels, eq(assetModels.id, assets.assetModelId))
-        .innerJoin(assetTypes, eq(assetTypes.id, assetModels.assetTypeId))
-        .innerJoin(assetFamilies, eq(assetFamilies.id, assetTypes.familyId))
+        .leftJoin(assetModels, eq(assetModels.id, assets.assetModelId))
+        .leftJoin(assetTypes, eq(assetTypes.id, assetModels.assetTypeId))
+        .innerJoin(assetFamilies, sql`${assetFamilies.id} = coalesce(${assets.familyId}, ${assetTypes.familyId})`)
         .leftJoin(plantStages, eq(plantStages.id, assets.plantStageId))
         .leftJoin(stageMaster, eq(stageMaster.id, plantStages.stageMasterId))
         .where(where),
@@ -406,8 +411,28 @@ export class AssetsService {
     }
   }
 
+  private async assertFamily(id: string) {
+    const [family] = await this.db.select().from(assetFamilies).where(eq(assetFamilies.id, id))
+    if (!family) throw new BadRequestException('La familia no existe')
+    return { familyId: family.id, familyTagCode: family.tagCode }
+  }
+
+  private async validateReferences(ids: string[], familyId: string) {
+    const unique = [...new Set(ids)]
+    if (!unique.length) return []
+    const rows = await this.db.select({ id: assetModels.id }).from(assetModels).leftJoin(assetTypes, eq(assetTypes.id, assetModels.assetTypeId))
+      .where(and(inArray(assetModels.id, unique), eq(assetTypes.familyId, familyId)))
+    if (rows.length !== unique.length) throw new BadRequestException('Las referencias deben existir y pertenecer a la familia seleccionada')
+    return unique
+  }
+
+  private async setReferences(tx: Tx, assetId: string, ids: string[]) {
+    await tx.delete(assetCatalogReferences).where(eq(assetCatalogReferences.assetId, assetId))
+    if (ids.length) await tx.insert(assetCatalogReferences).values(ids.map(assetModelId => ({ assetId, assetModelId })))
+  }
+
   async tagPreview(plant: PlantRow, query: AssetTagPreviewQuery) {
-    const model = await this.assertModel(query.assetModelId)
+    const model = query.familyId ? await this.assertFamily(query.familyId) : await this.assertModel(query.assetModelId!)
     const plantStageId = await this.resolveStage(plant.id, query.stageCode)
     const [plantNetworkId] = await this.resolveNetworks(plant.id, [query.networkCode])
     const tag = await previewAssetTag(this.db, {
@@ -418,7 +443,9 @@ export class AssetsService {
   }
 
   async create(plant: PlantRow, dto: CreateAssetDto, req: AppRequest) {
-    const model = await this.assertModel(dto.assetModelId)
+    const legacy = !dto.familyId && dto.assetModelId ? await this.assertModel(dto.assetModelId) : null
+    const model = dto.familyId ? await this.assertFamily(dto.familyId) : legacy!
+    const references = await this.validateReferences(dto.referenceModelIds, model.familyId)
     const plantStageId = await this.resolveStage(plant.id, dto.stageCode)
     const networkIds = await this.resolveNetworks(plant.id, dto.networkCodes)
     if (dto.parentAssetId) await this.assertParent(plant.id, dto.parentAssetId)
@@ -447,9 +474,10 @@ export class AssetsService {
           .values({
             plantId: plant.id,
             plantStageId,
-            assetModelId: dto.assetModelId,
-            specifications: dto.specifications ?? model.specifications,
-            technicalData: { ...(model.technicalData as Record<string, unknown>), ...(dto.components !== undefined && { componentes: dto.components }) },
+            familyId: model.familyId,
+            assetModelId: legacy ? dto.assetModelId : null,
+            specifications: dto.specifications ?? legacy?.specifications ?? {},
+            technicalData: { ...((legacy?.technicalData ?? {}) as Record<string, unknown>), componentes: dto.components ?? (legacy?.technicalData as { componentes?: unknown } | undefined)?.componentes ?? [] },
             furCode: buildFurCode(plant.code, seq),
             tag,
             name: dto.name,
@@ -466,6 +494,7 @@ export class AssetsService {
           })
           .returning()
         await this.setNetworks(tx, asset.id, networkIds)
+        await this.setReferences(tx, asset.id, references)
         await tx.insert(assetStatusHistory).values({
           assetId: asset.id,
           oldStatus: null,
@@ -529,6 +558,13 @@ export class AssetsService {
     if (dto.status === 'DECOMMISSIONED') throw new BadRequestException('Para dar de baja un activo use la acción de baja')
 
     const patch: Partial<typeof assets.$inferInsert> = { updatedAt: new Date() }
+    if (dto.familyId !== undefined) {
+      await this.assertFamily(dto.familyId)
+      patch.familyId = dto.familyId
+      if (dto.familyId !== before.familyId) patch.assetModelId = null
+    }
+    const referenceIds = dto.referenceModelIds ?? (dto.familyId && dto.familyId !== before.familyId ? [] : undefined)
+    if (referenceIds) await this.validateReferences(referenceIds, dto.familyId ?? before.familyId ?? (await this.assertModel(before.assetModelId!)).familyId)
     if (dto.specifications !== undefined) patch.specifications = dto.specifications
     if (dto.components !== undefined) patch.technicalData = { ...(before.technicalData as Record<string, unknown>), componentes: dto.components }
     if (dto.name !== undefined) patch.name = dto.name
@@ -545,7 +581,8 @@ export class AssetsService {
       patch.metadata = withMapPosition(base, dto.mapPosition)
     }
     if (dto.assetModelId !== undefined) {
-      await this.assertModel(dto.assetModelId)
+      const model = await this.assertModel(dto.assetModelId)
+      if (dto.familyId === undefined) patch.familyId = model.familyId
       patch.assetModelId = dto.assetModelId
     }
     if (dto.stageCode !== undefined) patch.plantStageId = dto.stageCode === null ? null : await this.resolveStage(plant.id, dto.stageCode)
@@ -560,6 +597,7 @@ export class AssetsService {
     await this.db
       .transaction(async (tx) => {
         await tx.update(assets).set(patch).where(eq(assets.id, assetId))
+        if (referenceIds) await this.setReferences(tx, assetId, referenceIds)
         if (networkIds) await this.setNetworks(tx, assetId, networkIds)
         if (statusChanged) {
           await tx.insert(assetStatusHistory).values({

@@ -240,7 +240,7 @@ describe('Activos Físicos (listado)', () => {
       expect(await within(dialog).findAllByText('Requerido')).toHaveLength(1)
       expect(within(dialog).getByText('Selecciona una etapa para generar el TAG')).toBeInTheDocument()
       expect(within(dialog).getByText('Selecciona una red para generar el TAG')).toBeInTheDocument()
-      expect(within(dialog).getByText('Selecciona un modelo del catálogo')).toBeInTheDocument()
+      expect(within(dialog).getByText('Selecciona una familia', { selector: 'p' })).toBeInTheDocument()
       expect(mock.count('POST /plants/revemin-ii/assets')).toBe(0)
     })
 
@@ -269,8 +269,8 @@ describe('Activos Físicos (listado)', () => {
       const dialog = await openForm(mock as never)
 
       expect(within(dialog).getByLabelText('Tag')).toHaveAttribute('readonly')
-      await userEvent.click(within(dialog).getByRole('combobox', { name: 'Modelo del catálogo' }))
-      await userEvent.click(await screen.findByRole('option', { name: /Bolas 16.5x24 ft/ }))
+      await userEvent.click(within(dialog).getByRole('combobox', { name: 'Familia' }))
+      await userEvent.click(await screen.findByRole('option', { name: /Molinos/ }))
       await userEvent.clear(within(dialog).getByLabelText('Nombre'))
       await userEvent.type(within(dialog).getByLabelText('Nombre'), 'Molino nuevo')
       await userEvent.click(within(dialog).getByRole('combobox', { name: 'Red transversal' }))
@@ -284,7 +284,8 @@ describe('Activos Físicos (listado)', () => {
       expect(body).toEqual({
         stageCode: 'D06',
         name: 'Molino nuevo',
-        assetModelId: 'm1',
+        familyId: 'f1',
+        referenceModelIds: [],
         specifications: {},
         components: [],
         criticality: 'MEDIUM',
@@ -299,9 +300,11 @@ describe('Activos Físicos (listado)', () => {
       renderAssets()
       const dialog = await openForm(mock as never)
 
+      await userEvent.click(within(dialog).getByRole('combobox', { name: 'Red transversal' }))
+      await userEvent.click(await screen.findByRole('option', { name: /FUR-IOT/ }))
       await userEvent.type(within(dialog).getByLabelText('Nombre'), 'Duplicado')
-      await userEvent.click(within(dialog).getByRole('combobox', { name: 'Modelo del catálogo' }))
-      await userEvent.click(await screen.findByRole('option', { name: /Bolas 16.5x24 ft/ }))
+      await userEvent.click(within(dialog).getByRole('combobox', { name: 'Familia' }))
+      await userEvent.click(await screen.findByRole('option', { name: /Molinos/ }))
       await userEvent.click(within(dialog).getByRole('combobox', { name: 'Etapa' }))
       await userEvent.click(await screen.findByRole('option', { name: 'D06 - Molienda Primaria' }))
       await userEvent.click(within(dialog).getByRole('button', { name: 'Crear activo' }))

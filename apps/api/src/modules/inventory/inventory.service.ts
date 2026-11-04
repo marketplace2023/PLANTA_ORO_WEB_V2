@@ -515,11 +515,11 @@ export class InventoryService {
   }
 
   /** Pestaña Inventario de la FUR: repuestos del mismo modelo del catálogo y lo que ya consumió el activo. */
-  async assetSummary(plantId: string, assetModelId: string, assetId: string) {
+  async assetSummary(plantId: string, assetModelId: string | null, assetId: string) {
     const compatible = await this.db
       .select({ id: items.id, sku: items.sku, name: items.name, uom: items.uom, minStock: items.minStock, isCritical: items.isCritical, onHand: onHandSql })
       .from(items)
-      .where(and(eq(items.plantId, plantId), eq(items.assetModelId, assetModelId), eq(items.status, 'ACTIVE')))
+      .where(and(eq(items.plantId, plantId), assetModelId ? eq(items.assetModelId, assetModelId) : sql`false`, eq(items.status, 'ACTIVE')))
       .orderBy(desc(items.isCritical), asc(items.name))
       .limit(20)
     const used = await this.db

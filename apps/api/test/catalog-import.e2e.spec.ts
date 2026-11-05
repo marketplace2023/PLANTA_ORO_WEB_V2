@@ -10,11 +10,11 @@ async function workbook(options: { tags?: [string, string]; duplicate?: boolean;
   const book = new ExcelJS.Workbook()
   const master = book.addWorksheet('Listado maestro')
   master.addRows([
-    ['TAG ACTIVO', 'Nombre', 'Código CA', 'Categoría N4', 'Tipo', 'Fabricante / modelo', 'Denominación de etapa'],
+    ['TAG ACTIVO', 'Nombre', 'Código CA', 'Familia', 'Tipo', 'Fabricante / modelo', 'Denominación de etapa'],
     [tags[0], options.rename ? 'E2E Modelo renombrado' : 'E2E Modelo uno', '97', '97 — E2E familia (por verificar)', 'E2E Tipo maestro', options.makers?.[0] ?? 'E2E Fabricante', 'Molienda primaria'],
     [options.duplicate ? tags[0] : tags[1], options.rename ? 'E2E Modelo dos renombrado' : 'E2E Modelo dos', options.splitFamily ? '98' : '97', '97 — E2E familia', 'E2E Tipo maestro', options.makers?.[1] ?? 'E2E Fabricante', 'Molienda secundaria'],
   ])
-  book.addWorksheet('Categorías N4').addRows([['Código CA', 'Categoría N4'], ['97', options.rename ? 'E2E Familia renombrada' : 'E2E Familia canónica'], ['98', 'E2E Otra familia']])
+  book.addWorksheet('Familias').addRows([['Código CA', 'Familia'], ['97', options.rename ? 'E2E Familia renombrada' : 'E2E Familia canónica'], ['98', 'E2E Otra familia']])
   book.addWorksheet('Características').addRows([
     ['TAG ACTIVO', 'Componentes principales'], ...(options.components ?? [[tags[1], 'Motor, tambor, corona. Un solo componente.'], [tags[0], 'Motor, reductor, eje.']]),
   ])

@@ -63,10 +63,10 @@ describe('Maestro de especificaciones por familia', () => {
     const workbook = async (parameter: string, value = '12,5') => {
       const book = new ExcelJS.Workbook()
       book.addWorksheet('Listado maestro').addRows([
-        ['TAG ACTIVO', 'Nombre', 'Código CA', 'Categoría N4', 'Tipo', 'Fabricante / modelo', 'Denominación de etapa'],
+        ['TAG ACTIVO', 'Nombre', 'Código CA', 'Familia', 'Tipo', 'Fabricante / modelo', 'Denominación de etapa'],
         ['E2E-SPEC-IMPORT', 'E2E Modelo importado', '96', 'E2E Especificaciones', 'E2E Tipo', '', 'Recepción, chancado y cribado'],
       ])
-      book.addWorksheet('Categorías N4').addRows([['Código CA', 'Categoría N4'], ['96', 'E2E Especificaciones']])
+      book.addWorksheet('Familias').addRows([['Código CA', 'Familia'], ['96', 'E2E Especificaciones']])
       book.addWorksheet('Características').addRows([['TAG ACTIVO', 'Componentes principales']])
       book.addWorksheet('Especificaciones').addRows([
         ['TAG ACTIVO', 'Parámetro técnico', 'Unidad', 'Valor / estado'],

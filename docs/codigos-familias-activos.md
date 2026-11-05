@@ -68,5 +68,24 @@ Se conservan los códigos de integración y CA. La abreviatura TAG es única y s
 | Unidades de potencia hidráulica | N4_37 | 37 | UPH |
 | Válvulas | N4_24 | 24 | VAL |
 | Variadores de frecuencia | N4_20 | 20 | VAR |
+| Arrancadores y contactores de motor | FAM_ARR | — | ARR |
+| Distribuidores ópticos (ODF / patch panel) | FAM_ODF | — | ODF |
+| Equipos de izaje | FAM_IZA | — | IZA |
+| Protección y seccionamiento eléctrico | FAM_PSE | — | PSE |
+| Splitters ópticos | FAM_SPL | — | SPL |
+| Tolvas | FAM_TOL | — | TOL |
+| Centros de control de motores (CCM) | FAM_CCM | — | CCM |
+| Terminales ópticos ONU/ONT | FAM_ONT | — | ONT |
+| Generación de respaldo y transferencia | FAM_GEN | — | GEN |
+| Switches industriales | FAM_SWI | — | SWI |
+| Calentamiento eléctrico industrial | FAM_CEI | — | CEI |
+| Puntos de acceso inalámbrico | FAM_WAP | — | WAP |
+| Alimentación auxiliar de control (24 VDC / UPS) | FAM_AUX | — | AUX |
+| Telefonía IP industrial | FAM_TEL | — | TEL |
+| Gabinetes y nodos de comunicaciones | FAM_GAB | — | GAB |
+| Cierres y cajas ópticas de campo | FAM_CIE | — | CIE |
+| Cables y enlaces de fibra óptica | FAM_FOP | — | FOP |
 
-Estas 64 familias y códigos base se restauran mediante el seed, sin cargar modelos ni activos de demostración. Repetir el seed conserva las familias existentes y sus códigos editados. Esta tabla representa la configuración base versionada.
+Estas 81 familias y códigos base se restauran mediante el seed, sin cargar modelos ni activos de demostración. Repetir el seed conserva las familias existentes y sus códigos editados. Esta tabla representa la configuración base versionada.
+
+La base definitiva del 2026-11-04 añade 17 familias sin categoría CA. Se les asigna `FAM_<TAG>` como código de integración estable, conservando los TAG del Excel.

@@ -302,6 +302,13 @@
       "when": 1793821792347,
       "tag": "0042_specification_names_unique",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1793825986532,
+      "tag": "0043_adjusted_family_specifications",
+      "breakpoints": true
     }
   ]
 }

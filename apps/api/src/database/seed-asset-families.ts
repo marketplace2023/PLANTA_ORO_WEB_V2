@@ -1,5 +1,5 @@
-// Familias reales del catálogo local, conservadas para reinstalaciones (2026-11-03).
-// code/categoryCode mantienen la compatibilidad con las importaciones; tagCode se usa en los TAG.
+// Fuente definitiva: familias-locales-especificaciones-ajustadas-2026-11-04.xlsx.
+// Las familias adicionales sin código CA usan FAM_<TAG> como código de integración.
 export const SEEDED_ASSET_FAMILIES = [
   {
     "code": "N4_66",
@@ -512,5 +512,141 @@ export const SEEDED_ASSET_FAMILIES = [
     "icon": null,
     "description": null,
     "tagCode": "VAR"
+  },
+  {
+    "code": "FAM_ARR",
+    "categoryCode": null,
+    "name": "Arrancadores y contactores de motor",
+    "icon": null,
+    "description": null,
+    "tagCode": "ARR"
+  },
+  {
+    "code": "FAM_ODF",
+    "categoryCode": null,
+    "name": "Distribuidores ópticos (ODF / patch panel)",
+    "icon": null,
+    "description": null,
+    "tagCode": "ODF"
+  },
+  {
+    "code": "FAM_IZA",
+    "categoryCode": null,
+    "name": "Equipos de izaje",
+    "icon": null,
+    "description": null,
+    "tagCode": "IZA"
+  },
+  {
+    "code": "FAM_PSE",
+    "categoryCode": null,
+    "name": "Protección y seccionamiento eléctrico",
+    "icon": null,
+    "description": null,
+    "tagCode": "PSE"
+  },
+  {
+    "code": "FAM_SPL",
+    "categoryCode": null,
+    "name": "Splitters ópticos",
+    "icon": null,
+    "description": null,
+    "tagCode": "SPL"
+  },
+  {
+    "code": "FAM_TOL",
+    "categoryCode": null,
+    "name": "Tolvas",
+    "icon": null,
+    "description": null,
+    "tagCode": "TOL"
+  },
+  {
+    "code": "FAM_CCM",
+    "categoryCode": null,
+    "name": "Centros de control de motores (CCM)",
+    "icon": null,
+    "description": null,
+    "tagCode": "CCM"
+  },
+  {
+    "code": "FAM_ONT",
+    "categoryCode": null,
+    "name": "Terminales ópticos ONU/ONT",
+    "icon": null,
+    "description": null,
+    "tagCode": "ONT"
+  },
+  {
+    "code": "FAM_GEN",
+    "categoryCode": null,
+    "name": "Generación de respaldo y transferencia",
+    "icon": null,
+    "description": null,
+    "tagCode": "GEN"
+  },
+  {
+    "code": "FAM_SWI",
+    "categoryCode": null,
+    "name": "Switches industriales",
+    "icon": null,
+    "description": null,
+    "tagCode": "SWI"
+  },
+  {
+    "code": "FAM_CEI",
+    "categoryCode": null,
+    "name": "Calentamiento eléctrico industrial",
+    "icon": null,
+    "description": null,
+    "tagCode": "CEI"
+  },
+  {
+    "code": "FAM_WAP",
+    "categoryCode": null,
+    "name": "Puntos de acceso inalámbrico",
+    "icon": null,
+    "description": null,
+    "tagCode": "WAP"
+  },
+  {
+    "code": "FAM_AUX",
+    "categoryCode": null,
+    "name": "Alimentación auxiliar de control (24 VDC / UPS)",
+    "icon": null,
+    "description": null,
+    "tagCode": "AUX"
+  },
+  {
+    "code": "FAM_TEL",
+    "categoryCode": null,
+    "name": "Telefonía IP industrial",
+    "icon": null,
+    "description": null,
+    "tagCode": "TEL"
+  },
+  {
+    "code": "FAM_GAB",
+    "categoryCode": null,
+    "name": "Gabinetes y nodos de comunicaciones",
+    "icon": null,
+    "description": null,
+    "tagCode": "GAB"
+  },
+  {
+    "code": "FAM_CIE",
+    "categoryCode": null,
+    "name": "Cierres y cajas ópticas de campo",
+    "icon": null,
+    "description": null,
+    "tagCode": "CIE"
+  },
+  {
+    "code": "FAM_FOP",
+    "categoryCode": null,
+    "name": "Cables y enlaces de fibra óptica",
+    "icon": null,
+    "description": null,
+    "tagCode": "FOP"
   }
 ] as const

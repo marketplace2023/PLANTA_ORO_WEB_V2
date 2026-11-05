@@ -23,10 +23,10 @@ describe('Maestro de especificaciones por familia', () => {
   })
   afterAll(async () => { await t.cleanup(); await t.close(); await app.close() })
 
-  it('carga las 1521 definiciones del Excel y 64 familias; lectura pública y escritura solo administrativa', async () => {
+  it('carga las 719 definiciones del Excel definitivo y 81 familias; lectura pública y escritura solo administrativa', async () => {
     const all = (await http().get('/api/v1/catalog/specifications').expect(200)).body
-    expect(all).toHaveLength(1521)
-    expect(new Set(all.map((d: { familyId: string }) => d.familyId)).size).toBe(64)
+    expect(all).toHaveLength(719)
+    expect(new Set(all.map((d: { familyId: string }) => d.familyId)).size).toBe(81)
     const body = { familyId, label: 'Potencia', unit: 'kW', valueType: 'NUMBER', required: true }
     await http().post('/api/v1/catalog/specifications').send(body).expect(401)
     await http().post('/api/v1/catalog/specifications').set('Authorization', bearer(user)).send(body).expect(403)
@@ -60,7 +60,7 @@ describe('Maestro de especificaciones por familia', () => {
   })
   it('el importador valida el mismo maestro y ninguna opción permite saltarse un nombre desconocido', async () => {
     await t.db.update(assetFamilies).set({ categoryCode: '96' }).where(eq(assetFamilies.id, familyId))
-    const workbook = async (parameter: string) => {
+    const workbook = async (parameter: string, value = '12,5') => {
       const book = new ExcelJS.Workbook()
       book.addWorksheet('Listado maestro').addRows([
         ['TAG ACTIVO', 'Nombre', 'Código CA', 'Categoría N4', 'Tipo', 'Fabricante / modelo', 'Denominación de etapa'],
@@ -70,7 +70,7 @@ describe('Maestro de especificaciones por familia', () => {
       book.addWorksheet('Características').addRows([['TAG ACTIVO', 'Componentes principales']])
       book.addWorksheet('Especificaciones').addRows([
         ['TAG ACTIVO', 'Parámetro técnico', 'Unidad', 'Valor / estado'],
-        ['E2E-SPEC-IMPORT', parameter, 'kW', '12,5'], ['E2E-SPEC-IMPORT', 'Requiere lubricación', '', 'No'],
+        ['E2E-SPEC-IMPORT', parameter, 'kW', value], ['E2E-SPEC-IMPORT', 'Requiere lubricación', '', 'No'],
       ])
       return Buffer.from(await book.xlsx.writeBuffer())
     }
@@ -79,6 +79,14 @@ describe('Maestro de especificaciones por familia', () => {
     const rejected = (await preview(bad).expect(201)).body
     expect(rejected.issues.some((i: { message: string }) => i.message.includes('ptencia'))).toBe(true)
     await http().post('/api/v1/catalog/imports').set('Authorization', bearer(admin)).field('networkCodes', '["FUR-PROC"]').field('fingerprint', rejected.fingerprint).field('allowMissingSpecifications', 'true').field('allowDuplicateModels', 'true').attach('file', bad, 'specs.xlsx').expect(400)
+    const invalidNumber = await workbook('Potencia', '≈ 16')
+    const invalidPreview = (await preview(invalidNumber).expect(201)).body
+    expect(invalidPreview.issues).toEqual([expect.objectContaining({
+      sheet: 'Listado maestro', row: 2,
+      message: expect.stringContaining('Especificación «Potencia (kW)»: se esperaba un número'),
+    })])
+    expect(invalidPreview.issues[0].message).toContain('Valor recibido: «≈ 16»')
+    expect(invalidPreview.issues[0].message).not.toContain('NaN')
     const good = await workbook('Potencia')
     const accepted = (await preview(good).expect(201)).body
     expect(accepted.issues).toEqual([])

@@ -26,7 +26,7 @@ npm run dev:app         # API en :3000 + web en :5173
 `npm run dev` levanta las tres cosas a la vez (Postgres + API + web) si prefieres una sola terminal.
 
 Los archivos `apps/api/.env` y `apps/web/.env` ya apuntan a local; no se versionan (usa los `.env.example` como plantilla).
-Los datos viven en `.local/pgdata` (ignorado por git). El seed base restaura las [64 familias y sus códigos TAG](docs/codigos-familias-activos.md). Tipos, modelos, fabricantes, variables y activos arrancan vacíos: el catálogo se carga desde el Excel en **Administración → Catálogo de activos → Importar Excel**. Los seeders normales no reponen ejemplos ni datos operativos de demostración. Las pruebas habilitan sus fixtures explícitamente en `fur_test`.
+Los datos viven en `.local/pgdata` (ignorado por git). El seed base restaura las [81 familias y sus códigos TAG](docs/codigos-familias-activos.md). El maestro base incluye también 719 especificaciones por familia del Excel ajustado del 2026-11-04. Tipos, modelos, fabricantes, variables y activos arrancan vacíos: el catálogo se carga desde el Excel en **Administración → Catálogo de activos → Importar Excel**. Los seeders normales no reponen ejemplos ni datos operativos de demostración. Las pruebas habilitan sus fixtures explícitamente en `fur_test`.
 
 Para empezar de cero, detén la API y ejecuta `npm run db:reset-local -- --yes`. El comando solo admite `fur_dev` en localhost:54320: prepara y verifica una base nueva, inicializa el acceso local y conserva la anterior completa como `fur_dev_backup_<fecha>`. Después vuelve a iniciar la API y a iniciar sesión. No borra el clúster, los archivos de almacenamiento ni `fur_test`, y no importa ningún Excel automáticamente.
 

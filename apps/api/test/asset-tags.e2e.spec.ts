@@ -114,7 +114,7 @@ describe('TAG automático de activos por planta, red, etapa y familia', () => {
   it('las familias actuales tienen códigos únicos y se restauran por seed sin modelos demo', async () => {
     const rows = await t.db.select().from(assetFamilies)
     expect(new Set(rows.map(row => row.tagCode)).size).toBe(rows.length)
-    for (const family of SEEDED_ASSET_FAMILIES) expect(rows.find(row => row.categoryCode === family.categoryCode)).toMatchObject({ code: family.code, tagCode: family.tagCode, name: family.name })
+    for (const family of SEEDED_ASSET_FAMILIES) expect(rows.find(row => row.code === family.code)).toMatchObject({ code: family.code, tagCode: family.tagCode, name: family.name })
     await t.db.delete(assetFamilies).where(eq(assetFamilies.code, 'N4_67'))
     await runSeed(TEST_DATABASE_URL)
     await runSeed(TEST_DATABASE_URL)

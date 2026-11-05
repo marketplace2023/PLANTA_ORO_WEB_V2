@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm'
+import { BadRequestException } from '@nestjs/common'
 import type { Database } from '../../database/database.module'
 import { familySpecifications } from '../../database/schema'
 import { validationError } from '../../common/errors'
@@ -7,6 +8,20 @@ import { parseVariableValue } from './variables'
 export type SpecificationDefinition = typeof familySpecifications.$inferSelect
 export const specificationKey = (d: Pick<SpecificationDefinition, 'label' | 'unit'>) => d.unit ? `${d.label} (${d.unit})` : d.label
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
+
+const expectedFormat: Record<SpecificationDefinition['valueType'], string> = {
+  NUMBER: 'un número, por ejemplo 16 o 16,5, sin unidades, comentarios ni rangos',
+  TEXT: 'un texto de entre 1 y 500 caracteres',
+  BOOLEAN: 'Sí o No',
+  LIST: 'una lista de 1 a 20 textos de hasta 120 caracteres cada uno, separados por punto y coma en Excel',
+  RANGE: 'un rango con mínimo y/o máximo numéricos, con el mínimo menor o igual al máximo; por ejemplo 10–20, ≤ 20 o ≥ 10',
+}
+
+/** Muestra el valor original del Excel, antes de cualquier conversión fallida a número. */
+const receivedValue = (raw: unknown) => {
+  const text = raw === null || raw === undefined ? '(vacío)' : typeof raw === 'object' ? JSON.stringify(raw) : String(raw)
+  return text.length > 160 ? `${text.slice(0, 160)}…` : text
+}
 
 /** Los valores anteriores fuera del maestro se conservan, pero no se admiten nombres nuevos libres. */
 export function validateSpecificationValues(definitions: SpecificationDefinition[], input: Record<string, unknown>, previous?: Record<string, unknown>, fromExcel = false) {
@@ -36,7 +51,12 @@ export function validateSpecificationValues(definitions: SpecificationDefinition
         }
       }
     }
-    result[canonical] = parseVariableValue(def.valueType, canonical, value, 'specifications')
+    try {
+      result[canonical] = parseVariableValue(def.valueType, canonical, value, 'specifications')
+    } catch (error) {
+      if (!(error instanceof BadRequestException)) throw error
+      throw validationError('specifications', `Especificación «${canonical}»: se esperaba ${expectedFormat[def.valueType]}. Valor recibido: «${receivedValue(raw)}».`)
+    }
   }
   for (const d of definitions) {
     const key = specificationKey(d)

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { screen, waitFor, within } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { renderWithProviders } from '@/test/render'
 import { mockApi } from '@/test/fetch-mock'
@@ -9,6 +9,8 @@ import { AssetFormDialog } from './asset-form-dialog'
 const families = [{ id: 'f1', code: 'MOLINOS', name: 'Molinos', tagCode: 'MOL', icon: null }, { id: 'f2', code: 'MOTORES', name: 'Motores', tagCode: 'MOT', icon: null }]
 function setup(routes: Parameters<typeof mockApi>[0] = {}) {
   return mockApi({
+    'GET /plants/revemin-ii/catalog-requests': { body: [] },
+    'POST /plants/revemin-ii/catalog-requests': { status: 201, body: { id: 'request1', status: 'PENDING' } },
     'GET /catalog/specifications': { body: [] },
     'GET /catalog/families': { body: families },
     'GET /catalog/assets': ({ query }) => ({ body: page(query.get('stage') === 'D06' && query.get('network') === 'FUR-PTE' ? [MODELS[query.get('family') === 'MOTORES' ? 1 : 0]] : []) }),
@@ -57,8 +59,8 @@ describe('Activo propio de planta', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Crear activo' }))
     await waitFor(() => expect(api.count('POST /plants/revemin-ii/assets')).toBe(1))
     const body = JSON.parse(api.calls.find(call => call.method === 'POST')!.init.body as string)
-    expect(body).toMatchObject({ familyId: 'f1', referenceModelIds: ['m1'], name: 'Equipo de mi planta', specifications: {}, components: [], networkCodes: ['FUR-PTE'] })
-    expect(body).not.toHaveProperty('assetModelId')
+    expect(body).toMatchObject({ familyId: 'f1', assetModelId: 'm1', name: 'Equipo de mi planta', specifications: {}, components: [], networkCodes: ['FUR-PTE'] })
+    expect(body).not.toHaveProperty('referenceModelIds')
   })
 
   it('carga parámetros de la familia sin nombres libres y registra valores numéricos y sí/no', async () => {
@@ -72,6 +74,8 @@ describe('Activo propio de planta', () => {
     await userEvent.type(await screen.findByLabelText(/Potencia/), '12,5')
     await userEvent.selectOptions(screen.getByLabelText(/Requiere lubricación/), 'false')
     await userEvent.type(screen.getByLabelText('Nombre'), 'Activo con ficha propia')
+    await userEvent.click(screen.getByRole('combobox', { name: 'Modelo del catálogo' }))
+    await userEvent.click(await screen.findByRole('option', { name: /Bolas 16.5x24 ft/ }))
     await userEvent.click(screen.getByRole('button', { name: 'Crear activo' }))
     await waitFor(() => expect(api.count('POST /plants/revemin-ii/assets')).toBe(1))
     const body = JSON.parse(api.calls.find(call => call.method === 'POST')!.init.body as string)
@@ -79,24 +83,18 @@ describe('Activo propio de planta', () => {
     expect(api.calls.some(call => call.path === '/catalog/specifications' && call.query.get('familyId') === 'f1')).toBe(true)
   })
 
-  it('mantiene las referencias seleccionadas en el desplegable con un check y permite desmarcarlas', async () => {
-    setup()
+  it('exige un modelo o permite solicitarlo sin crear el activo', async () => {
+    const api = setup()
     renderWithProviders(<AssetFormDialog open onOpenChange={vi.fn()} plantSlug="revemin-ii" />)
     await family()
-    await userEvent.click(screen.getByRole('combobox', { name: 'Modelo del catálogo' }))
-    const initial = await screen.findByRole('option', { name: /Bolas 16.5x24 ft/ })
-    expect(initial).toHaveAttribute('data-checked', 'false')
-    await userEvent.click(initial)
-    expect(screen.getByRole('button', { name: /Quitar referencia/ })).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('combobox', { name: 'Modelo del catálogo' }))
-    const selected = await screen.findByRole('option', { name: /Bolas 16.5x24 ft/ })
-    expect(selected).toHaveAttribute('data-checked', 'true')
-    expect(within(selected).getByText('Seleccionado')).toBeInTheDocument()
-    expect(selected.querySelectorAll('svg.lucide-check')).toHaveLength(1)
-    await userEvent.click(selected)
-    expect(screen.queryByRole('button', { name: /Quitar referencia/ })).not.toBeInTheDocument()
-    await userEvent.click(screen.getByRole('combobox', { name: 'Modelo del catálogo' }))
-    expect(await screen.findByRole('option', { name: /Bolas 16.5x24 ft/ })).toHaveAttribute('data-checked', 'false')
+    await userEvent.type(screen.getByLabelText('Nombre'), 'Equipo solicitado')
+    await userEvent.click(screen.getByRole('button', { name: 'Crear activo' }))
+    expect(await screen.findByText('Selecciona el modelo de origen del catálogo')).toBeInTheDocument()
+    expect(api.count('POST /plants/revemin-ii/assets')).toBe(0)
+    await userEvent.click(screen.getByRole('checkbox', { name: /No existe en el catálogo/ }))
+    await userEvent.click(screen.getByRole('button', { name: 'Enviar solicitud' }))
+    await waitFor(() => expect(api.count('POST /plants/revemin-ii/catalog-requests')).toBe(1))
+    expect(api.count('POST /plants/revemin-ii/assets')).toBe(0)
   })
   it('filtra referencias por familia y etapa y limpia la selección al cambiar de etapa', async () => {
     const api = setup()
@@ -139,6 +137,7 @@ describe('Activo propio de planta', () => {
     await family()
     await userEvent.click(screen.getByRole('combobox', { name: 'Modelo del catálogo' }))
     await userEvent.click(await screen.findByRole('option', { name: /Bolas 16.5x24 ft/ }))
+    await userEvent.clear(screen.getByLabelText('Nombre'))
     await userEvent.type(screen.getByLabelText('Nombre'), 'Propio')
     await userEvent.click(screen.getByRole('combobox', { name: 'Familia' }))
     await userEvent.type(await screen.findByRole('combobox', { name: 'Buscar familia' }), 'mot')
@@ -157,6 +156,6 @@ describe('Activo propio de planta', () => {
     await waitFor(() => expect(screen.getByRole('combobox', { name: 'Familia' })).toHaveTextContent('MOL'))
     await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
     await waitFor(() => expect(api.count('PATCH /plants/revemin-ii/assets/a1')).toBe(1))
-    expect(JSON.parse(api.calls.find(call => call.method === 'PATCH')!.init.body as string)).toMatchObject({ familyId: 'f1', referenceModelIds: ['m1'], specifications: { Potencia: '22 kW' } })
+    expect(JSON.parse(api.calls.find(call => call.method === 'PATCH')!.init.body as string)).toMatchObject({ familyId: 'f1', assetModelId: 'm1', specifications: { Potencia: '22 kW' } })
   })
 })

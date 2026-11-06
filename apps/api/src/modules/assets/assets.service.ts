@@ -390,6 +390,13 @@ export class AssetsService {
     return model
   }
 
+  private async assertOriginSelection(modelId: string, stageCode: string, networkCode: string) {
+    const [match] = await this.db.select({ id: assetModels.id }).from(assetModels)
+      .where(and(eq(assetModels.id, modelId), sql`exists (select 1 from catalog.asset_model_networks n join plant.network_master nm on nm.id=n.network_master_id where n.asset_model_id=${modelId} and nm.code=${networkCode})`,
+        sql`(exists (select 1 from catalog.asset_model_stages s join process.stage_master sm on sm.id=s.stage_master_id where s.asset_model_id=${modelId} and sm.code=${stageCode}) or (not exists (select 1 from catalog.asset_model_stages s where s.asset_model_id=${modelId}) and exists (select 1 from catalog.asset_type_stages ts join process.stage_master sm on sm.id=ts.stage_master_id where ts.asset_type_id=${assetModels.assetTypeId} and sm.code=${stageCode})))`))
+    if (!match) throw new BadRequestException('El modelo de origen debe pertenecer a la etapa y la red seleccionadas')
+  }
+
   /** El padre debe ser de la misma planta y no puede crear ciclos en la jerarquía. */
   private async assertParent(plantId: string, parentId: string, selfId?: string) {
     let cursor: string | null = parentId
@@ -443,13 +450,19 @@ export class AssetsService {
     return { tag }
   }
 
-  async create(plant: PlantRow, dto: CreateAssetDto, req: AppRequest) {
+  inTransaction(tx: Tx) {
+    return new AssetsService(tx as unknown as Database, this.authz, this.plants, this.audit, this.documents, this.workOrders, this.plans, this.inventory)
+  }
+
+  async create(plant: PlantRow, dto: CreateAssetDto, req: AppRequest, deferEffects = false) {
     const legacy = !dto.familyId && dto.assetModelId ? await this.assertModel(dto.assetModelId) : null
-    const model = dto.familyId ? await this.assertFamily(dto.familyId) : legacy!
+    const model = await this.assertModel(dto.assetModelId)
+    if (dto.familyId && dto.familyId !== model.familyId) throw new BadRequestException('El modelo de origen debe pertenecer a la familia seleccionada')
     const ownSpecifications = legacy && dto.specifications === undefined ? legacy.specifications : await validateFamilySpecifications(this.db, model.familyId, dto.specifications ?? {})
     const references = await this.validateReferences(dto.referenceModelIds, model.familyId)
     const plantStageId = await this.resolveStage(plant.id, dto.stageCode)
     const networkIds = await this.resolveNetworks(plant.id, dto.networkCodes)
+    await this.assertOriginSelection(dto.assetModelId, dto.stageCode, dto.networkCodes[0])
     if (dto.parentAssetId) await this.assertParent(plant.id, dto.parentAssetId)
 
     const created = await this.db
@@ -477,7 +490,7 @@ export class AssetsService {
             plantId: plant.id,
             plantStageId,
             familyId: model.familyId,
-            assetModelId: legacy ? dto.assetModelId : null,
+            assetModelId: dto.assetModelId,
             specifications: ownSpecifications,
             technicalData: { ...((legacy?.technicalData ?? {}) as Record<string, unknown>), componentes: dto.components ?? (legacy?.technicalData as { componentes?: unknown } | undefined)?.componentes ?? [] },
             furCode: buildFurCode(plant.code, seq),
@@ -511,6 +524,7 @@ export class AssetsService {
         throw err
       })
 
+    if (deferEffects) return created
     await this.audit.record(req, {
       module: 'assets',
       entityType: 'asset',
@@ -555,6 +569,7 @@ export class AssetsService {
   async update(plant: PlantRow, assetId: string, dto: UpdateAssetDto, req: AppRequest) {
     const [before] = await this.db.select().from(assets).where(and(eq(assets.id, assetId), eq(assets.plantId, plant.id))).limit(1)
     if (!before) throw new NotFoundException('Activo no encontrado')
+    if (!before.assetModelId && !dto.assetModelId) throw new BadRequestException('Selecciona un modelo de origen para completar este activo anterior')
     if (before.status === 'DECOMMISSIONED') throw new ConflictException('El activo está dado de baja y no se puede modificar')
     // La baja es una acción propia (DELETE, permiso asset.delete), no un cambio de estado cualquiera.
     if (dto.status === 'DECOMMISSIONED') throw new BadRequestException('Para dar de baja un activo use la acción de baja')
@@ -563,7 +578,7 @@ export class AssetsService {
     if (dto.familyId !== undefined) {
       await this.assertFamily(dto.familyId)
       patch.familyId = dto.familyId
-      if (dto.familyId !== before.familyId) patch.assetModelId = null
+      if (dto.familyId !== before.familyId && !dto.assetModelId) throw new BadRequestException('Selecciona el modelo de origen de la nueva familia')
     }
     const referenceIds = dto.referenceModelIds ?? (dto.familyId && dto.familyId !== before.familyId ? [] : undefined)
     if (referenceIds) await this.validateReferences(referenceIds, dto.familyId ?? before.familyId ?? (await this.assertModel(before.assetModelId!)).familyId)
@@ -587,6 +602,7 @@ export class AssetsService {
     }
     if (dto.assetModelId !== undefined) {
       const model = await this.assertModel(dto.assetModelId)
+      if (dto.familyId && dto.familyId !== model.familyId) throw new BadRequestException('La familia no coincide con el modelo de origen')
       if (dto.familyId === undefined) patch.familyId = model.familyId
       patch.assetModelId = dto.assetModelId
     }
@@ -596,6 +612,15 @@ export class AssetsService {
       patch.parentAssetId = dto.parentAssetId
     }
     const networkIds = dto.networkCodes !== undefined ? await this.resolveNetworks(plant.id, dto.networkCodes) : undefined
+    if (dto.assetModelId || dto.familyId || dto.stageCode !== undefined || dto.networkCodes !== undefined) {
+      const origin = await this.assertModel(dto.assetModelId ?? before.assetModelId!)
+      if ((patch.familyId ?? before.familyId ?? origin.familyId) !== origin.familyId) throw new BadRequestException('La familia no coincide con el modelo de origen')
+      const detail = await this.get(plant.id, assetId, req.user)
+      const stage = dto.stageCode === undefined ? detail.stage?.code : dto.stageCode
+      const networks = dto.networkCodes ?? detail.networks.map(n => n.code)
+      if (!stage || networks.length !== 1) throw new BadRequestException('Selecciona una etapa y una sola red para el modelo de origen')
+      await this.assertOriginSelection(origin.id, stage, networks[0])
+    }
     const statusChanged = dto.status !== undefined && dto.status !== before.status
     if (statusChanged) patch.status = dto.status
 

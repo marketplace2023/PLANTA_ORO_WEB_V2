@@ -114,3 +114,18 @@ export const assetStatusHistory = assetSchema.table(
   },
   (t) => [index('idx_asset_status_history_asset').on(t.assetId, t.changedAt)],
 )
+
+/** Solicitud de catálogo: conserva la ficha de planta hasta su aprobación. */
+export const catalogRequests = assetSchema.table('catalog_requests', {
+  id: pk(),
+  plantId: uuid('plant_id').notNull().references(() => plants.id, { onDelete: 'cascade' }),
+  submittedBy: uuid('submitted_by').notNull().references(() => users.id),
+  draft: jsonb('draft').notNull(),
+  status: varchar('status', { length: 12 }).notNull().default('PENDING'),
+  modelId: uuid('model_id').references(() => assetModels.id),
+  assetId: uuid('asset_id').references(() => assets.id),
+  decisionNote: text('decision_note'),
+  decidedBy: uuid('decided_by').references(() => users.id),
+  createdAt: createdAt(),
+  decidedAt: timestamp('decided_at', { withTimezone: true }),
+})

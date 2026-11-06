@@ -23,9 +23,10 @@ describe('Maestro de especificaciones por familia', () => {
   })
   afterAll(async () => { await t.cleanup(); await t.close(); await app.close() })
 
-  it('carga las 719 definiciones del Excel definitivo y 81 familias; lectura pública y escritura solo administrativa', async () => {
+  it('carga las 810 definiciones del Excel vigente y 81 familias; lectura pública y escritura solo administrativa', async () => {
     const all = (await http().get('/api/v1/catalog/specifications').expect(200)).body
-    expect(all).toHaveLength(719)
+    expect(all).toHaveLength(810)
+    expect(all.filter((d: { required: boolean }) => d.required)).toHaveLength(405)
     expect(new Set(all.map((d: { familyId: string }) => d.familyId)).size).toBe(81)
     const body = { familyId, label: 'Potencia', unit: 'kW', valueType: 'NUMBER', required: true }
     await http().post('/api/v1/catalog/specifications').send(body).expect(401)
@@ -40,7 +41,7 @@ describe('Maestro de especificaciones por familia', () => {
     expect(own).toHaveLength(4); expect(own.every((d: { familyId: string }) => d.familyId === familyId)).toBe(true)
   })
   it('el catálogo rechaza nombres libres, tipos incorrectos y obligatorias vacías; acepta cero, false, listas y rangos', async () => {
-    const create = (specifications: object) => post('/catalog/models', { typeCode: 'E2E_SPEC_TYPE', modelName: 'E2E Modelo especificado', specifications })
+    const create = (specifications: object) => post('/catalog/models', { typeCode: 'E2E_SPEC_TYPE', modelName: 'E2E Modelo especificado', networkCodes: ['FUR-PROC'], specifications })
     await create({}).expect(400)
     await create({ ...values, ptencia: 1 }).expect(400)
     await create({ ...values, 'Potencia (kW)': '5' }).expect(400)
@@ -50,7 +51,7 @@ describe('Maestro de especificaciones por familia', () => {
     expect(model.body.specifications).toMatchObject(values)
   })
   it('los activos de planta usan el mismo maestro y sus valores no modifican al catálogo', async () => {
-    const create = (specifications: object) => post('/plants/e2e-specs/assets', { familyId, name: 'Equipo propio', stageCode: 'D01', networkCodes: ['FUR-PROC'], specifications })
+    const create = (specifications: object) => post('/plants/e2e-specs/assets', { familyId, assetModelId: modelId, name: 'Equipo propio', stageCode: 'D01', networkCodes: ['FUR-PROC'], specifications })
     await create({}).expect(400)
     await create({ ...values, typo: 'x' }).expect(400)
     const result = await create({ ...values, 'Potencia (kW)': 10 }).expect(201)

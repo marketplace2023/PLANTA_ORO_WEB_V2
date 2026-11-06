@@ -9,7 +9,7 @@ import { isUniqueViolation } from '../../common/db-errors'
 import type { AppRequest } from '../../common/types'
 import { ZodValidationPipe } from '../../common/zod-validation.pipe'
 import { DB, type Database } from '../../database/database.module'
-import { assetFamilies, assetModels, assetModelStages, assetModelNetworks, assets, assetTypes, assetTypeStages, items as inventoryItems, listings, manufacturers, networkMaster, stageMaster } from '../../database/schema'
+import { catalogRequests, assetFamilies, assetModels, assetModelStages, assetModelNetworks, assets, assetTypes, assetTypeStages, items as inventoryItems, listings, manufacturers, networkMaster, stageMaster } from '../../database/schema'
 import { AuditService } from '../audit/audit.service'
 import { StorageService } from '../documents/storage.service'
 import { GlobalAdminOnly } from '../iam/decorators'
@@ -319,6 +319,7 @@ export class CatalogAdminController {
     const [before] = await this.db.select().from(assetModels).where(eq(assetModels.id, id))
     if (!before) throw new NotFoundException('Modelo no encontrado')
     await this.assertUnused(`No se puede eliminar el modelo «${before.modelName}»:`, [
+      { table: catalogRequests, column: catalogRequests.modelId, id, text: (n) => `lo usan ${n} solicitud(es) de incorporación. Conserva el modelo para mantener la trazabilidad de la solicitud.` },
       { table: assets, column: assets.assetModelId, id, text: (n) => `lo usan ${n} activo(s) de planta. Desactívalo, o cambia el modelo de esos activos, antes de eliminarlo.` },
       { table: inventoryItems, column: inventoryItems.assetModelId, id, text: (n) => `está vinculado a ${n} ítem(s) de inventario.` },
     ])

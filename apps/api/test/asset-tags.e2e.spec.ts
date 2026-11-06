@@ -23,6 +23,8 @@ describe('TAG automático de activos por planta, red, etapa y familia', () => {
   beforeAll(async () => {
     app = await createApp()
     t = new TestDb()
+    const makeModel = t.model.bind(t)
+    t.model = async (...args: Parameters<TestDb['model']>) => { const model = await makeModel(...args); await t.originLinks(model.id, ['D01', 'D02', 'D20'], ['FUR-PROC', 'FUR-PTE']); return model }
     await t.cleanup()
     await t.user('tag-admin', { isGlobalAdmin: true })
     admin = await login(app, 'tag-admin')
@@ -148,28 +150,24 @@ describe('TAG automático de activos por planta, red, etapa y familia', () => {
     expect((await create({ assetModelId: model.id }).expect(201)).body.tag).toBe('FUR-PROC-D01-EFB-002')
   })
 
-  it('crea una unidad por familia sin modelo ni datos heredados, con referencias opcionales de su familia', async () => {
-    const requiredValues = (code: string) => Object.fromEntries(SEEDED_FAMILY_SPECIFICATIONS.filter(d => d[1] === code && d[5]).map(d => [d[3] ? `${d[2]} (${d[3]})` : d[2], d[4] === 'NUMBER' ? 1 : d[4] === 'BOOLEAN' ? false : d[4] === 'LIST' ? ['Prueba'] : d[4] === 'RANGE' ? { min: 1 } : 'Prueba']))
-    const emptyFamily = (await t.db.select().from(assetFamilies).where(eq(assetFamilies.code, 'N4_67')))[0]
-    const standalone = (await create({ familyId: emptyFamily.id, specifications: requiredValues(emptyFamily.code), assetModelId: undefined, name: 'Equipo sin catálogo' }).expect(201)).body
-    expect(standalone.tag).toBe('FUR-PROC-D01-EPP-001')
-    expect(standalone.referenceModels).toEqual([])
-    await http().delete(`/api/v1/catalog/families/${emptyFamily.id}`).set('Authorization', bearer(admin)).expect(409)
+  it('exige modelo de origen y conserva especificaciones propias', async () => {
+    const requiredValues = (code: string) => Object.fromEntries(SEEDED_FAMILY_SPECIFICATIONS.filter(d => d[1] === code && d[5]).map(d => [d[3] ? `${d[2]} (${d[3]})` : d[2], d[4] === 'NUMBER' ? 1 : d[4] === 'RANGE' ? { min: 1 } : 'Prueba']))
+    await create({ assetModelId: undefined }).expect(400)
     const family = (await t.db.select().from(assetFamilies).where(eq(assetFamilies.code, 'N4_18')))[0]
-    const own = (await create({ familyId: family.id, specifications: requiredValues(family.code), assetModelId: undefined, name: 'Motor propio', referenceModelIds: [motorId] }).expect(201)).body
+    const own = (await create({ familyId: family.id, specifications: requiredValues(family.code), assetModelId: motorId, name: 'Motor propio' }).expect(201)).body
     expect(own.name).toBe('Motor propio')
-    expect(own.model.id).toBe('')
+    expect(own.model.id).toBe(motorId)
     expect(own.family.id).toBe(family.id)
     expect(own.specifications).toEqual(requiredValues(family.code))
     expect(own.technicalData).toEqual({ componentes: [] })
-    expect(own.referenceModels.map((model: { id: string }) => model.id)).toEqual([motorId])
+    expect(own.referenceModels).toEqual([])
     const list = await http().get('/api/v1/plants/e2e-tag-a/assets').query({ family: family.code, search: 'Motor propio' }).set('Authorization', bearer(admin)).expect(200)
     expect(list.body.items.some((item: { id: string }) => item.id === own.id)).toBe(true)
     await http().get(`/api/v1/plants/e2e-tag-a/assets/${own.id}/fur`).set('Authorization', bearer(admin)).expect(200)
     await create({ familyId: family.id, assetModelId: undefined, referenceModelIds: [bombId] }).expect(400)
-    const changed = (await http().patch(`/api/v1/plants/e2e-tag-a/assets/${own.id}`).set('Authorization', bearer(admin)).send({ referenceModelIds: [], specifications: { ...requiredValues(family.code), 'Potencia nominal (kW)': 22 }, components: ['Motor instalado'] }).expect(200)).body
+    const changed = (await http().patch(`/api/v1/plants/e2e-tag-a/assets/${own.id}`).set('Authorization', bearer(admin)).send({ referenceModelIds: [], specifications: { ...requiredValues(family.code), 'Potencia nominal (kW)': '22' }, components: ['Motor instalado'] }).expect(200)).body
     expect(changed.tag).toBe(own.tag)
     expect(changed.referenceModels).toEqual([])
-    expect(changed.specifications).toEqual({ ...requiredValues(family.code), 'Potencia nominal (kW)': 22 })
+    expect(changed.specifications).toEqual({ ...requiredValues(family.code), 'Potencia nominal (kW)': '22' })
   })
 })

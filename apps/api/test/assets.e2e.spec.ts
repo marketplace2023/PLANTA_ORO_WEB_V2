@@ -33,6 +33,8 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
   beforeAll(async () => {
     app = await createApp()
     t = new TestDb()
+    const makeModel = t.model.bind(t)
+    t.model = async (...args: Parameters<TestDb['model']>) => { const model = await makeModel(...args); await t.originLinks(model.id, ['D06', 'D07'], ['FUR-IOT', 'FUR-PTE']); return model }
     await t.cleanup()
     const [family] = await t.db.select().from(assetFamilies).where(eq(assetFamilies.code, 'MOLINOS'))
     specificationIds = (await t.db.insert(familySpecifications).values([{ familyId: family.id, label: 'Potencia', unit: 'kW', valueType: 'TEXT' as const }, { familyId: family.id, label: 'Tensión', unit: 'V', valueType: 'NUMBER' as const }]).onConflictDoNothing().returning()).map(d => d.id)
@@ -337,15 +339,15 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
       expect(await t.db.select().from(assetStatusHistory).where(eq(assetStatusHistory.assetId, id))).toHaveLength(before.length)
     })
 
-    it('cambia de etapa (solo habilitadas), la desasigna y reemplaza las redes', async () => {
+    it('cambia de etapa y red sin perder la clasificación obligatoria del origen', async () => {
       expect((await patch(id, { stageCode: 'D07' }).expect(200)).body.stage.code).toBe('D07')
       await patch(id, { stageCode: 'D11' }).expect(400) // deshabilitada
-      expect((await patch(id, { stageCode: null }).expect(200)).body.stage).toBeNull()
+      await patch(id, { stageCode: null }).expect(400)
 
       const nets = await patch(id, { networkCodes: ['FUR-PTE'] }).expect(200)
       expect(nets.body.networks.map((n: { code: string }) => n.code)).toEqual(['FUR-PTE'])
       await patch(id, { networkCodes: ['FUR-MNT'] }).expect(400) // deshabilitada en la planta
-      expect((await patch(id, { networkCodes: [] }).expect(200)).body.networks).toEqual([])
+      await patch(id, { networkCodes: [] }).expect(400)
     })
 
     it('ni el TAG ni el FUR pueden sobreescribirse desde el cliente', async () => {

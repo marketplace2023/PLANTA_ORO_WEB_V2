@@ -1,3 +1,4 @@
+import { AdminCatalogRequestsController, PlantCatalogRequestsController } from './catalog-requests.controller'
 import { Module } from '@nestjs/common'
 import { DocumentsModule } from '../documents/documents.module'
 import { InventoryModule } from '../inventory/inventory.module'
@@ -8,7 +9,7 @@ import { AssetsService } from './assets.service'
 
 @Module({
   imports: [PlantsModule, DocumentsModule, MaintenanceModule, InventoryModule],
-  controllers: [AssetsController],
+  controllers: [AssetsController, AdminCatalogRequestsController, PlantCatalogRequestsController],
   providers: [AssetsService],
 })
 export class AssetsModule {}

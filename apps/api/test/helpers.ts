@@ -121,6 +121,11 @@ export class TestDb {
     return row
   }
 
+  async originLinks(modelId: string, stages: string[], networks: string[]) {
+    await this.pool.query('insert into catalog.asset_model_stages (asset_model_id,stage_master_id) select $1,id from process.stage_master where code=any($2::text[]) on conflict do nothing', [modelId, stages])
+    await this.pool.query('insert into catalog.asset_model_networks (asset_model_id,network_master_id) select $1,id from plant.network_master where code=any($2::text[]) on conflict do nothing', [modelId, networks])
+  }
+
   async override(userId: string, plantId: string, permission: string, effect: 'ALLOW' | 'DENY') {
     const [perm] = await this.db.select().from(schema.permissions).where(eq(schema.permissions.code, permission))
     await this.db.insert(schema.userPlantOverrides).values({ userId, plantId, permissionId: perm.id, effect })

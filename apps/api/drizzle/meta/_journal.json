@@ -309,6 +309,34 @@
       "when": 1793825986532,
       "tag": "0043_adjusted_family_specifications",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1793891141043,
+      "tag": "0044_registration_family_specifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1793894134050,
+      "tag": "0045_catalog_origin_requests",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1793895665638,
+      "tag": "0046_specification_numbers_as_text",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1793898649179,
+      "tag": "0047_specification_ranges_as_text",
+      "breakpoints": true
     }
   ]
 }

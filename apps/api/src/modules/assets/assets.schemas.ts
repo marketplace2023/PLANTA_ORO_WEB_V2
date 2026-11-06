@@ -41,9 +41,9 @@ export type AssetTagPreviewQuery = z.infer<typeof assetTagPreviewSchema>
 
 export const createAssetSchema = z.object({
   name: text(200),
-  assetModelId: z.uuid().optional(),
+  assetModelId: z.uuid(),
   familyId: z.uuid().optional(),
-  referenceModelIds: z.array(z.uuid()).max(100).default([]),
+  referenceModelIds: z.array(z.uuid()).max(0, "Selecciona un único modelo de origen mediante assetModelId").default([]),
   specifications: specifications.optional(),
   components: components.optional(),
   stageCode,
@@ -59,14 +59,16 @@ export const createAssetSchema = z.object({
   isPublic: z.boolean().default(false),
   metadata: z.record(z.string(), z.unknown()).default({}),
   networkCodes: z.array(networkCode).length(1, 'Selecciona una sola red para generar el TAG'),
-}).refine(v => !!v.familyId || !!v.assetModelId, 'Selecciona una familia')
+})
+
+export const assetRequestSchema = createAssetSchema.omit({ assetModelId: true }).extend({ familyId: z.uuid() })
 
 export const updateAssetSchema = z
   .object({
     name: text(200),
     assetModelId: z.uuid(),
     familyId: z.uuid(),
-    referenceModelIds: z.array(z.uuid()).max(100),
+    referenceModelIds: z.array(z.uuid()).max(0, "Selecciona un único modelo de origen mediante assetModelId"),
     specifications,
     components,
     stageCode: stageCode.nullable(),

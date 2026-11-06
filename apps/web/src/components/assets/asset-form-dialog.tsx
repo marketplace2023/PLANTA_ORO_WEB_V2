@@ -1,3 +1,4 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { AssetTechnicalFields } from './asset-technical-fields'
 import { FamilyPicker } from './family-picker'
@@ -23,7 +24,7 @@ import {
   type AssetInput,
 } from '@/features/assets/use-assets'
 import { usePlantNetworks, usePlantStages } from '@/features/plant/use-plant-data'
-import { ApiError } from '@/lib/api'
+import { api, ApiError } from '@/lib/api'
 import { ASSET_CRITICALITIES, ASSET_STATUSES, criticalityLabel, statusLabel, type AssetCriticality, type AssetStatus } from '@/lib/assets'
 
 const NO_STAGE = '__none__'
@@ -47,7 +48,11 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
   const editing = !!asset
   const create = useCreateAsset(plantSlug)
   const update = useUpdateAsset(plantSlug, asset?.id ?? '')
-  const pending = editing ? update.isPending : create.isPending
+  const queryClient = useQueryClient()
+  const [requestMode, setRequestMode] = useState(false)
+  const submitRequest = useMutation({ mutationFn: (body: AssetInput) => api(`/plants/${plantSlug}/catalog-requests`, { method: 'POST', body: JSON.stringify(body) }) })
+  const requests = useQuery({ queryKey: ['plant', plantSlug, 'catalog-requests'], queryFn: () => api<Array<{ id: string; status: string; draft: { name: string }; decisionNote: string | null }>>(`/plants/${plantSlug}/catalog-requests`), enabled: open && !editing })
+  const pending = editing ? update.isPending : create.isPending || submitRequest.isPending
 
   const [modelSearch, setModelSearch] = useState('')
   const search = useDebouncedValue(modelSearch.trim())
@@ -75,7 +80,7 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
   const families = useCatalogFamilies()
   const selectedFamily = families.data?.find(family => family.id === form.familyId || (!form.familyId && family.code === asset?.family.code))
   const familyId = selectedFamily?.id ?? form.familyId
-  const [references, setReferences] = useState<NonNullable<AssetDetail['referenceModels']>>(asset?.referenceModels ?? [])
+  const [references, setReferences] = useState<NonNullable<AssetDetail['referenceModels']>>(asset?.model.id ? [{ id: asset.model.id, modelName: asset.model.name, catalogTag: null }] : [])
   const models = useCatalogModels({ family: selectedFamily?.code ?? '__none__', stage: form.stageCode !== NO_STAGE ? form.stageCode : undefined, network: form.networkCodes.length === 1 ? form.networkCodes[0] : undefined, search: search || undefined, status: 'ACTIVE' }, 100)
   const enabledStages = stages.data?.filter(s => s.isEnabled) ?? []
   const enabledNetworks = networks.data?.filter(n => n.isEnabled) ?? []
@@ -94,6 +99,7 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
     const next: Record<string, string> = {}
     if (!form.name.trim()) next.name = 'Requerido'
     if (!familyId) next.familyId = 'Selecciona una familia'
+    if (!requestMode && !references[0]) next.assetModelId = 'Selecciona el modelo de origen del catálogo'
     if (!editing && form.stageCode === NO_STAGE) next.stageCode = 'Selecciona una etapa para generar el TAG'
     if (!editing && networkCodes.length !== 1) next.networkCodes = 'Selecciona una red para generar el TAG'
     if (Object.keys(next).length > 0) return setErrors(next)
@@ -106,7 +112,7 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
       ...ownTechnical,
       name: form.name.trim(),
       familyId,
-      referenceModelIds: references.map(reference => reference.id),
+      ...(!requestMode && references[0] && { assetModelId: references[0].id }),
       criticality: form.criticality,
       isPublic: form.isPublic,
       networkCodes,
@@ -115,6 +121,13 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
     const stageCode = form.stageCode === NO_STAGE ? null : form.stageCode
 
     try {
+      if (!editing && requestMode) {
+        await submitRequest.mutateAsync({ ...common, stageCode: stageCode!, ...(form.serialNumber.trim() && { serialNumber: form.serialNumber.trim() }) })
+        await queryClient.invalidateQueries({ queryKey: ['plant', plantSlug, 'catalog-requests'] })
+        toast.success('Solicitud enviada. El activo se registrará cuando administración la apruebe.')
+        onOpenChange(false)
+        return
+      }
       const saved = editing
         ? await update.mutateAsync({
             ...common,
@@ -216,6 +229,17 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
                 {fieldError('familyId')}
               </div>
 
+              <div className="min-w-0 space-y-3 rounded-lg border border-border p-4">
+                <Label htmlFor="assetModelId">Modelo de origen del catálogo *</Label>
+                {!requestMode && (familyId && form.stageCode !== NO_STAGE && networkCodes.length === 1 ? <CatalogModelPicker
+                  value={references[0]?.id ?? ''} selected={references[0] ?? null} items={models.data?.items ?? []} total={models.data?.total ?? 0}
+                  search={modelSearch} onSearchChange={setModelSearch} onSelect={model => { setReferences([{ id: model.id, modelName: model.modelName, catalogTag: model.catalogTag }]); setModelSearch(''); if (!form.name.trim()) set('name', model.modelName) }}
+                  loading={models.isFetching || modelSearch.trim() !== search} failed={models.isError} onRetry={() => void models.refetch()} invalid={!!errors.assetModelId} /> : <p className="text-sm text-muted-foreground">Selecciona la red, la etapa y la familia para consultar sus modelos.</p>)}
+                {fieldError('assetModelId')}
+                {!editing && <label className="flex cursor-pointer items-start gap-3 text-sm"><Checkbox checked={requestMode} onCheckedChange={on => { setRequestMode(on === true); setReferences([]) }} /><span>No existe en el catálogo: solicitar incorporación<span className="mt-1 block text-xs text-muted-foreground">Completa la ficha. Administración la revisará y completará el catálogo. El activo se creará únicamente después de su aprobación.</span></span></label>}
+                {!requestMode && <p className="text-xs text-muted-foreground">Un único modelo identifica el origen. Las especificaciones y componentes de la unidad se guardan por separado.</p>}
+              </div>
+
               <div className="grid min-w-0 gap-4 sm:grid-cols-2">
                 <div className="min-w-0 space-y-2">
                   <Label htmlFor="tag">Tag</Label>
@@ -294,19 +318,9 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
             {fieldError('specifications')}
             {fieldError('components')}
 
-            <section className="min-w-0 space-y-3 border-t border-border pt-6" aria-label="Referencias del catálogo">
-              <h3 className="text-sm font-semibold">Referencias del catálogo (opcional)</h3>
-              <p className="text-sm text-muted-foreground">Relaciona modelos de la familia, la etapa y la red seleccionadas como referencia.</p>
-              {familyId && form.stageCode !== NO_STAGE && networkCodes.length === 1 ? <CatalogModelPicker value="" selected={null} selectedIds={references.map(reference => reference.id)} items={models.data?.items ?? []} total={models.data?.total ?? 0}
-                search={modelSearch} onSearchChange={setModelSearch} onSelect={model => { setReferences(current => current.some(reference => reference.id === model.id) ? current.filter(reference => reference.id !== model.id) : [...current, { id: model.id, modelName: model.modelName, catalogTag: model.catalogTag }]); setModelSearch('') }}
-                loading={models.isFetching || modelSearch.trim() !== search} failed={models.isError} onRetry={() => void models.refetch()} /> : <p className="text-sm text-muted-foreground">Selecciona una familia, una etapa y una sola red para consultar sus modelos.</p>}
-              <ul className="space-y-2">{references.map(reference => <li key={reference.id} className="flex min-w-0 items-center justify-between gap-3 rounded-lg border p-3 text-sm">
-                <span className="min-w-0 truncate" title={reference.modelName}>{reference.catalogTag ? reference.catalogTag + ' · ' : ''}{reference.modelName}</span>
-                <Button type="button" variant="ghost" size="icon-sm" aria-label={'Quitar referencia ' + reference.modelName} onClick={() => setReferences(current => current.filter(item => item.id !== reference.id))}><X /></Button>
-              </li>)}</ul>
-              {fieldError('referenceModelIds')}
-            </section>
 
+
+            {!editing && requests.data && requests.data.length > 0 && <section className="space-y-2 border-t pt-4" aria-label="Solicitudes de catálogo"><h3 className="text-sm font-semibold">Solicitudes de esta planta</h3>{requests.data.slice(0, 10).map(item => <div key={item.id} className="rounded-lg border p-3 text-sm"><span className="font-medium">{item.draft.name}</span> · {item.status === 'PENDING' ? 'Pendiente de revisión' : item.status === 'APPROVED' ? 'Aprobada: activo registrado' : 'Rechazada'}{item.decisionNote && <p className="text-muted-foreground">{item.decisionNote}</p>}</div>)}</section>}
             <div role="alert" aria-live="polite">
               {formError && <p className="rounded-md bg-fur-red-500/10 p-3 text-sm text-fur-red-500">{formError}</p>}
             </div>
@@ -317,7 +331,7 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
               Cancelar
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? 'Guardando…' : editing ? 'Guardar cambios' : 'Crear activo'}
+              {pending ? 'Guardando…' : editing ? 'Guardar cambios' : requestMode ? 'Enviar solicitud' : 'Crear activo'}
             </Button>
           </DialogFooter>
         </form>

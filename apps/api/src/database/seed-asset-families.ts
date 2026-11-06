@@ -1,4 +1,4 @@
-// Fuente definitiva: familias-locales-especificaciones-ajustadas-2026-11-04.xlsx.
+// Fuente definitiva: Parametros_registro_activos_por_familia_v3_formato-especificaciones.xlsx.
 // Las familias adicionales sin código CA usan FAM_<TAG> como código de integración.
 export const SEEDED_ASSET_FAMILIES = [
   {

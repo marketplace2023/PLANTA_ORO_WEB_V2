@@ -46,8 +46,8 @@ function plan(book: MasterWorkbook, state: State, networkCodes: string[]) {
   // La confirmación queda ligada al archivo, las redes elegidas y el estado del catálogo revisado.
   const stateKey = Object.values(state).map(rows => [...rows].map(r => JSON.stringify(r)).sort())
   const fingerprint = createHash('sha256').update(book.fingerprint + JSON.stringify(stateKey) + JSON.stringify(selectedNetworks.map(n => n.code))).digest('hex')
-  const unique = <T>(rows: T[], description: string): T | undefined => {
-    if (rows.length > 1) issue(`Coincidencia ambigua en ${description}; corrige los duplicados antes de importar`)
+  const unique = <T>(rows: T[], description: string, row: number): T | undefined => {
+    if (rows.length > 1) issue(`Coincidencia ambigua en ${description}; revisa las coincidencias antes de importar`, row)
     return rows[0]
   }
   const familyOps = new Map<string, { id: string; code: string; categoryCode: string; name: string; action: Action }>()
@@ -83,12 +83,14 @@ function plan(book: MasterWorkbook, state: State, networkCodes: string[]) {
     }
     let family = familyOps.get(r.categoryCode)
     if (!family) {
-      const existing = unique(state.families.filter(f => f.categoryCode === r.categoryCode || (!f.categoryCode && normalized(f.name) === normalized(r.family))), `familia ${r.family}`)
+      const matches = state.families.filter(f => f.categoryCode === r.categoryCode || (!f.categoryCode && normalized(f.name) === normalized(r.family)))
+      const candidates = matches.map(f => `«${f.name}» (${f.code}, ${f.categoryCode ? `CA ${f.categoryCode}` : 'sin CA'})`).join('; ')
+      const existing = unique(matches, `familia del Excel «${r.family}» (CA ${r.categoryCode}). Familias coincidentes: ${candidates}`, r.row)
       family = { id: existing?.id ?? uuidv7(), code: existing?.code ?? `N4_${r.categoryCode}`, categoryCode: r.categoryCode, name: r.family, action: existing ? 'update' : 'create' }
       if (state.families.some(f => f.code === family!.code && f.id !== family!.id)) issue(`El código de familia ${family.code} ya está ocupado`, r.row)
       familyOps.set(r.categoryCode, family)
     }
-    const stage = unique(state.stages.filter(s => normalized(s.name) === normalized(r.stage)), `etapa ${r.stage}`)
+    const stage = unique(state.stages.filter(s => normalized(s.name) === normalized(r.stage)), `etapa ${r.stage}`, r.row)
     if (!stage) { issue(`Etapa desconocida: ${r.stage}`, r.row); continue }
     const typeName = normalized(r.type), typeKey = `${r.categoryCode}:${typeName}`
     let type = typeOps.get(typeKey)
@@ -96,21 +98,25 @@ function plan(book: MasterWorkbook, state: State, networkCodes: string[]) {
       const inFamily = state.types.filter(t => normalized(t.name) === typeName && t.familyId === family!.id)
       // Un mismo nombre puede existir en familias diferentes; cada pareja familia/tipo tiene identidad propia.
       const candidates = inFamily.length ? inFamily : typeFamilies.get(typeName)!.size === 1 ? state.types.filter(t => normalized(t.name) === typeName) : []
-      const existing = unique(candidates, `tipo ${r.family} / ${r.type}`)
+      const existing = unique(candidates, `tipo ${r.family} / ${r.type}`, r.row)
       type = { id: existing?.id ?? uuidv7(), code: existing?.code ?? codeFor('LM', typeKey), name: r.type, familyId: family.id, stageIds: new Set(state.typeStages.filter(s => s.assetTypeId === existing?.id).map(s => s.stageMasterId)), action: existing ? 'update' : 'create' }
       if (state.types.some(t => t.code === type!.code && t.id !== type!.id)) issue(`El código de tipo ${type.code} ya está ocupado`, r.row)
       typeOps.set(typeKey, type)
     }
     type.stageIds.add(stage.id)
     // Solo se adopta un modelo anterior sin TAG si coincide también en la etapa.
-    const existing = unique(state.models.filter(m => !m.catalogTag && !models.some(planned => planned.id === m.id) && m.assetTypeId === type!.id && (r.referenceManufacturers === null || referenceIdentity(m.technicalData) === referenceIdentity({ fabricantesReferencia: r.referenceManufacturers })) && m.modelName === r.name && effectiveStages(m.id, m.assetTypeId).includes(stage.id)), `modelo ${r.name} en la etapa ${stage.code}`)
+    const existing = unique(state.models.filter(m => !m.catalogTag && !models.some(planned => planned.id === m.id) && m.assetTypeId === type!.id && (r.referenceManufacturers === null || referenceIdentity(m.technicalData) === referenceIdentity({ fabricantesReferencia: r.referenceManufacturers })) && m.modelName === r.name && effectiveStages(m.id, m.assetTypeId).includes(stage.id)), `modelo ${r.name} en la etapa ${stage.code}`, r.row)
     const action: Action = existing ? 'update' : 'create'
     let specifications: Record<string, unknown> = r.specifications
     try {
       specifications = validateSpecificationValues(state.definitions.filter(d => d.familyId === family!.id), r.specifications, existing?.specifications as Record<string, unknown> | undefined, true)
     } catch (error) {
       const response = (error as { getResponse?: () => { errors?: Array<{ message: string }> } }).getResponse?.()
-      issue(response?.errors?.[0]?.message ?? 'Especificaciones inválidas para la familia', r.row)
+      const message = response?.errors?.[0]?.message ?? 'Especificaciones inválidas para la familia'
+      const registeredFamily = state.families.find(f => f.id === family!.id)
+      const matched = registeredFamily && normalized(registeredFamily.name) !== normalized(r.family)
+        ? ` Se validó contra «${registeredFamily.name}» (${registeredFamily.code}) por el Código CA indicado.` : ''
+      issue(`Familia «${r.family}» (CA ${r.categoryCode}): ${message}${matched}`, r.row)
     }
     const technicalData = record(existing?.technicalData)
     models.push({ id: existing?.id ?? uuidv7(), catalogTag: r.tag, modelName: r.name, assetTypeId: type.id, specifications,

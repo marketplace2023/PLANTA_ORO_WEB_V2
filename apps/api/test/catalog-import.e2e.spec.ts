@@ -1,6 +1,6 @@
 import type { INestApplication } from '@nestjs/common'
 import ExcelJS from 'exceljs'
-import { eq, like, inArray } from 'drizzle-orm'
+import { and, eq, like, inArray } from 'drizzle-orm'
 import request from 'supertest'
 import { familySpecifications, assetFamilies, assetModels, assetModelNetworks, assetModelStages, assetTypes, assetTypeStages, assets, auditEvents, manufacturers } from '../src/database/schema'
 import { bearer, createApp, login, type Session, TestDb } from './helpers'
@@ -78,6 +78,43 @@ describe('Importación del listado maestro del catálogo (e2e)', () => {
     networks: await t.db.select().from(assetModelNetworks), audit: await t.db.select().from(auditEvents),
   })
   afterAll(async () => { await cleanup(); await t.close(); await app.close() })
+
+  it('identifica la familia y el CA al rechazar un parámetro de especificación', async () => {
+    const [family] = await t.db.select().from(assetFamilies).where(eq(assetFamilies.categoryCode, '97'))
+    await t.db.delete(familySpecifications).where(and(eq(familySpecifications.familyId, family.id), eq(familySpecifications.label, 'Material')))
+    const file = await workbook(), before = await dataSnapshot()
+    const result = (await preview(file).expect(201)).body
+    expect(result.issues).toEqual([expect.objectContaining({
+      sheet: 'Listado maestro', row: 2,
+      message: 'Familia «E2E Familia canónica» (CA 97): «Material» no es una especificación definida para esta familia',
+    })])
+    await apply(file, result.fingerprint).expect(400)
+    expect(await dataSnapshot()).toEqual(before)
+  })
+
+  it('muestra ambas familias de una coincidencia ambigua en la fila real del Excel', async () => {
+    const [family] = await t.db.select().from(assetFamilies).where(eq(assetFamilies.categoryCode, '97'))
+    await t.db.update(assetFamilies).set({ name: 'E2E Familia propietaria del CA' }).where(eq(assetFamilies.id, family.id))
+    const [other] = await t.db.insert(assetFamilies).values({ code: 'E2E_IMPORT_AMBIGUOUS', tagCode: 'AMBIMP', name: 'E2E Familia canónica' }).returning()
+    try {
+      const result = (await preview(await workbook()).expect(201)).body
+      const ambiguity = result.issues.find((i: { message: string }) => i.message.includes('Coincidencia ambigua'))
+      expect(ambiguity).toMatchObject({ sheet: 'Listado maestro', row: 2 })
+      expect(ambiguity.message).toContain('familia del Excel «E2E Familia canónica» (CA 97)')
+      expect(ambiguity.message).toContain('«E2E Familia propietaria del CA» (N4_97, CA 97)')
+      expect(ambiguity.message).toContain('«E2E Familia canónica» (E2E_IMPORT_AMBIGUOUS, sin CA)')
+    } finally { await t.db.delete(assetFamilies).where(eq(assetFamilies.id, other.id)) }
+  })
+
+  it('distingue la familia del Excel de la familia registrada usada para validar', async () => {
+    const [family] = await t.db.select().from(assetFamilies).where(eq(assetFamilies.categoryCode, '97'))
+    await t.db.update(assetFamilies).set({ name: 'E2E Familia propietaria del CA' }).where(eq(assetFamilies.id, family.id))
+    await t.db.delete(familySpecifications).where(and(eq(familySpecifications.familyId, family.id), eq(familySpecifications.label, 'Material')))
+    const result = (await preview(await workbook()).expect(201)).body
+    const problem = result.issues.find((i: { row: number; message: string }) => i.row === 2 && i.message.includes('«Material»'))
+    expect(problem.message).toContain('Familia «E2E Familia canónica» (CA 97)')
+    expect(problem.message).toContain('Se validó contra «E2E Familia propietaria del CA» (N4_97) por el Código CA indicado.')
+  })
 
   it('exige administrador global antes de procesar archivos', async () => {
     for (const endpoint of ['/catalog/imports/preview', '/catalog/imports']) {

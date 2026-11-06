@@ -2,15 +2,18 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { Client } from 'pg'
 import { SEEDED_FAMILY_SPECIFICATIONS } from '../src/database/seed-family-specifications'
+import { SEEDED_ASSET_FAMILIES } from '../src/database/seed-asset-families'
 import { assertTestDatabase, TEST_DATABASE_URL } from './test-url'
 
-describe('Actualización del maestro de especificaciones v3', () => {
+describe('Actualización del maestro de familias y especificaciones versión 4', () => {
   it('reemplaza definiciones obsoletas, conserva IDs y datos propios, y admite una segunda aplicación', async () => {
     assertTestDatabase(TEST_DATABASE_URL)
     const client = new Client({ connectionString: TEST_DATABASE_URL })
     await client.connect()
     try {
       await client.query('begin')
+      const renamed = (await client.query("select id from catalog.asset_families where code = 'N4_69'")).rows[0].id
+      await client.query("update catalog.asset_families set code = 'FAM_ODF', category_code = null where id = $1", [renamed])
       const familyId = (await client.query("select id from catalog.asset_families where code = 'N4_30'")).rows[0].id
       const protection = (await client.query("select id from catalog.family_specifications where family_id = $1 and label = 'Grado de protección'", [familyId])).rows[0]
       await client.query("update catalog.family_specifications set value_type = 'NUMBER', required = false where id = $1", [protection.id])
@@ -31,17 +34,21 @@ describe('Actualización del maestro de especificaciones v3', () => {
         client.query('select * from asset.assets where id = $1', [assetId]),
       ]).then(results => results.map(result => result.rows))
       const before = await snapshot()
-      const migration = readFileSync(path.resolve(__dirname, '../drizzle/0044_registration_family_specifications.sql'), 'utf8')
+      const migration = readFileSync(path.resolve(__dirname, '../drizzle/0048_family_master_v4.sql'), 'utf8')
       await client.query(migration)
       await client.query(migration)
       expect(await snapshot()).toEqual(before)
-      await client.query(readFileSync(path.resolve(__dirname, '../drizzle/0046_specification_numbers_as_text.sql'), 'utf8'))
-      await client.query(readFileSync(path.resolve(__dirname, '../drizzle/0047_specification_ranges_as_text.sql'), 'utf8'))
+      expect((await client.query('select code,category_code from catalog.asset_families where id = $1', [renamed])).rows).toEqual([{ code: 'N4_69', category_code: '69' }])
+      const families = (await client.query('select code,category_code,name,tag_code from catalog.asset_families where code = any($1::text[])', [SEEDED_ASSET_FAMILIES.map(f => f.code)])).rows
+      expect(families).toHaveLength(84)
+      for (const f of SEEDED_ASSET_FAMILIES) {
+        expect(families.find(row => row.code === f.code)).toMatchObject({ category_code: f.categoryCode, name: f.name, tag_code: f.tagCode })
+      }
       const definitions = (await client.query(`select s.id,f.code,s.label,s.unit,s.value_type,s.required,s.sort_order
         from catalog.family_specifications s join catalog.asset_families f on f.id=s.family_id
         where f.code <> 'E2E_MASTER_OTHER' and f.code = any($1::text[])`, [[...new Set(SEEDED_FAMILY_SPECIFICATIONS.map(([, code]) => code))]])).rows
       const actual = new Map(definitions.map(d => [`${d.code}:${d.label}`, d]))
-      expect(actual.size).toBe(810)
+      expect(actual.size).toBe(861)
       for (const [, code, label, unit, valueType, required, sortOrder] of SEEDED_FAMILY_SPECIFICATIONS) {
         expect(actual.get(`${code}:${label}`)).toMatchObject({ unit, value_type: valueType, required, sort_order: sortOrder })
       }

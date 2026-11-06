@@ -2,8 +2,8 @@
 
 Se conservan los códigos de integración y CA. La abreviatura TAG es única y se muestra en Administración → Catálogo → Familias. Es obligatoria al crear manualmente una familia y se puede editar: solo afecta a futuras altas, sin cambiar los TAG existentes. Debe tener de 3 a 12 letras o números, empezando por una letra. Las familias nuevas del importador Excel reciben automáticamente una abreviatura libre.
 
-| Familia | Código integración | CA | Código TAG |
-|---|---|---|---|
+| Familia | Código de integración | CA | Código TAG |
+| --- | --- | --- | --- |
 | Acoplamientos y transmisión | N4_66 | 66 | ACO |
 | Agitadores | N4_41 | 41 | AGI |
 | Alimentadores | N4_04 | 04 | ALI |
@@ -68,24 +68,27 @@ Se conservan los códigos de integración y CA. La abreviatura TAG es única y s
 | Unidades de potencia hidráulica | N4_37 | 37 | UPH |
 | Válvulas | N4_24 | 24 | VAL |
 | Variadores de frecuencia | N4_20 | 20 | VAR |
-| Arrancadores y contactores de motor | FAM_ARR | — | ARR |
-| Distribuidores ópticos (ODF / patch panel) | FAM_ODF | — | ODF |
-| Equipos de izaje | FAM_IZA | — | IZA |
-| Protección y seccionamiento eléctrico | FAM_PSE | — | PSE |
-| Splitters ópticos | FAM_SPL | — | SPL |
-| Tolvas | FAM_TOL | — | TOL |
-| Centros de control de motores (CCM) | FAM_CCM | — | CCM |
-| Terminales ópticos ONU/ONT | FAM_ONT | — | ONT |
-| Generación de respaldo y transferencia | FAM_GEN | — | GEN |
-| Switches industriales | FAM_SWI | — | SWI |
-| Calentamiento eléctrico industrial | FAM_CEI | — | CEI |
-| Puntos de acceso inalámbrico | FAM_WAP | — | WAP |
-| Alimentación auxiliar de control (24 VDC / UPS) | FAM_AUX | — | AUX |
-| Telefonía IP industrial | FAM_TEL | — | TEL |
-| Gabinetes y nodos de comunicaciones | FAM_GAB | — | GAB |
-| Cierres y cajas ópticas de campo | FAM_CIE | — | CIE |
-| Cables y enlaces de fibra óptica | FAM_FOP | — | FOP |
+| Arrancadores y contactores de motor | N4_68 | 68 | ARR |
+| Distribuidores ópticos (ODF / patch panel) | N4_69 | 69 | ODF |
+| Equipos de izaje | N4_70 | 70 | IZA |
+| Protección y seccionamiento eléctrico | N4_71 | 71 | PSE |
+| Splitters ópticos | N4_72 | 72 | SPL |
+| Tolvas | N4_73 | 73 | TOL |
+| Centros de control de motores (CCM) | N4_74 | 74 | CCM |
+| Terminales ópticos ONU/ONT | N4_75 | 75 | ONT |
+| Generación de respaldo y transferencia | N4_76 | 76 | GEN |
+| Switches industriales | N4_77 | 77 | SWI |
+| Calentamiento eléctrico industrial | N4_78 | 78 | CEI |
+| Puntos de acceso inalámbrico | N4_79 | 79 | WAP |
+| Alimentación auxiliar de control (24 VDC / UPS) | N4_80 | 80 | AUX |
+| Telefonía IP industrial | N4_81 | 81 | TEL |
+| Gabinetes y nodos de comunicaciones | N4_82 | 82 | GAB |
+| Cierres y cajas ópticas de campo | N4_83 | 83 | CIE |
+| Cables y enlaces de fibra óptica | N4_84 | 84 | FOP |
+| Clarificadores | N4_10 | 10 | CLA |
+| Estructuras | N4_26 | 26 | EST |
+| Plataformas y pasarelas | N4_27 | 27 | PYP |
 
-Estas 81 familias y códigos base se restauran mediante el seed, sin cargar modelos ni activos de demostración. Repetir el seed conserva las familias existentes y sus códigos editados. Esta tabla representa la configuración base versionada.
+Estas 84 familias y códigos base se restauran mediante el seed, sin modelos ni activos de demostración. Repetir el seed conserva las ediciones administrativas.
 
-La base definitiva del 2026-11-04 añade 17 familias sin categoría CA. Se les asigna `FAM_<TAG>` como código de integración estable, conservando los TAG del Excel.
+El maestro versión 4 asigna CA 68–84 y códigos de integración `N4_68`–`N4_84` a las 17 familias que antes usaban `FAM_<TAG>`. La migración 0048 conserva sus UUID y relaciones. Añade Clarificadores (10/CLA), Estructuras (26/EST) y Plataformas y pasarelas (27/PYP), sin especificaciones en el Excel.

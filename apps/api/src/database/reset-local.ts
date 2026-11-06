@@ -3,6 +3,7 @@ import { runMigrations } from './migrate'
 import { runSeedDev, DEV_PASSWORD } from './seed-dev'
 import { DEFAULT_STAGE_COUNT } from './seed'
 import { SEEDED_ASSET_FAMILIES } from './seed-asset-families'
+import { SEEDED_FAMILY_SPECIFICATIONS } from './seed-family-specifications'
 
 const quote = (name: string) => `"${name.replaceAll('"', '""')}"`
 
@@ -36,6 +37,8 @@ export async function resetLocalDatabase(connection: string) {
         (select count(*)::int from catalog.asset_models) as modelos,
         (select count(*)::int from catalog.asset_types) as tipos,
         (select count(*)::int from catalog.asset_families) as familias,
+        (select count(*)::int from catalog.family_specifications) as especificaciones,
+        (select count(*)::int from catalog.family_specifications where value_type <> 'TEXT') as especificaciones_no_texto,
         (select count(*)::int from catalog.manufacturers) as fabricantes,
         (select count(*)::int from catalog.variable_definitions) as variables,
         (select count(*)::int from asset.assets) as activos,
@@ -48,7 +51,7 @@ export async function resetLocalDatabase(connection: string) {
         (select count(*)::int from plant.network_master) as redes,
         (select count(*)::int from iam.users where email = 'admin@fur.local' and is_global_admin and status = 'ACTIVE') as administradores`)).rows[0]
       const empty = ['modelos', 'tipos', 'fabricantes', 'variables', 'activos', 'ordenes', 'inventario', 'publicaciones']
-      if (empty.some(k => summary[k] !== 0) || summary.familias !== SEEDED_ASSET_FAMILIES.length || summary.administradores !== 1 || summary.etapas !== DEFAULT_STAGE_COUNT || summary.redes !== 10) {
+      if (empty.some(k => summary[k] !== 0) || summary.familias !== SEEDED_ASSET_FAMILIES.length || summary.especificaciones !== SEEDED_FAMILY_SPECIFICATIONS.length || summary.especificaciones_no_texto !== 0 || summary.administradores !== 1 || summary.etapas !== DEFAULT_STAGE_COUNT || summary.redes !== 10) {
         throw new Error(`La base nueva no cumple la configuración vacía esperada: ${JSON.stringify(summary)}`)
       }
     } finally { await check.end() }

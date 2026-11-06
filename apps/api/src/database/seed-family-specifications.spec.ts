@@ -4,7 +4,23 @@ import { SEEDED_ASSET_FAMILIES } from './seed-asset-families'
 import { SEEDED_FAMILY_SPECIFICATIONS } from './seed-family-specifications'
 import { validateSpecificationValues } from '../modules/catalog/family-specifications'
 
-describe('Maestro de registro por familia v3', () => {
+describe('Maestro de registro por familia versión 4', () => {
+  it('reproduce todas las familias y sus códigos de integración, CA y TAG del Excel', async () => {
+    const workbook = new ExcelJS.Workbook()
+    await workbook.xlsx.readFile(path.resolve(__dirname, '../../test/fixtures/family-specifications-v3.xlsx'))
+    const expected: unknown[] = []
+    workbook.getWorksheet('Familias locales')!.eachRow(row => {
+      const text = (column: number) => row.getCell(column).text.trim()
+      if (!text(3).startsWith('N4_')) return
+      expected.push({ name: text(1), tagCode: text(2), code: text(3), categoryCode: text(4), icon: null, description: null })
+    })
+    expect(SEEDED_ASSET_FAMILIES).toEqual(expected)
+    expect(expected).toHaveLength(84)
+    for (const key of ['code', 'categoryCode', 'tagCode'] as const) {
+      expect(new Set(SEEDED_ASSET_FAMILIES.map(f => f[key])).size).toBe(84)
+    }
+  })
+
   it('reproduce el Excel con la conversión vigente de números y rangos a texto, unidades y obligatoriedad', async () => {
     const workbook = new ExcelJS.Workbook()
     await workbook.xlsx.readFile(path.resolve(__dirname, '../../test/fixtures/family-specifications-v3.xlsx'))
@@ -18,6 +34,7 @@ describe('Maestro de registro por familia v3', () => {
       const text = (column: number) => row.getCell(column).text.trim()
       const family = families.get(text(2))
       expect(family).toBeDefined()
+      expect(family).toBe(text(1))
       expect(types[text(5)]).toBeDefined()
       expect(['SI', 'NO']).toContain(text(6))
       const position = (order.get(family!) ?? 0) + 1
@@ -26,10 +43,12 @@ describe('Maestro de registro por familia v3', () => {
     })
     expect(SEEDED_FAMILY_SPECIFICATIONS.map(([, ...definition]) => definition)).toEqual(expected)
     expect(SEEDED_FAMILY_SPECIFICATIONS.filter(d => d[4] === 'NUMBER')).toHaveLength(0)
-    expect(SEEDED_FAMILY_SPECIFICATIONS.filter(d => d[4] === 'TEXT')).toHaveLength(810)
+    expect(SEEDED_FAMILY_SPECIFICATIONS.filter(d => d[4] === 'TEXT')).toHaveLength(861)
     expect(order.size).toBe(81)
-    expect([...order.values()].every(count => count === 10)).toBe(true)
-    expect(new Set(SEEDED_FAMILY_SPECIFICATIONS.map(([id]) => id)).size).toBe(810)
+    expect(order.get('N4_23')).toBe(40)
+    expect(order.get('N4_28')).toBe(31)
+    expect(SEEDED_ASSET_FAMILIES.filter(f => !order.has(f.code)).map(f => f.code)).toEqual(['N4_10', 'N4_26', 'N4_27'])
+    expect(new Set(SEEDED_FAMILY_SPECIFICATIONS.map(([id]) => id)).size).toBe(861)
   })
 
   it('acepta grados IP como texto y temperaturas como texto en formularios e importaciones', () => {

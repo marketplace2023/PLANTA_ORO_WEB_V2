@@ -1,5 +1,6 @@
-// Fuente definitiva: Parametros_registro_activos_por_familia_v3_formato-especificaciones.xlsx.
-// Las familias adicionales sin código CA usan FAM_<TAG> como código de integración.
+// Fuente: Parametros_registro_activos_por_familia_v3_formato-especificaciones.xlsx (versión 4, 05/11/2026).
+// SHA-256: f91361aa5714211865948f7b412d092a8d95c4a806f6968b63dab855808402d5
+// 84 familias; códigos de integración, CA y TAG del maestro.
 export const SEEDED_ASSET_FAMILIES = [
   {
     "code": "N4_66",
@@ -514,139 +515,163 @@ export const SEEDED_ASSET_FAMILIES = [
     "tagCode": "VAR"
   },
   {
-    "code": "FAM_ARR",
-    "categoryCode": null,
+    "code": "N4_68",
+    "categoryCode": "68",
     "name": "Arrancadores y contactores de motor",
     "icon": null,
     "description": null,
     "tagCode": "ARR"
   },
   {
-    "code": "FAM_ODF",
-    "categoryCode": null,
+    "code": "N4_69",
+    "categoryCode": "69",
     "name": "Distribuidores ópticos (ODF / patch panel)",
     "icon": null,
     "description": null,
     "tagCode": "ODF"
   },
   {
-    "code": "FAM_IZA",
-    "categoryCode": null,
+    "code": "N4_70",
+    "categoryCode": "70",
     "name": "Equipos de izaje",
     "icon": null,
     "description": null,
     "tagCode": "IZA"
   },
   {
-    "code": "FAM_PSE",
-    "categoryCode": null,
+    "code": "N4_71",
+    "categoryCode": "71",
     "name": "Protección y seccionamiento eléctrico",
     "icon": null,
     "description": null,
     "tagCode": "PSE"
   },
   {
-    "code": "FAM_SPL",
-    "categoryCode": null,
+    "code": "N4_72",
+    "categoryCode": "72",
     "name": "Splitters ópticos",
     "icon": null,
     "description": null,
     "tagCode": "SPL"
   },
   {
-    "code": "FAM_TOL",
-    "categoryCode": null,
+    "code": "N4_73",
+    "categoryCode": "73",
     "name": "Tolvas",
     "icon": null,
     "description": null,
     "tagCode": "TOL"
   },
   {
-    "code": "FAM_CCM",
-    "categoryCode": null,
+    "code": "N4_74",
+    "categoryCode": "74",
     "name": "Centros de control de motores (CCM)",
     "icon": null,
     "description": null,
     "tagCode": "CCM"
   },
   {
-    "code": "FAM_ONT",
-    "categoryCode": null,
+    "code": "N4_75",
+    "categoryCode": "75",
     "name": "Terminales ópticos ONU/ONT",
     "icon": null,
     "description": null,
     "tagCode": "ONT"
   },
   {
-    "code": "FAM_GEN",
-    "categoryCode": null,
+    "code": "N4_76",
+    "categoryCode": "76",
     "name": "Generación de respaldo y transferencia",
     "icon": null,
     "description": null,
     "tagCode": "GEN"
   },
   {
-    "code": "FAM_SWI",
-    "categoryCode": null,
+    "code": "N4_77",
+    "categoryCode": "77",
     "name": "Switches industriales",
     "icon": null,
     "description": null,
     "tagCode": "SWI"
   },
   {
-    "code": "FAM_CEI",
-    "categoryCode": null,
+    "code": "N4_78",
+    "categoryCode": "78",
     "name": "Calentamiento eléctrico industrial",
     "icon": null,
     "description": null,
     "tagCode": "CEI"
   },
   {
-    "code": "FAM_WAP",
-    "categoryCode": null,
+    "code": "N4_79",
+    "categoryCode": "79",
     "name": "Puntos de acceso inalámbrico",
     "icon": null,
     "description": null,
     "tagCode": "WAP"
   },
   {
-    "code": "FAM_AUX",
-    "categoryCode": null,
+    "code": "N4_80",
+    "categoryCode": "80",
     "name": "Alimentación auxiliar de control (24 VDC / UPS)",
     "icon": null,
     "description": null,
     "tagCode": "AUX"
   },
   {
-    "code": "FAM_TEL",
-    "categoryCode": null,
+    "code": "N4_81",
+    "categoryCode": "81",
     "name": "Telefonía IP industrial",
     "icon": null,
     "description": null,
     "tagCode": "TEL"
   },
   {
-    "code": "FAM_GAB",
-    "categoryCode": null,
+    "code": "N4_82",
+    "categoryCode": "82",
     "name": "Gabinetes y nodos de comunicaciones",
     "icon": null,
     "description": null,
     "tagCode": "GAB"
   },
   {
-    "code": "FAM_CIE",
-    "categoryCode": null,
+    "code": "N4_83",
+    "categoryCode": "83",
     "name": "Cierres y cajas ópticas de campo",
     "icon": null,
     "description": null,
     "tagCode": "CIE"
   },
   {
-    "code": "FAM_FOP",
-    "categoryCode": null,
+    "code": "N4_84",
+    "categoryCode": "84",
     "name": "Cables y enlaces de fibra óptica",
     "icon": null,
     "description": null,
     "tagCode": "FOP"
+  },
+  {
+    "code": "N4_10",
+    "categoryCode": "10",
+    "name": "Clarificadores",
+    "icon": null,
+    "description": null,
+    "tagCode": "CLA"
+  },
+  {
+    "code": "N4_26",
+    "categoryCode": "26",
+    "name": "Estructuras",
+    "icon": null,
+    "description": null,
+    "tagCode": "EST"
+  },
+  {
+    "code": "N4_27",
+    "categoryCode": "27",
+    "name": "Plataformas y pasarelas",
+    "icon": null,
+    "description": null,
+    "tagCode": "PYP"
   }
 ] as const

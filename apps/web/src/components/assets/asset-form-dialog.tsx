@@ -1,9 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { AssetTechnicalFields } from './asset-technical-fields'
 import { FamilyPicker } from './family-picker'
 import { CatalogModelPicker } from './catalog-model-picker'
-import { ClipboardList, Network, Package, X } from 'lucide-react'
+import { ClipboardList, ExternalLink, Network, Package, X } from 'lucide-react'
 import { technicalDraft, technicalPayload } from '@/lib/asset-technical'
 import { useDebouncedValue } from '@/lib/use-debounced-value'
 import { toast } from 'sonner'
@@ -52,7 +52,6 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
   const queryClient = useQueryClient()
   const [requestMode, setRequestMode] = useState(false)
   const submitRequest = useMutation({ mutationFn: (body: AssetInput) => api(`/plants/${plantSlug}/catalog-requests`, { method: 'POST', body: JSON.stringify(body) }) })
-  const requests = useQuery({ queryKey: ['plant', plantSlug, 'catalog-requests'], queryFn: () => api<Array<{ id: string; status: string; draft: { name: string }; decisionNote: string | null }>>(`/plants/${plantSlug}/catalog-requests`), enabled: open && !editing })
   const pending = editing ? update.isPending : create.isPending || submitRequest.isPending
 
   const [modelSearch, setModelSearch] = useState('')
@@ -330,7 +329,12 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
 
 
 
-            {!editing && requests.data && requests.data.length > 0 && <section className="space-y-2 border-t pt-4" aria-label="Solicitudes de catálogo"><h3 className="text-sm font-semibold">Solicitudes de esta planta</h3>{requests.data.slice(0, 10).map(item => <div key={item.id} className="rounded-lg border p-3 text-sm"><span className="font-medium">{item.draft.name}</span> · {item.status === 'PENDING' ? 'Pendiente de revisión' : item.status === 'APPROVED' ? 'Aprobada: activo registrado' : 'Rechazada'}{item.decisionNote && <p className="text-muted-foreground">{item.decisionNote}</p>}</div>)}</section>}
+            {!editing && requestMode && <div className="border-t border-border pt-4">
+              <a href={`${(import.meta.env.VITE_PLANT_PANEL_URL ?? 'http://localhost:5174').replace(/\/$/, '')}/plants/${encodeURIComponent(plantSlug)}/catalog-requests`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm font-medium text-fur-navy-900 underline underline-offset-4">
+                Ver solicitudes de esta planta <ExternalLink className="size-4" aria-hidden />
+                <span className="sr-only">(abre en una pestaña nueva)</span>
+              </a>
+            </div>}
             <div role="alert" aria-live="polite">
               {formError && <p className="rounded-md bg-fur-red-500/10 p-3 text-sm text-fur-red-500">{formError}</p>}
             </div>

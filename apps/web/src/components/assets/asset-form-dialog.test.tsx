@@ -38,6 +38,26 @@ async function family(name = 'MOL · Molinos') {
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals() })
 
 describe('Activo propio de planta', () => {
+  it('muestra el enlace en una pestaña nueva solo mientras está seleccionada la opción de solicitud', async () => {
+    const api = setup({
+      'GET /plants/revemin-ii/catalog-requests': { body: [{ id: 'r1', status: 'PENDING', draft: { name: 'Solicitud existente' } }] },
+    })
+    renderWithProviders(<AssetFormDialog open onOpenChange={vi.fn()} plantSlug="revemin-ii" />)
+    expect(screen.queryByRole('link', { name: /Ver solicitudes de esta planta/ })).not.toBeInTheDocument()
+    const checkbox = screen.getByRole('checkbox', { name: /No existe en el catálogo/ })
+    await userEvent.click(checkbox)
+    const link = screen.getByRole('link', { name: /Ver solicitudes de esta planta/ })
+    expect(link).toHaveAttribute('href', 'http://localhost:5174/plants/revemin-ii/catalog-requests')
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+    await userEvent.click(checkbox)
+    expect(screen.queryByRole('link', { name: /Ver solicitudes de esta planta/ })).not.toBeInTheDocument()
+    await waitFor(() => expect(api.count('GET /catalog/families')).toBe(1))
+    expect(api.count('GET /plants/revemin-ii/catalog-requests')).toBe(0)
+    expect(screen.queryByText('Solicitudes de esta planta')).not.toBeInTheDocument()
+    expect(screen.queryByText('Solicitud existente')).not.toBeInTheDocument()
+  })
+
   it('ordena red, etapa y familia; precarga la ficha del modelo y conserva el nombre propio', async () => {
     const api = setup()
     renderWithProviders(<AssetFormDialog open onOpenChange={vi.fn()} plantSlug="revemin-ii" />)

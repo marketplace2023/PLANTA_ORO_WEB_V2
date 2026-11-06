@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { renderWithProviders } from '@/test/render'
 import { mockApi } from '@/test/fetch-mock'
@@ -61,6 +61,40 @@ describe('Activo propio de planta', () => {
     const body = JSON.parse(api.calls.find(call => call.method === 'POST')!.init.body as string)
     expect(body).toMatchObject({ familyId: 'f1', assetModelId: 'm1', name: 'Equipo de mi planta', specifications: {}, components: [], networkCodes: ['FUR-PTE'] })
     expect(body).not.toHaveProperty('referenceModelIds')
+  })
+
+  it.each(['clic', 'teclado'])('consulta la ficha con %s sin seleccionar el modelo ni perder el formulario', async method => {
+    const origin = { ...MODELS[0], stageCodes: ['D06'], imageUrl: null }
+    const candidate = { ...origin, id: 'preview', modelName: 'Modelo para consultar', catalogTag: 'CAT-002', specifications: { Potencia: '45 kW' }, technicalData: { componentes: ['Motor de referencia'] } }
+    const api = setup({
+      'GET /catalog/assets': { body: page([origin, candidate]) },
+      'GET /stages/catalog': { body: STAGES },
+      'GET /networks/catalog': { body: NETWORKS },
+    })
+    const onOpenChange = vi.fn()
+    renderWithProviders(<AssetFormDialog open onOpenChange={onOpenChange} plantSlug="revemin-ii" />)
+    await family()
+    await userEvent.type(screen.getByLabelText('Nombre'), 'Equipo instalado')
+    await userEvent.type(screen.getByLabelText('Número de serie'), 'SERIE-123')
+    await userEvent.click(screen.getByRole('combobox', { name: 'Modelo del catálogo' }))
+    await userEvent.click(await screen.findByRole('option', { name: /Bolas 16.5x24 ft/ }))
+    await userEvent.click(screen.getByRole('combobox', { name: 'Modelo del catálogo' }))
+    await userEvent.type(screen.getByRole('combobox', { name: 'Buscar modelo del catálogo' }), 'consultar')
+    const previewButton = await screen.findByRole('button', { name: 'Ver ficha de Modelo para consultar (CAT-002)' })
+    if (method === 'clic') await userEvent.click(previewButton)
+    else { previewButton.focus(); await userEvent.keyboard('{Enter}') }
+    const ficha = await screen.findByRole('dialog', { name: 'Ficha técnica del activo físico' })
+    expect(within(ficha).getByText('45 kW')).toBeInTheDocument()
+    expect(within(ficha).getByText('Motor de referencia')).toBeInTheDocument()
+    expect(api.count('POST /plants/revemin-ii/assets')).toBe(0)
+    if (method === 'clic') await userEvent.click(within(ficha).getByRole('button', { name: 'Cerrar' }))
+    else await userEvent.keyboard('{Escape}')
+    expect(await screen.findByRole('combobox', { name: 'Buscar modelo del catálogo' })).toHaveValue('consultar')
+    await userEvent.keyboard('{Escape}')
+    expect(screen.getByRole('combobox', { name: 'Modelo del catálogo' })).toHaveTextContent('Bolas 16.5x24 ft')
+    expect(screen.getByLabelText('Nombre')).toHaveValue('Equipo instalado')
+    expect(screen.getByLabelText('Número de serie')).toHaveValue('SERIE-123')
+    expect(onOpenChange).not.toHaveBeenCalled()
   })
 
   it('carga parámetros de la familia sin nombres libres y registra valores numéricos y sí/no', async () => {

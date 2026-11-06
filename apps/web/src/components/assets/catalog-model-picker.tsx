@@ -1,5 +1,7 @@
+import { ModelFichaDialog } from '@/components/catalog/model-ficha-dialog'
+import { useStageCatalog, useNetworkCatalog } from '@/features/catalog/use-catalog'
 import { useState } from 'react'
-import { ChevronsUpDown, Package, Search } from 'lucide-react'
+import { ChevronsUpDown, Eye, Package, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Command, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -24,10 +26,12 @@ type Props = {
 
 export function CatalogModelPicker({ value, selectedIds = [], selected, items, total, search, onSearchChange, onSelect, loading, failed, onRetry, invalid, describedBy }: Props) {
   const [open, setOpen] = useState(false)
+  const [preview, setPreview] = useState<CatalogModel | null>(null)
   const label = selected ? `${selected.catalogTag ? `${selected.catalogTag} · ` : ''}${selected.modelName}` : ''
 
   return (
     // El menú se porta fuera del Dialog; su propio bloqueo permite scroll dentro.
+    <>
     <Popover modal open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
@@ -49,7 +53,7 @@ export function CatalogModelPicker({ value, selectedIds = [], selected, items, t
           <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" aria-hidden />
         </Button>
       </PopoverTrigger>
-      <PopoverContent aria-label="Elegir modelo del catálogo" align="start" sideOffset={6} className="flex max-h-[min(26rem,var(--radix-popover-content-available-height))] w-(--radix-popover-trigger-width) max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-xl p-0 shadow-lg">
+      <PopoverContent onCloseAutoFocus={event => { if (preview) event.preventDefault() }} aria-label="Elegir modelo del catálogo" align="start" sideOffset={6} className="flex max-h-[min(26rem,var(--radix-popover-content-available-height))] w-(--radix-popover-trigger-width) max-w-[calc(100vw-2rem)] gap-0 overflow-hidden rounded-xl p-0 shadow-lg">
         <Command label="Buscar modelo del catálogo" shouldFilter={false} className="min-h-0 rounded-xl p-0">
           <div className="shrink-0 border-b border-border p-2 [&_[data-slot=command-input-wrapper]]:p-0 [&_[data-slot=input-group]]:h-11! [&_[data-slot=input-group]]:border-0 [&_[data-slot=input-group]]:bg-muted/60">
             <CommandInput aria-label="Buscar modelo del catálogo" placeholder="Buscar por TAG, nombre o tipo…" maxLength={100} value={search} onValueChange={onSearchChange} />
@@ -72,12 +76,12 @@ export function CatalogModelPicker({ value, selectedIds = [], selected, items, t
                 <p className="text-xs">{search ? 'Prueba con otro TAG, nombre o tipo.' : 'Carga primero un modelo en el catálogo.'}</p>
               </div>
             ) : items.map(model => (
+              <div key={model.id} className="flex min-w-0 items-center gap-1 rounded-lg has-[[data-selected=true]]:bg-fur-gold-500/10 has-[[data-checked=true]]:bg-fur-gold-500/10">
               <CommandItem
-                key={model.id}
                 value={model.id}
                 data-checked={value === model.id || selectedIds.includes(model.id)}
                 onSelect={() => { onSelect(model); setOpen(false) }}
-                className="min-w-0 gap-3 rounded-lg px-3 py-2.5 data-selected:bg-fur-gold-500/10 data-selected:text-foreground data-[checked=true]:bg-fur-gold-500/10"
+                className="min-w-0 flex-1 gap-3 rounded-lg px-3 py-2.5 data-selected:bg-fur-gold-500/10 data-selected:text-foreground data-[checked=true]:bg-fur-gold-500/10"
               >
                 <div className="min-w-0 flex-1 space-y-1">
                   <span className="block truncate text-sm font-medium" title={model.modelName}>{model.modelName}</span>
@@ -88,6 +92,14 @@ export function CatalogModelPicker({ value, selectedIds = [], selected, items, t
                 </div>
                 {(value === model.id || selectedIds.includes(model.id)) && <span className="sr-only">Seleccionado</span>}
               </CommandItem>
+              <Button type="button" variant="ghost" size="icon-sm" className="mr-2 shrink-0"
+                aria-label={`Ver ficha de ${model.modelName}${model.catalogTag ? ` (${model.catalogTag})` : ''}`}
+                title="Ver ficha del modelo"
+                onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') event.stopPropagation() }}
+                onClick={event => { event.stopPropagation(); setPreview(model); setOpen(false) }}>
+                <Eye className="size-4" aria-hidden />
+              </Button>
+              </div>
             ))}
           </CommandList>
           {!loading && !failed && total > 0 && (
@@ -98,5 +110,14 @@ export function CatalogModelPicker({ value, selectedIds = [], selected, items, t
         </Command>
       </PopoverContent>
     </Popover>
+    {preview && <CatalogModelPreview model={preview} onClose={() => { setPreview(null); setOpen(true) }} />}
+    </>
   )
+}
+
+/** La ficha se abre fuera del menú para no competir con su bloqueo de foco. */
+function CatalogModelPreview({ model, onClose }: { model: CatalogModel; onClose: () => void }) {
+  const stages = useStageCatalog()
+  const networks = useNetworkCatalog()
+  return <ModelFichaDialog model={model} stages={stages.data ?? []} networks={networks.data ?? []} onClose={onClose} />
 }

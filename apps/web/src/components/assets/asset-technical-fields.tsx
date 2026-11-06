@@ -17,7 +17,7 @@ export function AssetTechnicalFields({ value, onChange, familyId }: { familyId: 
           <Settings2 className="size-4 text-muted-foreground" aria-hidden /><span>Especificaciones del activo</span>
           <span className="rounded-md bg-muted px-2 py-0.5 text-xs tabular-nums text-muted-foreground">{value.specifications.length}</span>
         </legend>
-        <FamilySpecificationFields key={familyId} familyId={familyId} value={Object.fromEntries(value.specifications.map(row => [row.key, row.value]))}
+        <FamilySpecificationFields key={familyId} familyId={familyId} showLegacy={false} value={Object.fromEntries(value.specifications.map(row => [row.key, row.value]))}
           onChange={specifications => onChange({ ...value, specifications: Object.entries(specifications).map(([key, rowValue]) => ({ key, value: rowValue })) })} />
       </fieldset>
       <fieldset className="min-w-0 space-y-3 border-t border-border pt-5">

@@ -38,7 +38,7 @@ async function family(name = 'MOL · Molinos') {
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals() })
 
 describe('Activo propio de planta', () => {
-  it('ordena red, etapa y familia; registra datos propios sin precargas aunque se agregue una referencia', async () => {
+  it('ordena red, etapa y familia; precarga la ficha del modelo y conserva el nombre propio', async () => {
     const api = setup()
     renderWithProviders(<AssetFormDialog open onOpenChange={vi.fn()} plantSlug="revemin-ii" />)
     expect(screen.getByLabelText('Tag')).toHaveValue('XXX-XXX-XXX-001')
@@ -59,7 +59,7 @@ describe('Activo propio de planta', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Crear activo' }))
     await waitFor(() => expect(api.count('POST /plants/revemin-ii/assets')).toBe(1))
     const body = JSON.parse(api.calls.find(call => call.method === 'POST')!.init.body as string)
-    expect(body).toMatchObject({ familyId: 'f1', assetModelId: 'm1', name: 'Equipo de mi planta', specifications: {}, components: [], networkCodes: ['FUR-PTE'] })
+    expect(body).toMatchObject({ familyId: 'f1', assetModelId: 'm1', name: 'Equipo de mi planta', specifications: MODELS[0].specifications, components: [], networkCodes: ['FUR-PTE'] })
     expect(body).not.toHaveProperty('referenceModelIds')
   })
 
@@ -98,23 +98,64 @@ describe('Activo propio de planta', () => {
   })
 
   it('carga parámetros de la familia sin nombres libres y registra valores numéricos y sí/no', async () => {
-    const api = setup({ 'GET /catalog/specifications': { body: [
+    const api = setup({ 'GET /catalog/assets': { body: page([{ ...MODELS[0], specifications: {} }]) }, 'GET /catalog/specifications': { body: [
       { id: 'power', familyId: 'f1', label: 'Potencia', unit: 'kW', key: 'Potencia (kW)', valueType: 'NUMBER', required: true, sortOrder: 1 },
       { id: 'lube', familyId: 'f1', label: 'Requiere lubricación', unit: null, key: 'Requiere lubricación', valueType: 'BOOLEAN', required: true, sortOrder: 2 },
     ] } })
     renderWithProviders(<AssetFormDialog open onOpenChange={vi.fn()} plantSlug="revemin-ii" />)
     await family()
     expect(screen.queryByRole('button', { name: 'Agregar especificación' })).not.toBeInTheDocument()
-    await userEvent.type(await screen.findByLabelText(/Potencia/), '12,5')
-    await userEvent.selectOptions(screen.getByLabelText(/Requiere lubricación/), 'false')
     await userEvent.type(screen.getByLabelText('Nombre'), 'Activo con ficha propia')
     await userEvent.click(screen.getByRole('combobox', { name: 'Modelo del catálogo' }))
     await userEvent.click(await screen.findByRole('option', { name: /Bolas 16.5x24 ft/ }))
+    await userEvent.type(await screen.findByLabelText(/Potencia/), '12,5')
+    await userEvent.selectOptions(screen.getByLabelText(/Requiere lubricación/), 'false')
     await userEvent.click(screen.getByRole('button', { name: 'Crear activo' }))
     await waitFor(() => expect(api.count('POST /plants/revemin-ii/assets')).toBe(1))
     const body = JSON.parse(api.calls.find(call => call.method === 'POST')!.init.body as string)
     expect(body.specifications).toEqual({ 'Potencia (kW)': 12.5, 'Requiere lubricación': false })
     expect(api.calls.some(call => call.path === '/catalog/specifications' && call.query.get('familyId') === 'f1')).toBe(true)
+  })
+
+  it('precarga especificaciones y componentes editables sin cambiar el catálogo', async () => {
+    const model = { ...MODELS[0], specifications: { 'Potencia (kW)': '30' }, technicalData: { componentes: ['Motor de catálogo'] } }
+    const api = setup({
+      'GET /catalog/assets': { body: page([model]) },
+      'GET /catalog/specifications': { body: [{ id: 'power', familyId: 'f1', label: 'Potencia', unit: 'kW', key: 'Potencia (kW)', valueType: 'TEXT', required: true, sortOrder: 1 }] },
+    })
+    renderWithProviders(<AssetFormDialog open onOpenChange={vi.fn()} plantSlug="revemin-ii" />)
+    await family()
+    expect(await screen.findByLabelText(/Potencia/)).toHaveValue('')
+    await userEvent.click(screen.getByRole('combobox', { name: 'Modelo del catálogo' }))
+    await userEvent.click(await screen.findByRole('option', { name: /Bolas 16.5x24 ft/ }))
+    expect(screen.getByLabelText(/Potencia/)).toHaveValue('30')
+    expect(screen.getByLabelText('Componente 1')).toHaveValue('Motor de catálogo')
+    await userEvent.clear(screen.getByLabelText(/Potencia/))
+    await userEvent.type(screen.getByLabelText(/Potencia/), '37')
+    await userEvent.clear(screen.getByLabelText('Componente 1'))
+    await userEvent.type(screen.getByLabelText('Componente 1'), 'Motor instalado')
+    await userEvent.click(screen.getByRole('button', { name: 'Crear activo' }))
+    await waitFor(() => expect(api.count('POST /plants/revemin-ii/assets')).toBe(1))
+    expect(JSON.parse(api.calls.find(call => call.method === 'POST')!.init.body as string)).toMatchObject({ specifications: { 'Potencia (kW)': '37' }, components: ['Motor instalado'] })
+    expect(model.specifications).toEqual({ 'Potencia (kW)': '30' })
+    expect(model.technicalData.componentes).toEqual(['Motor de catálogo'])
+    expect(api.calls.some(call => call.method !== 'GET' && call.path.startsWith('/catalog/'))).toBe(false)
+  })
+
+  it.each([true, false])('reemplaza la precarga al cambiar a un modelo con datos=%s', async hasData => {
+    const first = { ...MODELS[0], specifications: { Potencia: '30' }, technicalData: { componentes: ['Componente anterior'] } }
+    const second = { ...first, id: 'm3', modelName: 'Otro modelo', specifications: hasData ? { Potencia: '50' } : {}, technicalData: hasData ? { componentes: ['Componente nuevo'] } : {} }
+    setup({ 'GET /catalog/assets': { body: page([first, second]) }, 'GET /catalog/specifications': { body: [{ id: 'power', familyId: 'f1', label: 'Potencia', key: 'Potencia', unit: null, valueType: 'TEXT', required: false, sortOrder: 1 }] } })
+    renderWithProviders(<AssetFormDialog open onOpenChange={vi.fn()} plantSlug="revemin-ii" />)
+    await family()
+    await userEvent.click(screen.getByRole('combobox', { name: 'Modelo del catálogo' }))
+    await userEvent.click(await screen.findByRole('option', { name: /Bolas 16.5x24 ft/ }))
+    expect(screen.getByLabelText('Potencia')).toHaveValue('30')
+    await userEvent.click(screen.getByRole('combobox', { name: 'Modelo del catálogo' }))
+    await userEvent.click(await screen.findByRole('option', { name: /Otro modelo/ }))
+    expect(screen.getByLabelText('Potencia')).toHaveValue(hasData ? '50' : '')
+    if (hasData) expect(screen.getByLabelText('Componente 1')).toHaveValue('Componente nuevo')
+    else expect(screen.queryByLabelText('Componente 1')).not.toBeInTheDocument()
   })
 
   it('exige un modelo o permite solicitarlo sin crear el activo', async () => {
@@ -186,7 +227,8 @@ describe('Activo propio de planta', () => {
     const api = setup()
     renderWithProviders(<AssetFormDialog open onOpenChange={vi.fn()} plantSlug="revemin-ii" asset={detail({ family: { id: 'f1', code: 'MOLINOS', name: 'Molinos' }, specifications: { Potencia: '22 kW' }, referenceModels: [{ id: 'm1', modelName: 'Referencia guardada' }] })} />)
     expect(screen.getByLabelText('Tag')).toHaveValue('MB-301')
-    expect(await screen.findByText('22 kW')).toBeInTheDocument()
+    expect(screen.queryByText('22 kW')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Datos anteriores fuera del maestro/)).not.toBeInTheDocument()
     await waitFor(() => expect(screen.getByRole('combobox', { name: 'Familia' })).toHaveTextContent('MOL'))
     await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
     await waitFor(() => expect(api.count('PATCH /plants/revemin-ii/assets/a1')).toBe(1))

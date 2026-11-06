@@ -22,6 +22,7 @@ import {
   useUpdateAsset,
   type AssetDetail,
   type AssetInput,
+  type CatalogModel,
 } from '@/features/assets/use-assets'
 import { usePlantNetworks, usePlantStages } from '@/features/plant/use-plant-data'
 import { api, ApiError } from '@/lib/api'
@@ -90,6 +91,15 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
   const suggestedTag = useAssetTagPreview(plantSlug, tagSelection, open && !editing)
   const partialTag = `${networkCodes.length === 1 ? networkCodes[0] : 'XXX'}-${form.stageCode !== NO_STAGE ? form.stageCode : 'XXX'}-${selectedFamily?.tagCode ?? 'XXX'}-${tagSelection ? '…' : '001'}`
   const tagPreview = suggestedTag.data?.tag ?? partialTag
+
+  function selectModel(model: CatalogModel) {
+    setReferences([{ id: model.id, modelName: model.modelName, catalogTag: model.catalogTag }])
+    setModelSearch('')
+    if (!editing && model.id !== references[0]?.id) {
+      setTechnical(technicalDraft(structuredClone(model.specifications), structuredClone(model.technicalData)))
+    }
+    if (!form.name.trim()) set('name', model.modelName)
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -233,11 +243,11 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
                 <Label htmlFor="assetModelId">Modelo de origen del catálogo *</Label>
                 {!requestMode && (familyId && form.stageCode !== NO_STAGE && networkCodes.length === 1 ? <CatalogModelPicker
                   value={references[0]?.id ?? ''} selected={references[0] ?? null} items={models.data?.items ?? []} total={models.data?.total ?? 0}
-                  search={modelSearch} onSearchChange={setModelSearch} onSelect={model => { setReferences([{ id: model.id, modelName: model.modelName, catalogTag: model.catalogTag }]); setModelSearch(''); if (!form.name.trim()) set('name', model.modelName) }}
+                  search={modelSearch} onSearchChange={setModelSearch} onSelect={selectModel}
                   loading={models.isFetching || modelSearch.trim() !== search} failed={models.isError} onRetry={() => void models.refetch()} invalid={!!errors.assetModelId} /> : <p className="text-sm text-muted-foreground">Selecciona la red, la etapa y la familia para consultar sus modelos.</p>)}
                 {fieldError('assetModelId')}
                 {!editing && <label className="flex cursor-pointer items-start gap-3 text-sm"><Checkbox checked={requestMode} onCheckedChange={on => { setRequestMode(on === true); setReferences([]) }} /><span>No existe en el catálogo: solicitar incorporación<span className="mt-1 block text-xs text-muted-foreground">Completa la ficha. Administración la revisará y completará el catálogo. El activo se creará únicamente después de su aprobación.</span></span></label>}
-                {!requestMode && <p className="text-xs text-muted-foreground">Un único modelo identifica el origen. Las especificaciones y componentes de la unidad se guardan por separado.</p>}
+                {!requestMode && <p className="text-xs text-muted-foreground">Al crear el activo, seleccionar un modelo carga sus especificaciones y componentes como punto de partida. Puedes ajustarlos para tu planta sin modificar el catálogo.</p>}
               </div>
 
               <div className="grid min-w-0 gap-4 sm:grid-cols-2">
@@ -314,7 +324,7 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
 
             </section>
 
-            <AssetTechnicalFields familyId={familyId} value={technical} onChange={setTechnical} />
+            <AssetTechnicalFields key={editing ? familyId : `${familyId}:${references[0]?.id ?? ''}`} familyId={familyId} value={technical} onChange={setTechnical} />
             {fieldError('specifications')}
             {fieldError('components')}
 

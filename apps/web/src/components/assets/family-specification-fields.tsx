@@ -12,8 +12,8 @@ const numeric = (s: string) => s.trim() === '' ? null : Number.isFinite(Number(s
 const display = (v: unknown) => v === null || v === undefined ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v)
 
 /** Campos del maestro. La familia determina los nombres; el usuario solo introduce valores. */
-export function FamilySpecificationFields({ familyId, value, onChange }: {
-  familyId: string; value: Record<string, unknown>; onChange: (v: Record<string, unknown>) => void
+export function FamilySpecificationFields({ familyId, value, onChange, showLegacy = true }: {
+  familyId: string; value: Record<string, unknown>; onChange: (v: Record<string, unknown>) => void; showLegacy?: boolean
 }) {
   const q = useQuery({ queryKey: ['catalog', 'specifications', familyId], enabled: !!familyId,
     queryFn: () => api<FamilySpecification[]>(`/catalog/specifications?familyId=${encodeURIComponent(familyId)}`) })
@@ -45,6 +45,6 @@ export function FamilySpecificationFields({ familyId, value, onChange }: {
           : <Input id={id} className="h-11 min-w-0" aria-required={d.required} inputMode={d.valueType === 'NUMBER' ? 'decimal' : 'text'} defaultValue={display(v)} onChange={e => set(d.key, d.valueType === 'NUMBER' ? numeric(e.target.value) : e.target.value)} />}
       </div>
     })}
-    {!!legacy.length && <details className="rounded-lg border border-border p-3"><summary className="cursor-pointer text-sm font-medium">Datos anteriores fuera del maestro ({legacy.length})</summary><p className="my-2 text-xs text-muted-foreground">Se conservan para consulta. Para registrar nuevos valores, utiliza los parámetros definidos arriba.</p><dl className="space-y-2 text-sm">{legacy.map(([key, v]) => <div key={key} className="grid gap-1 sm:grid-cols-2"><dt className="font-medium [overflow-wrap:anywhere]">{key}</dt><dd className="[overflow-wrap:anywhere]">{display(v)}</dd></div>)}</dl></details>}
+    {showLegacy && !!legacy.length && <details className="rounded-lg border border-border p-3"><summary className="cursor-pointer text-sm font-medium">Datos anteriores fuera del maestro ({legacy.length})</summary><p className="my-2 text-xs text-muted-foreground">Se conservan para consulta. Para registrar nuevos valores, utiliza los parámetros definidos arriba.</p><dl className="space-y-2 text-sm">{legacy.map(([key, v]) => <div key={key} className="grid gap-1 sm:grid-cols-2"><dt className="font-medium [overflow-wrap:anywhere]">{key}</dt><dd className="[overflow-wrap:anywhere]">{display(v)}</dd></div>)}</dl></details>}
   </div>
 }

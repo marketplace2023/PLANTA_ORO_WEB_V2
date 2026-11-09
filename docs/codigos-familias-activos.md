@@ -91,4 +91,4 @@ Se conservan los códigos de integración y CA. La abreviatura TAG es única y s
 
 Estas 84 familias y códigos base se restauran mediante el seed, sin modelos ni activos de demostración. Repetir el seed conserva las ediciones administrativas.
 
-El maestro versión 4 asigna CA 68–84 y códigos de integración `N4_68`–`N4_84` a las 17 familias que antes usaban `FAM_<TAG>`. La migración 0048 conserva sus UUID y relaciones. Añade Clarificadores (10/CLA), Estructuras (26/EST) y Plataformas y pasarelas (27/PYP), sin especificaciones en el Excel.
+El maestro versión 4 asigna CA 68–84 y códigos de integración `N4_68`–`N4_84` a las 17 familias que antes usaban `FAM_<TAG>`. La migración 0048 conserva sus UUID y relaciones. Añade Clarificadores (10/CLA), Estructuras (26/EST) y Plataformas y pasarelas (27/PYP), con 12 especificaciones por familia (6 obligatorias y 6 opcionales) en el maestro completo del 09/11/2026, incorporadas por la migración 0049.

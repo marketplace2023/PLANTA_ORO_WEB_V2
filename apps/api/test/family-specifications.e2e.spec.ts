@@ -23,11 +23,11 @@ describe('Maestro de especificaciones por familia', () => {
   })
   afterAll(async () => { await t.cleanup(); await t.close(); await app.close() })
 
-  it('carga las 861 definiciones del Excel vigente para 81 familias; lectura pública y escritura solo administrativa', async () => {
+  it('carga las 897 definiciones del Excel vigente para 84 familias; lectura pública y escritura solo administrativa', async () => {
     const all = (await http().get('/api/v1/catalog/specifications').expect(200)).body
-    expect(all).toHaveLength(861)
-    expect(all.filter((d: { required: boolean }) => d.required)).toHaveLength(456)
-    expect(new Set(all.map((d: { familyId: string }) => d.familyId)).size).toBe(81)
+    expect(all).toHaveLength(897)
+    expect(all.filter((d: { required: boolean }) => d.required)).toHaveLength(474)
+    expect(new Set(all.map((d: { familyId: string }) => d.familyId)).size).toBe(84)
     const body = { familyId, label: 'Potencia', unit: 'kW', valueType: 'NUMBER', required: true }
     await http().post('/api/v1/catalog/specifications').send(body).expect(401)
     await http().post('/api/v1/catalog/specifications').set('Authorization', bearer(user)).send(body).expect(403)

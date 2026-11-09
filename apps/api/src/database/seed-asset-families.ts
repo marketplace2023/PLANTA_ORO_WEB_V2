@@ -1,5 +1,5 @@
-// Fuente: Parametros_registro_activos_por_familia_v3_formato-especificaciones.xlsx (versión 4, 05/11/2026).
-// SHA-256: f91361aa5714211865948f7b412d092a8d95c4a806f6968b63dab855808402d5
+// Fuente: Parametros_registro_activos_por_familia_completo.xlsx (maestro completado, 09/11/2026).
+// SHA-256: 9d55804fcd83769e3a1939bbea16108a2eaaee1a30dc1a5c73ec51035c55e98b
 // 84 familias; códigos de integración, CA y TAG del maestro.
 export const SEEDED_ASSET_FAMILIES = [
   {

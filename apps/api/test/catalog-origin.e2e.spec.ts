@@ -1,7 +1,7 @@
 import type { INestApplication } from '@nestjs/common'
 import request from 'supertest'
 import { eq } from 'drizzle-orm'
-import { assetModels, assets, catalogRequests, plantSettings } from '../src/database/schema'
+import { assetModels, assets, catalogRequests, plantSettings, assetTypeStages, assetModelStages, assetModelNetworks, stageMaster, networkMaster } from '../src/database/schema'
 import { bearer, createApp, login, type Session, TestDb } from './helpers'
 
 describe('Modelo de origen y solicitudes de catálogo', () => {
@@ -61,6 +61,46 @@ describe('Modelo de origen y solicitudes de catálogo', () => {
     const listed = (await http().get('/api/v1/plants/e2e-origin/catalog-requests').set('Authorization', bearer(user)).expect(200)).body
     expect(listed.find((r: { id: string }) => r.id === pending.id).decisionNote).toBe('Ficha incompleta')
     expect(listed.find((r: { id: string }) => r.id === pending.id).draft.requestNote).toBe('Motivos de la incorporación')
+  })
+  it.each(['APPROVED', 'REJECTED', 'FAILED'])('prepara un tipo sin la etapa solicitada y asocia solo al aprobar: %s', async outcome => {
+    const typeCode = `E2E_ORIGIN_AUTO_${outcome}`
+    const type = (await post('/catalog/types', { familyCode: 'E2E_ORIGIN', code: typeCode, name: `E2E Tipo automático ${outcome}`, stageCodes: ['D02'] }).expect(201)).body
+    const stageCodes = async () => (await t.db.select({ code: stageMaster.code }).from(assetTypeStages)
+      .innerJoin(stageMaster, eq(stageMaster.id, assetTypeStages.stageMasterId)).where(eq(assetTypeStages.assetTypeId, type.id))).map(s => s.code).sort()
+    expect(await stageCodes()).toEqual(['D02'])
+    // La ampliación automática está reservada a la aprobación de solicitudes.
+    await post('/catalog/models', { typeCode, modelName: 'E2E Fuera de alcance', specifications: { Potencia: 20 }, stageCodes: ['D01'], networkCodes: ['FUR-PROC'] }).expect(400)
+    const pending = (await post('/plants/e2e-origin/catalog-requests', draft(), user).expect(201)).body
+    const review = () => http().patch(`/api/v1/catalog/requests/${pending.id}`).set('Authorization', bearer(admin))
+      .send({ typeCode, modelName: `E2E Modelo automático ${outcome}`, specifications: { Potencia: 20 }, components: [] }).expect(200)
+    const reviewed = (await review()).body
+    await review() // Guardar dos veces no crea asociaciones del tipo ni duplicados del modelo.
+    expect(await stageCodes()).toEqual(['D02'])
+    const links = async () => ({
+      stages: (await t.db.select({ code: stageMaster.code }).from(assetModelStages).innerJoin(stageMaster, eq(stageMaster.id, assetModelStages.stageMasterId)).where(eq(assetModelStages.assetModelId, reviewed.modelId))).map(s => s.code),
+      networks: (await t.db.select({ code: networkMaster.code }).from(assetModelNetworks).innerJoin(networkMaster, eq(networkMaster.id, assetModelNetworks.networkMasterId)).where(eq(assetModelNetworks.assetModelId, reviewed.modelId))).map(n => n.code),
+    })
+    expect(await links()).toEqual({ stages: ['D01'], networks: ['FUR-PROC'] })
+    if (outcome === 'APPROVED') {
+      const results = await Promise.all([post(`/catalog/requests/${pending.id}/approve`, {}), post(`/catalog/requests/${pending.id}/approve`, {})])
+      expect(results.map(r => r.status).sort()).toEqual([201, 409])
+      expect(await stageCodes()).toEqual(['D01', 'D02'])
+      expect(await links()).toEqual({ stages: ['D01'], networks: ['FUR-PROC'] })
+      const saved = results.find(r => r.status === 201)!.body
+      expect((await t.db.select().from(assets).where(eq(assets.id, saved.assetId)))[0].assetModelId).toBe(reviewed.modelId)
+    } else {
+      if (outcome === 'REJECTED') await post(`/catalog/requests/${pending.id}/reject`, { note: 'No corresponde' }).expect(201)
+      else {
+        // Una ficha de unidad que no pase la validación debe revertir también la ampliación del tipo.
+        await t.db.update(catalogRequests).set({ draft: { ...draft(), specifications: { Potencia: 'valor inválido' } } }).where(eq(catalogRequests.id, pending.id))
+        await post(`/catalog/requests/${pending.id}/approve`, {}).expect(400)
+      }
+      expect(await stageCodes()).toEqual(['D02'])
+      expect((await t.db.select().from(assetModels).where(eq(assetModels.id, reviewed.modelId)))[0].status).toBe('INACTIVE')
+      const saved = (await t.db.select().from(catalogRequests).where(eq(catalogRequests.id, pending.id)))[0]
+      expect(saved.assetId).toBeNull()
+      expect(saved.status).toBe(outcome === 'REJECTED' ? 'REJECTED' : 'PENDING')
+    }
   })
   it('limita la nota a 5.000 caracteres y sigue aceptando solicitudes sin nota', async () => {
     const before = await t.db.select().from(catalogRequests).where(eq(catalogRequests.plantId, plantId))

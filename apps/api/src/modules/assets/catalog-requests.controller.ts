@@ -59,8 +59,7 @@ export class AdminCatalogRequestsController {
       if (!type) throw new BadRequestException('El tipo debe pertenecer a la familia solicitada')
       const [stage] = await tx.select().from(stageMaster).where(eq(stageMaster.code, draft.stageCode))
       const [network] = await tx.select().from(networkMaster).where(eq(networkMaster.code, draft.networkCodes[0]))
-      const [possible] = await tx.select().from(assetTypeStages).where(and(eq(assetTypeStages.assetTypeId, type.id), eq(assetTypeStages.stageMasterId, stage.id)))
-      if (!possible) throw new BadRequestException('El tipo debe tener habilitada la etapa de la solicitud. Configúrala en Catálogo → Tipos.')
+      if (!stage || !network) throw new BadRequestException('La etapa o la red de la solicitud ya no está disponible')
       const specifications = await validateFamilySpecifications(tx as unknown as Database, draft.familyId, dto.specifications)
       const modelId = request.modelId ?? randomUUID()
       if (request.modelId) {
@@ -91,8 +90,16 @@ export class AdminCatalogRequestsController {
       const [model] = await tx.select().from(assetModels).where(eq(assetModels.id, request.modelId)).for('update')
       const [type] = await tx.select().from(assetTypes).where(eq(assetTypes.id, model.assetTypeId))
       await validateFamilySpecifications(tx as unknown as Database, type.familyId, model.specifications as Record<string, unknown>)
-      await tx.update(assetModels).set({ status: 'ACTIVE' }).where(eq(assetModels.id, model.id))
       const draft = createAssetSchema.parse({ ...request.draft as object, assetModelId: model.id })
+      const [stage] = await tx.select().from(stageMaster).where(eq(stageMaster.code, draft.stageCode))
+      const [network] = await tx.select().from(networkMaster).where(eq(networkMaster.code, draft.networkCodes[0]))
+      if (!stage || !network) throw new BadRequestException('La etapa o la red de la solicitud ya no está disponible')
+      // La aprobación amplía las etapas posibles del tipo; guardar o rechazar no modifica esa configuración.
+      // Todo se confirma junto con la publicación y el alta de planta, sin asociaciones parciales si falla el alta.
+      await tx.insert(assetTypeStages).values({ assetTypeId: type.id, stageMasterId: stage.id }).onConflictDoNothing()
+      await tx.insert(assetModelStages).values({ assetModelId: model.id, stageMasterId: stage.id }).onConflictDoNothing()
+      await tx.insert(assetModelNetworks).values({ assetModelId: model.id, networkMasterId: network.id }).onConflictDoNothing()
+      await tx.update(assetModels).set({ status: 'ACTIVE' }).where(eq(assetModels.id, model.id))
       const asset = await this.assets.inTransaction(tx).create(plant, draft, req, true)
       const [saved] = await tx.update(catalogRequests).set({ status: 'APPROVED', assetId: asset.id, decidedBy: req.user!.id, decidedAt: new Date(), decisionNote: dto.note || null }).where(eq(catalogRequests.id, id)).returning()
       return saved

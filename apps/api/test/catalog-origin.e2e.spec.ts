@@ -111,4 +111,22 @@ describe('Modelo de origen y solicitudes de catálogo', () => {
     const optional = (await post('/plants/e2e-origin/catalog-requests', draft(), user).expect(201)).body
     expect(optional.draft.requestNote).toBeUndefined()
   })
+  it('crea una solicitud nueva desde una rechazada de la misma planta sin alterar la original', async () => {
+    const source = (await post('/plants/e2e-origin/catalog-requests', draft(), user).expect(201)).body
+    await post('/plants/e2e-origin/catalog-requests', { ...draft(), sourceRequestId: source.id }, user).expect(400)
+    await post(`/catalog/requests/${source.id}/reject`, { note: 'Completa los motivos' }).expect(201)
+    const [before] = await t.db.select().from(catalogRequests).where(eq(catalogRequests.id, source.id))
+    const sequence = (await t.db.select().from(plantSettings).where(eq(plantSettings.plantId, plantId)))[0].assetSeq
+    const revised = (await post('/plants/e2e-origin/catalog-requests', { ...draft(), name: 'Equipo corregido', sourceRequestId: source.id, requestNote: 'Ahora explicamos la protección adicional', specifications: { Potencia: 15 } }, user).expect(201)).body
+    expect(revised.id).not.toBe(source.id)
+    expect(revised).toMatchObject({ status: 'PENDING', modelId: null, assetId: null, decisionNote: null, decidedAt: null, draft: { sourceRequestId: source.id, name: 'Equipo corregido', specifications: { Potencia: 15 } } })
+    expect((await t.db.select().from(catalogRequests).where(eq(catalogRequests.id, source.id)))[0]).toEqual(before)
+    expect((await t.db.select().from(plantSettings).where(eq(plantSettings.plantId, plantId)))[0].assetSeq).toBe(sequence)
+    await post('/plants/e2e-origin/catalog-requests', { ...draft(), sourceRequestId: source.id }, outsider).expect(404)
+    await post('/plants/e2e-origin/catalog-requests', { ...draft(), sourceRequestId: '00000000-0000-4000-8000-000000000000' }, user).expect(404)
+    const otherPlant = await t.plant('origin-other', 'PRIVATE')
+    const [other] = await t.db.insert(catalogRequests).values({ plantId: otherPlant.id, submittedBy: before.submittedBy, draft: draft(), status: 'REJECTED' }).returning()
+    await post('/plants/e2e-origin/catalog-requests', { ...draft(), sourceRequestId: other.id }, user).expect(404)
+    await t.db.delete(catalogRequests).where(eq(catalogRequests.id, other.id))
+  })
 })

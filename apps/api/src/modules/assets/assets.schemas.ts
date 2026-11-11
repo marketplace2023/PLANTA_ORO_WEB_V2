@@ -65,6 +65,7 @@ export const assetRequestSchema = createAssetSchema.omit({ assetModelId: true })
   familyId: z.uuid(),
   // Contexto de la solicitud; no forma parte de la ficha del modelo ni del activo aprobado.
   requestNote: z.string().trim().max(5000, 'La nota de la solicitud admite hasta 5.000 caracteres').optional(),
+  sourceRequestId: z.uuid().optional(),
 })
 
 export const updateAssetSchema = z

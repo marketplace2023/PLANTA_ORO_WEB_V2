@@ -28,6 +28,11 @@ export class PlantCatalogRequestsController {
   @RequirePermission('asset.create')
   @Post()
   async submit(@CurrentPlant() plant: PlantRow, @Body(new ZodValidationPipe(assetRequestSchema)) draft: z.infer<typeof assetRequestSchema>, @Req() req: AppRequest) {
+    if (draft.sourceRequestId) {
+      const [source] = await this.db.select().from(catalogRequests).where(and(eq(catalogRequests.id, draft.sourceRequestId), eq(catalogRequests.plantId, plant.id)))
+      if (!source) throw new NotFoundException('Solicitud de origen no encontrada en esta planta')
+      if (source.status !== 'REJECTED') throw new BadRequestException('Solo puedes crear otra solicitud a partir de una rechazada')
+    }
     // Valida la clasificación y la ficha sin crear activos ni reservar TAG/FUR.
     await this.assets.tagPreview(plant, { familyId: draft.familyId, stageCode: draft.stageCode, networkCode: draft.networkCodes[0] })
     draft.specifications = await validateFamilySpecifications(this.db, draft.familyId, draft.specifications ?? {})

@@ -51,7 +51,8 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
   const update = useUpdateAsset(plantSlug, asset?.id ?? '')
   const queryClient = useQueryClient()
   const [requestMode, setRequestMode] = useState(false)
-  const submitRequest = useMutation({ mutationFn: (body: AssetInput) => api(`/plants/${plantSlug}/catalog-requests`, { method: 'POST', body: JSON.stringify(body) }) })
+  const [requestNote, setRequestNote] = useState('')
+  const submitRequest = useMutation({ mutationFn: (body: AssetInput & { requestNote?: string }) => api(`/plants/${plantSlug}/catalog-requests`, { method: 'POST', body: JSON.stringify(body) }) })
   const pending = editing ? update.isPending : create.isPending || submitRequest.isPending
 
   const [modelSearch, setModelSearch] = useState('')
@@ -131,7 +132,7 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
 
     try {
       if (!editing && requestMode) {
-        await submitRequest.mutateAsync({ ...common, stageCode: stageCode!, ...(form.serialNumber.trim() && { serialNumber: form.serialNumber.trim() }) })
+        await submitRequest.mutateAsync({ ...common, stageCode: stageCode!, ...(requestNote.trim() && { requestNote: requestNote.trim() }), ...(form.serialNumber.trim() && { serialNumber: form.serialNumber.trim() }) })
         await queryClient.invalidateQueries({ queryKey: ['plant', plantSlug, 'catalog-requests'] })
         toast.success('Solicitud enviada. El activo se registrará cuando administración la apruebe.')
         onOpenChange(false)
@@ -246,6 +247,11 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
                   loading={models.isFetching || modelSearch.trim() !== search} failed={models.isError} onRetry={() => void models.refetch()} invalid={!!errors.assetModelId} /> : <p className="text-sm text-muted-foreground">Selecciona la red, la etapa y la familia para consultar sus modelos.</p>)}
                 {fieldError('assetModelId')}
                 {!editing && <label className="flex cursor-pointer items-start gap-3 text-sm"><Checkbox checked={requestMode} onCheckedChange={on => { setRequestMode(on === true); setReferences([]) }} /><span>No existe en el catálogo: solicitar incorporación<span className="mt-1 block text-xs text-muted-foreground">Completa la ficha. Administración la revisará y completará el catálogo. El activo se creará únicamente después de su aprobación.</span></span></label>}
+                {!editing && requestMode && <div className="space-y-2">
+                  <Label htmlFor="requestNote">Nota de la solicitud (opcional)</Label>
+                  <Textarea id="requestNote" value={requestNote} onChange={e => setRequestNote(e.target.value)} maxLength={5000} rows={4} className="resize-y" placeholder="Explica los motivos de la incorporación y cualquier contexto que ayude a administración a evaluar la solicitud." aria-describedby="request-note-hint" />
+                  <p id="request-note-hint" className="text-xs text-muted-foreground">Administración recibirá esta nota junto con la ficha. {requestNote.length.toLocaleString('es')} / 5.000 caracteres.</p>
+                </div>}
                 {!requestMode && <p className="text-xs text-muted-foreground">Al crear el activo, seleccionar un modelo carga sus especificaciones y componentes como punto de partida. Puedes ajustarlos para tu planta sin modificar el catálogo.</p>}
               </div>
 

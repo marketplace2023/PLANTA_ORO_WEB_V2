@@ -187,8 +187,13 @@ describe('Activo propio de planta', () => {
     expect(await screen.findByText('Selecciona el modelo de origen del catálogo')).toBeInTheDocument()
     expect(api.count('POST /plants/revemin-ii/assets')).toBe(0)
     await userEvent.click(screen.getByRole('checkbox', { name: /No existe en el catálogo/ }))
+    const note = screen.getByLabelText('Nota de la solicitud (opcional)')
+    expect(note).toHaveAttribute('maxlength', '5000')
+    await userEvent.type(note, '  Necesitamos otra variante.\nIncluye protección adicional.  ')
     await userEvent.click(screen.getByRole('button', { name: 'Enviar solicitud' }))
     await waitFor(() => expect(api.count('POST /plants/revemin-ii/catalog-requests')).toBe(1))
+    const submission = api.calls.find(call => call.method === 'POST' && call.path.endsWith('/catalog-requests'))!
+    expect(JSON.parse(submission.init.body as string).requestNote).toBe('Necesitamos otra variante.\nIncluye protección adicional.')
     expect(api.count('POST /plants/revemin-ii/assets')).toBe(0)
   })
   it('filtra referencias por familia y etapa y limpia la selección al cambiar de etapa', async () => {

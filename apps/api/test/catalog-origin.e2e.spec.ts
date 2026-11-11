@@ -31,7 +31,11 @@ describe('Modelo de origen y solicitudes de catálogo', () => {
   it('no crea ni reserva TAG antes de aprobar; protege permisos y evita dobles aprobaciones', async () => {
     await post('/plants/e2e-origin/catalog-requests', draft(), outsider).expect(404)
     const before = (await t.db.select().from(plantSettings).where(eq(plantSettings.plantId, plantId)))[0].assetSeq
-    const pending = (await post('/plants/e2e-origin/catalog-requests', draft(), user).expect(201)).body
+    const requestNote = 'Necesitamos esta variante para la planta.\nIncluye una protección adicional.'
+    const pending = (await post('/plants/e2e-origin/catalog-requests', { ...draft(), requestNote: `  ${requestNote}  ` }, user).expect(201)).body
+    expect(pending.draft.requestNote).toBe(requestNote)
+    const adminList = (await http().get('/api/v1/catalog/requests').set('Authorization', bearer(admin)).expect(200)).body
+    expect(adminList.find((r: { id: string }) => r.id === pending.id).draft.requestNote).toBe(requestNote)
     expect(pending.status).toBe('PENDING'); expect(pending.assetId).toBeNull()
     expect((await t.db.select().from(plantSettings).where(eq(plantSettings.plantId, plantId)))[0].assetSeq).toBe(before)
     await post(`/catalog/requests/${pending.id}/approve`, {}, user).expect(403)
@@ -42,18 +46,29 @@ describe('Modelo de origen y solicitudes de catálogo', () => {
     const result = await Promise.all([post(`/catalog/requests/${pending.id}/approve`, {}), post(`/catalog/requests/${pending.id}/approve`, {})])
     expect(result.map(r => r.status).sort()).toEqual([201, 409])
     const approved = result.find(r => r.status === 201)!.body
+    expect(approved.draft.requestNote).toBe(requestNote)
     const [asset] = await t.db.select().from(assets).where(eq(assets.id, approved.assetId))
     expect(asset.assetModelId).toBe(reviewed.modelId); expect(asset.specifications).toEqual({ Potencia: 12 })
     expect(asset.technicalData).toMatchObject({ componentes: ['Componente propio'] })
     expect((await t.db.select().from(assetModels).where(eq(assetModels.id, reviewed.modelId)))[0].specifications).toEqual({ Potencia: 20 })
   })
   it('rechaza con motivo sin crear activos y permite consultar la decisión desde planta', async () => {
-    const pending = (await post('/plants/e2e-origin/catalog-requests', draft(), user).expect(201)).body
+    const pending = (await post('/plants/e2e-origin/catalog-requests', { ...draft(), requestNote: 'Motivos de la incorporación' }, user).expect(201)).body
     await post(`/catalog/requests/${pending.id}/reject`, {}).expect(400)
     const rejected = (await post(`/catalog/requests/${pending.id}/reject`, { note: 'Ficha incompleta' }).expect(201)).body
     expect(rejected.assetId).toBeNull(); expect(rejected.status).toBe('REJECTED')
     await post(`/catalog/requests/${pending.id}/approve`, {}).expect(409)
     const listed = (await http().get('/api/v1/plants/e2e-origin/catalog-requests').set('Authorization', bearer(user)).expect(200)).body
     expect(listed.find((r: { id: string }) => r.id === pending.id).decisionNote).toBe('Ficha incompleta')
+    expect(listed.find((r: { id: string }) => r.id === pending.id).draft.requestNote).toBe('Motivos de la incorporación')
+  })
+  it('limita la nota a 5.000 caracteres y sigue aceptando solicitudes sin nota', async () => {
+    const before = await t.db.select().from(catalogRequests).where(eq(catalogRequests.plantId, plantId))
+    await post('/plants/e2e-origin/catalog-requests', { ...draft(), requestNote: 'x'.repeat(5001) }, user).expect(400)
+    expect(await t.db.select().from(catalogRequests).where(eq(catalogRequests.plantId, plantId))).toHaveLength(before.length)
+    const limit = (await post('/plants/e2e-origin/catalog-requests', { ...draft(), requestNote: 'x'.repeat(5000) }, user).expect(201)).body
+    expect(limit.draft.requestNote).toHaveLength(5000)
+    const optional = (await post('/plants/e2e-origin/catalog-requests', draft(), user).expect(201)).body
+    expect(optional.draft.requestNote).toBeUndefined()
   })
 })

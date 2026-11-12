@@ -1,7 +1,7 @@
 /* Photographic navigation: the same destinations, with room for the original imagery. */
 .module-shortcuts {
   display: grid;
-  grid-template-columns: minmax(0, 7fr) minmax(0, 4fr);
+  grid-template-columns: minmax(0, 6fr) minmax(0, 4fr);
   gap: 22px;
   margin: 0 0 24px;
   padding: 18px;
@@ -94,7 +94,7 @@
   .module-group-heading { align-items: flex-start; flex-direction: column; gap: 5px; }
 }
 /* Catalog keeps its original compact icon navigation. */
-.module-shortcuts[data-variant=icons] { grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); padding: 16px; gap: 0; border-radius: 16px; }
+.module-shortcuts[data-variant=icons] { grid-template-columns: minmax(0, 6fr) minmax(0, 4fr); padding: 16px; gap: 0; border-radius: 16px; }
 .module-shortcuts[data-variant=icons] .module-shortcut-group:first-child { padding: 0 18px 0 0; margin-right: 18px; border-right: 1px solid var(--border); border-bottom: 0; }
 .module-shortcuts[data-variant=icons] .module-group-heading { padding: 0 7px 9px; }
 .module-shortcuts[data-variant=icons] .module-group-title { font-size: 10px; color: var(--muted-foreground); }

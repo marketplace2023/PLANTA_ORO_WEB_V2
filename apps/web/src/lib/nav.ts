@@ -47,8 +47,8 @@ export const NAV_ITEMS: NavItem[] = [
 
 /** Una sola estructura para el menú principal y los accesos visuales. */
 export const PORTAL_NAV_GROUPS = [
-  { id: 'plant', label: 'Gestión de planta', icon: Factory, paths: ['/catalog', 'assets', 'processes', 'maintenance', 'inventory', 'budgets', 'documents'] },
-  { id: 'services', label: 'Servicios', icon: Handshake, paths: ['/marketplace', '/professionals', '/courses'] },
+  { id: 'plant', label: 'Gestión de planta', icon: Factory, paths: ['/catalog', 'assets', 'processes', 'maintenance', 'inventory', 'documents'] },
+  { id: 'services', label: 'Servicios', icon: Handshake, paths: ['/marketplace', '/professionals', '/courses', 'budgets'] },
 ].map(({ paths, ...group }) => ({ ...group, items: paths.map((path) => NAV_ITEMS.find((item) => item.path === path)!) }))
 
 export function navTarget(item: NavItem, plantSlug?: string | null): string {

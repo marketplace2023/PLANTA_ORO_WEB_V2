@@ -4,11 +4,65 @@ import { Route, Routes } from 'react-router-dom';
 import { renderWithProviders } from '@/test/render';
 import { mockApi } from '@/test/fetch-mock';
 import { ProfessionalsStudioPage, ProfessionalServicePage } from './professionals-studio-page';
-vi.mock('@/features/auth/auth-context', () => ({ useAuth: () => ({ user: { id: 'buyer-1' } }) }));
+const auth = vi.hoisted(() => ({ user: { id: 'buyer-1' } as { id: string } | null }));
+vi.mock('@/features/auth/auth-context', () => ({ useAuth: () => ({ user: auth.user }) }));
 vi.mock('@/features/catalog/use-catalog', () => ({ useStageCatalog: () => ({ data: [] }) }));
 const item = { id: 'service-1', name: 'Diagnóstico industrial', description: 'Servicio con informe completo.', specialty: 'MECANICA', version: 2, currency: 'USD', mode: 'FIXED', fromPrice: 120, deliveryDays: 7, coverUrl: '/professional-market/media/image-1', rating: 4.5, ratingCount: 2, contractor: { id: 'contractor-1', name: 'Especialistas industriales', verified: true, availability: 'AVAILABLE', city: 'Caracas', countryCode: 'VE' } };
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); auth.user = { id: 'buyer-1' }; });
+function offerDetail(mode: 'FIXED' | 'QUOTE' = 'FIXED', canContract = true) {
+    return { ...item, mode, status: 'PUBLISHED', stageCodes: [], canManage: !canContract, canContract,
+        packages: [{ id: 'basic', name: 'Esencial', description: 'Inspección del equipo', price: 0, deliveryDays: 7, revisions: 1, deliverables: ['Informe'] }],
+        extras: [], requirements: [], faq: [], terms: '', videoUrl: '', gallery: [], reviews: [],
+        contractor: { ...item.contractor, displayName: 'Especialista', headline: '', bio: '', languages: [], skills: [], portfolio: [], avatarUrl: null, portfolioImages: [], certifications: [] } };
+}
+function openDetail() {
+    renderWithProviders(<Routes><Route path="/professionals/:id" element={<ProfessionalServicePage />} /><Route path="/service-orders/:id" element={<p>Solicitud registrada</p>} /></Routes>, { route: '/professionals/service-1' });
+}
 describe('Public professional services', () => {
+    it('explains why company members cannot hire their own service', async () => {
+        const mock = mockApi({ 'GET /professional-market/services/service-1': { body: offerDetail('FIXED', false) } });
+        openDetail();
+        expect(await screen.findByRole('note')).toHaveTextContent('Estás viendo un servicio de tu empresa');
+        expect(screen.getByRole('link', { name: /Gestionar en el portal profesional/ })).toHaveAttribute('href', 'http://localhost:5179/services/service-1');
+        expect(screen.queryByRole('button', { name: 'Contratar este paquete' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Solicitar cotización' })).not.toBeInTheDocument();
+        expect(mock.count('POST /professional-market/orders')).toBe(0);
+    });
+
+    it('sends a custom quote request without package price or extras', async () => {
+        const mock = mockApi({ 'GET /professional-market/services/service-1': { body: offerDetail('QUOTE') }, 'POST /professional-market/orders': { status: 201, body: { id: 'quote-1' } } });
+        openDetail();
+        fireEvent.click(await screen.findByRole('button', { name: 'Solicitar cotización' }));
+        expect(screen.getByText('Precio a convenir')).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Contratar este paquete' })).not.toBeInTheDocument();
+        expect(screen.getByText(/Enviar esta solicitud no genera un cobro/)).toBeInTheDocument();
+        fireEvent.change(screen.getByLabelText('Describe tu proyecto'), { target: { value: 'Necesito una evaluación y cotización del mantenimiento.' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Enviar solicitud' }));
+        expect(await screen.findByText('Solicitud registrada')).toBeInTheDocument();
+        const payload = JSON.parse(mock.calls.find(c => c.method === 'POST')!.init.body as string);
+        expect(payload).toMatchObject({ serviceId: 'service-1', mode: 'QUOTE', expectedVersion: 2 });
+        expect(payload).not.toHaveProperty('packageId');
+        expect(payload).not.toHaveProperty('expectedTotal');
+        expect(payload).not.toHaveProperty('extras');
+    });
+
+    it('allows requesting a custom proposal for a fixed package service', async () => {
+        const mock = mockApi({ 'GET /professional-market/services/service-1': { body: offerDetail() }, 'POST /professional-market/orders': { status: 201, body: { id: 'custom-1' } } });
+        openDetail();
+        fireEvent.click(await screen.findByRole('button', { name: 'Necesito una propuesta personalizada' }));
+        fireEvent.change(screen.getByLabelText('Describe tu proyecto'), { target: { value: 'Quiero incluir dos equipos en una propuesta especial.' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Enviar solicitud' }));
+        await screen.findByText('Solicitud registrada');
+        expect(JSON.parse(mock.calls.find(c => c.method === 'POST')!.init.body as string).mode).toBe('QUOTE');
+    });
+
+    it('provides a sign-in link to anonymous customers instead of a disabled submission', async () => {
+        auth.user = null;
+        mockApi({ 'GET /professional-market/services/service-1': { body: offerDetail('QUOTE') } });
+        openDetail();
+        expect(await screen.findByRole('link', { name: 'Iniciar sesión para cotizar' })).toHaveAttribute('href', '/login');
+        expect(screen.queryByRole('button', { name: 'Enviar solicitud' })).not.toBeInTheDocument();
+    });
     it('shows compact cards linking to the complete offer and verified reviews', async () => {
         mockApi({ 'GET /professional-market/services': { body: { items: [item], total: 1, page: 1, pageSize: 12 } } });
         renderWithProviders(<ProfessionalsStudioPage />);

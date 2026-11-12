@@ -1,77 +1,84 @@
-import { screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderWithProviders } from '@/test/render'
 import { MainNavbar } from './main-navbar'
+import { ModuleShortcuts } from './module-shortcuts'
 
 const state = vi.hoisted(() => ({ currentPlant: null as { slug: string } | null }))
+vi.mock('@/features/plant/plant-context', () => ({ usePlant: () => ({ currentPlant: state.currentPlant }) }))
 
-vi.mock('@/features/plant/plant-context', () => ({
-  usePlant: () => ({ currentPlant: state.currentPlant }),
-}))
+const PLANT_LABELS = ['Catálogo', 'Activos Físicos', 'Procesos', 'Mantenimiento', 'WMS / Inventario', 'Presupuestos (LULO)', 'Documentos']
+const SERVICE_LABELS = ['Marketplace', 'Servicios Profesionales', 'Cursos (LMS)']
 
-// Nombres fijos: docs/design.md §9 y §56.
-const NAV_LABELS = [
-  'Página principal',
-  'Catálogo',
-  'Activos Físicos',
-  'Procesos',
-  'Marketplace',
-  'Proveedores',
-  'Servicios Profesionales',
-  'Cursos (LMS)',
-  'Redes Transversales',
-  'Mantenimiento',
-  'WMS / Inventario',
-  'Presupuestos (LULO)',
-  'Documentos',
-  'Dashboards',
-]
+describe('Navegación unificada', () => {
+  beforeEach(() => { state.currentPlant = null })
 
-describe('MainNavbar', () => {
-  beforeEach(() => {
-    state.currentPlant = null
+  it.each(['horizontal', 'vertical'] as const)('muestra solo Inicio, Gestión de planta y Servicios en orientación %s', (orientation) => {
+    renderWithProviders(<MainNavbar orientation={orientation} />)
+    expect(screen.getAllByRole('link').map((link) => link.textContent)).toEqual(['Página principal'])
+    expect(screen.getAllByRole('button').map((button) => button.textContent?.trim())).toEqual(['Gestión de planta', 'Servicios'])
+    expect(screen.queryByRole('button', { name: 'Más' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Redes Transversales')).not.toBeInTheDocument()
+    expect(screen.queryByText('Dashboards')).not.toBeInTheDocument()
   })
 
-  it('muestra las 14 secciones con los nombres del diseño, en orden', () => {
-    renderWithProviders(<MainNavbar />)
-    const labels = screen.getAllByRole('link').map((a) => a.textContent)
-    expect(labels).toEqual(NAV_LABELS)
-  })
-
-  it('sin planta seleccionada, las secciones de planta llevan a elegir una planta y recuerdan cuál', () => {
-    renderWithProviders(<MainNavbar />)
-    expect(screen.getByRole('link', { name: 'Activos Físicos' })).toHaveAttribute('href', '/plants?next=assets')
-    expect(screen.getByRole('link', { name: 'Presupuestos (LULO)' })).toHaveAttribute('href', '/plants?next=budgets')
-    expect(screen.getByRole('link', { name: 'Presupuestos (LULO)' })).toHaveAttribute('title', 'Elige una planta para abrir esta sección')
-    expect(screen.getByRole('link', { name: 'Marketplace' })).toHaveAttribute('href', '/marketplace')
-  })
-
-  it('sin planta, estando en /plants ninguna sección de planta se marca como activa', () => {
-    renderWithProviders(<MainNavbar />, { route: '/plants?next=budgets' })
-    for (const name of ['Activos Físicos', 'Procesos', 'Mantenimiento', 'Presupuestos (LULO)']) {
-      expect(screen.getByRole('link', { name })).not.toHaveAttribute('aria-current')
-    }
-  })
-
-  it('sin planta, Dashboards abre el dashboard del ecosistema (no pide elegir planta)', () => {
-    renderWithProviders(<MainNavbar />, { route: '/dashboards' })
-    const link = screen.getByRole('link', { name: 'Dashboards' })
-    expect(link).toHaveAttribute('href', '/dashboards')
-    expect(link).toHaveAttribute('aria-current', 'page')
-    expect(link).not.toHaveAttribute('title')
-  })
-
-  it('con planta seleccionada, las secciones de planta cuelgan de /plants/:slug', () => {
+  it.each(['horizontal', 'vertical'] as const)('Gestión de planta incorpora las tres herramientas antes ubicadas en Más (%s)', async (orientation) => {
+    const user = userEvent.setup()
     state.currentPlant = { slug: 'revemin-ii' }
-    renderWithProviders(<MainNavbar />)
-    expect(screen.getByRole('link', { name: 'Activos Físicos' })).toHaveAttribute('href', '/plants/revemin-ii/assets')
-    expect(screen.getByRole('link', { name: 'Dashboards' })).toHaveAttribute('href', '/plants/revemin-ii/dashboard')
-    expect(screen.getByRole('link', { name: 'Cursos (LMS)' })).toHaveAttribute('href', '/courses')
+    const onNavigate = vi.fn()
+    renderWithProviders(<MainNavbar orientation={orientation} onNavigate={onNavigate} />, { route: '/plants/revemin-ii/inventory' })
+    const trigger = screen.getByRole('button', { name: 'Gestión de planta' })
+    expect(trigger).toHaveClass(orientation === 'vertical' ? 'bg-fur-gold-500' : 'border-fur-navy-900')
+    await user.click(trigger)
+    expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(PLANT_LABELS)
+    expect(screen.getByRole('menuitem', { name: 'Mantenimiento' })).toHaveAttribute('href', '/plants/revemin-ii/maintenance')
+    expect(screen.getByRole('menuitem', { name: 'WMS / Inventario' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('menuitem', { name: 'Presupuestos (LULO)' })).toHaveAttribute('href', '/plants/revemin-ii/budgets')
+    const documents = screen.getByRole('menuitem', { name: 'Documentos' })
+    expect(documents).toHaveAttribute('href', '/plants/revemin-ii/documents')
+    await user.click(documents)
+    expect(onNavigate).toHaveBeenCalledOnce()
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
   })
 
-  it('marca la sección activa', () => {
-    renderWithProviders(<MainNavbar />, { route: '/catalog' })
-    expect(screen.getByRole('link', { name: 'Catálogo' })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('link', { name: 'Página principal' })).not.toHaveAttribute('aria-current')
+  it('sin planta elegida conserva el módulo solicitado y no marca todas las herramientas como activas', async () => {
+    renderWithProviders(<MainNavbar />, { route: '/plants?next=budgets' })
+    await userEvent.click(screen.getByRole('button', { name: 'Gestión de planta' }))
+    for (const [label, path] of [['Mantenimiento', 'maintenance'], ['WMS / Inventario', 'inventory'], ['Presupuestos (LULO)', 'budgets'], ['Documentos', 'documents']]) {
+      const link = screen.getByRole('menuitem', { name: label })
+      expect(link).toHaveAttribute('href', path === 'budgets' ? '/budgets' : `/plants?next=${path}`)
+      expect(link).not.toHaveAttribute('aria-current')
+    }
+    expect(screen.getByRole('menuitem', { name: 'Catálogo' })).toHaveAttribute('href', '/catalog')
+  })
+
+  it('Servicios conserva sus secciones unificadas y el cierre por teclado', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<MainNavbar />)
+    await user.click(screen.getByRole('button', { name: 'Servicios' }))
+    expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(SERVICE_LABELS)
+    expect(screen.getByRole('menuitem', { name: 'Marketplace' })).toHaveAttribute('href', '/marketplace')
+    expect(screen.queryByRole('menuitem', { name: 'Mantenimiento' })).not.toBeInTheDocument()
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Servicios' })).toHaveFocus()
+  })
+
+  it('los accesos visuales muestran los mismos grupos y omiten las secciones retiradas', () => {
+    state.currentPlant = { slug: 'revemin-ii' }
+    renderWithProviders(<ModuleShortcuts />)
+    expect(within(screen.getByRole('group', { name: 'Gestión de planta' })).getAllByRole('link').map((link) => link.textContent)).toEqual(PLANT_LABELS)
+    expect(within(screen.getByRole('group', { name: 'Servicios' })).getAllByRole('link').map((link) => link.textContent)).toEqual(SERVICE_LABELS)
+    expect(screen.getByRole('link', { name: 'Documentos' })).toHaveAttribute('href', '/plants/revemin-ii/documents')
+    expect(screen.queryByRole('link', { name: 'Redes Transversales' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Dashboards' })).not.toBeInTheDocument()
+  })
+
+  it('los accesos visuales sin planta también conservan el contexto solicitado', () => {
+    renderWithProviders(<ModuleShortcuts />, { route: '/plants' })
+    const inventory = screen.getByRole('link', { name: 'WMS / Inventario' })
+    expect(inventory).toHaveAttribute('href', '/plants?next=inventory')
+    expect(inventory).not.toHaveAttribute('aria-current')
   })
 })

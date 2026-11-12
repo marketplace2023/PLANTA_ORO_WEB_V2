@@ -19,6 +19,9 @@ export type Env = {
   /** Región del bucket; vacío = la del entorno (`AWS_REGION`). */
   S3_REGION: string
   MAX_UPLOAD_MB: number
+  MAX_VIDEO_UPLOAD_MB: number
+  FFMPEG_PATH: string
+  FFPROBE_PATH: string
   /**
    * `members` (por defecto): sin sesión solo se ve la página principal y el catálogo; los datos de una planta solo los ve quien
    * pertenece a ella. `open`: modo abierto (plantas públicas visibles a visitantes), usado por las pruebas de visibilidad.
@@ -84,6 +87,8 @@ export function validateEnv(raw: Record<string, unknown>): Env {
 
   const maxUploadMb = intVar(raw.MAX_UPLOAD_MB, 25, 'MAX_UPLOAD_MB', 1, errors)
   if (maxUploadMb > 200) errors.push('MAX_UPLOAD_MB no puede superar 200')
+  const maxVideoMb = intVar(raw.MAX_VIDEO_UPLOAD_MB, 500, 'MAX_VIDEO_UPLOAD_MB', 1, errors)
+  if (maxVideoMb > 2048) errors.push('MAX_VIDEO_UPLOAD_MB no puede superar 2048')
 
   if (errors.length > 0) {
     throw new Error(`Configuración inválida:\n - ${errors.join('\n - ')}`)
@@ -107,6 +112,9 @@ export function validateEnv(raw: Record<string, unknown>): Env {
     S3_REGION: String(raw.S3_REGION ?? raw.AWS_REGION ?? '').trim(),
     STORAGE_DIR: String(raw.STORAGE_DIR ?? './.local/storage').trim() || './.local/storage',
     MAX_UPLOAD_MB: maxUploadMb,
+    MAX_VIDEO_UPLOAD_MB: maxVideoMb,
+    FFMPEG_PATH: String(raw.FFMPEG_PATH ?? ''),
+    FFPROBE_PATH: String(raw.FFPROBE_PATH ?? ''),
     TRUST_PROXY_HOPS: trustProxyHops,
     ACCESS_MODE: accessMode as Env['ACCESS_MODE'],
   }

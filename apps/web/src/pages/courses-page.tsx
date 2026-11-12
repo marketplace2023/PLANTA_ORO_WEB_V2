@@ -14,7 +14,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/features/auth/auth-context'
-import { useStageCatalog } from '@/features/catalog/use-catalog'
 import { useCourses } from '@/features/lms/use-lms'
 import { useMyContractors, useMyProviders } from '@/features/organizations/use-organizations'
 import { LEVEL_LABELS, LEVELS, levelLabel, OWNER_LABELS } from '@/lib/lms'
@@ -39,13 +38,13 @@ const DURATIONS = [
   { value: '480', label: 'Hasta 8 h' },
 ]
 
-/** Cursos (LMS, design.md §36): formación por etapa del proceso, del ecosistema, proveedores y contratistas. */
+/** Cursos (LMS, design.md §36): formación independiente de las etapas, del ecosistema, proveedores y contratistas. */
 export function CoursesPage() {
   const { user } = useAuth()
   const { filters, setParam } = useUrlFilters()
   const page = Math.max(1, Number(filters.page) || 1)
-  const courses = useCourses(filters, PAGE_SIZE)
-  const stages = useStageCatalog()
+  const courseFilters = Object.fromEntries(Object.entries(filters).filter(([key]) => key !== 'stage'))
+  const courses = useCourses(courseFilters, PAGE_SIZE)
   const myProviders = useMyProviders(!!user)
   const myContractors = useMyContractors(!!user)
 
@@ -57,7 +56,7 @@ export function CoursesPage() {
   }, [debounced])
 
   const chips: Chip[] = [
-    filters.stage && { key: 'stage', label: 'Etapa', value: `${filters.stage} · ${stages.data?.find((s) => s.code === filters.stage)?.name ?? ''}`.trim() },
+    filters.category && { key: 'category', label: 'Categoría', value: filters.category },
     filters.level && { key: 'level', label: 'Nivel', value: levelLabel(filters.level) },
     filters.ownerType && { key: 'ownerType', label: 'Ofrece', value: OWNER_LABELS[filters.ownerType] ?? filters.ownerType },
     filters.maxMinutes && { key: 'maxMinutes', label: 'Duración', value: DURATIONS.find((d) => d.value === filters.maxMinutes)?.label ?? `${filters.maxMinutes} min` },
@@ -67,15 +66,15 @@ export function CoursesPage() {
   ].filter((c): c is Chip => !!c)
   const clearAll = () => {
     setSearchText('')
-    setParam({ stage: undefined, level: undefined, ownerType: undefined, maxMinutes: undefined, certificate: undefined, free: undefined, search: undefined })
+    setParam({ category: undefined, stage: undefined, level: undefined, ownerType: undefined, maxMinutes: undefined, certificate: undefined, free: undefined, search: undefined })
   }
 
   const data = courses.data
   return (
-    <>
+    <div className="directory-page courses-page">
       <PageHeader
         title="Cursos (LMS)"
-        description="Formación para el personal de planta, organizada por etapa del proceso."
+        description="Formación para el personal de planta, para desarrollar habilidades y conocimientos profesionales."
         actions={
           <div className="flex flex-wrap gap-2">
             {user && (
@@ -110,7 +109,7 @@ export function CoursesPage() {
         }
       />
 
-      <div className="mb-4 space-y-3 rounded-lg border border-border bg-card p-4">
+      <div className="directory-filters mb-4 space-y-3 rounded-lg border border-border bg-card p-4">
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-56 flex-1 space-y-1">
             <Label htmlFor="cr-search" className="text-xs text-fur-gray-600">
@@ -121,7 +120,7 @@ export function CoursesPage() {
               <Input id="cr-search" type="search" className="h-10 pl-9" placeholder="Título, descripción o instructor…" value={searchText} onChange={(e) => setSearchText(e.target.value)} />
             </div>
           </div>
-          <FilterSelect label="Etapa" value={filters.stage ?? ''} onChange={(v) => setParam({ stage: v || undefined })} options={(stages.data ?? []).map((s) => ({ value: s.code, label: `${s.code} · ${s.name}` }))} />
+          <FilterSelect label="Categoría" value={filters.category ?? ''} onChange={(v) => setParam({ category: v || undefined })} options={['General', 'Operaciones', 'Mantenimiento', 'Seguridad y ambiente', 'Gestión', 'Tecnología', 'Desarrollo profesional'].map(c => ({value: c, label: c}))} />
           <FilterSelect label="Nivel" value={filters.level ?? ''} onChange={(v) => setParam({ level: v || undefined })} options={LEVELS.map((l) => ({ value: l, label: LEVEL_LABELS[l] }))} />
           <FilterSelect label="Ofrece" value={filters.ownerType ?? ''} onChange={(v) => setParam({ ownerType: v || undefined })} options={Object.entries(OWNER_LABELS).map(([value, label]) => ({ value, label }))} />
           <FilterSelect label="Duración" value={filters.maxMinutes ?? ''} onChange={(v) => setParam({ maxMinutes: v || undefined })} options={DURATIONS} />
@@ -145,9 +144,9 @@ export function CoursesPage() {
       {courses.isError ? (
         <ErrorState onRetry={() => void courses.refetch()} />
       ) : courses.isLoading ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-busy="true" aria-label="Cargando cursos">
+        <div className="course-catalog-grid" aria-busy="true" aria-label="Cargando cursos">
           {Array.from({ length: 6 }, (_, i) => (
-            <Skeleton key={i} className="h-64" />
+            <Skeleton key={i} className="h-80 rounded-2xl" />
           ))}
         </div>
       ) : data && data.total === 0 ? (
@@ -159,7 +158,7 @@ export function CoursesPage() {
       ) : (
         data && (
           <>
-            <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <ul className="course-catalog-grid">
               {data.items.map((c) => (
                 <li key={c.id}>
                   <CourseCard course={c} />
@@ -170,6 +169,6 @@ export function CoursesPage() {
           </>
         )
       )}
-    </>
+    </div>
   )
 }

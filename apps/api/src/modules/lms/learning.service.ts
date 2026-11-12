@@ -3,7 +3,10 @@ import { ConflictException, Inject, Injectable, NotFoundException } from '@nestj
 import { and, asc, desc, eq, sql } from 'drizzle-orm'
 import type { AppRequest, AuthUser } from '../../common/types'
 import { DB, type Database } from '../../database/database.module'
-import { contractors, courses, enrollments, lessonProgress, lessons, providers, users } from '../../database/schema'
+import { contractors, courses, enrollments, lessonPlayback, lessonProgress, lessons, lessonVideos, providers, users } from '../../database/schema'
+import type { PlaybackDto } from './lms.schemas'
+import { videoSource } from './video-tools'
+import { CoursesService } from './courses.service'
 import { AuditService } from '../audit/audit.service'
 
 type Tx = Parameters<Parameters<Database['transaction']>[0]>[0]
@@ -19,7 +22,38 @@ export class LearningService {
   constructor(
     @Inject(DB) private readonly db: Database,
     private readonly audit: AuditService,
+    private readonly courseService: CoursesService,
   ) {}
+
+  async savePlayback(courseId: string, lessonId: string, dto: PlaybackDto, user: AuthUser) {
+    await this.courseService.assertReadLesson(courseId, lessonId, user)
+    return this.db.transaction(async (tx) => {
+      const [enrollment] = await tx.select().from(enrollments).where(and(eq(enrollments.courseId, courseId), eq(enrollments.userId, user.id))).for('update')
+      if (!enrollment || enrollment.status === 'DROPPED') throw new ConflictException('Inscríbete para guardar el avance')
+      const [lesson] = await tx.select().from(lessons).where(and(eq(lessons.id, lessonId), eq(lessons.courseId, courseId)))
+      if (!lesson) throw new NotFoundException('Lección no encontrada')
+      const [video] = await tx.select().from(lessonVideos).where(eq(lessonVideos.lessonId, lessonId))
+      const source = videoSource(lesson.videoUrl, video?.id)
+      if (!source || (video && video.status !== 'READY')) throw new ConflictException('No hay video disponible en esta lección')
+      if (dto.source !== source) throw new ConflictException('El video cambió. Recarga la lección para continuar')
+      const duration = video?.durationSeconds ? Number(video.durationSeconds) : dto.durationSeconds
+      const position = Math.min(dto.positionSeconds, duration)
+      const [previous] = await tx.select().from(lessonPlayback).where(and(eq(lessonPlayback.enrollmentId, enrollment.id), eq(lessonPlayback.lessonId, lessonId)))
+      const same = previous?.source === source
+      const elapsed = same ? Math.min(30, Math.max(0, (Date.now() - previous.updatedAt.getTime()) / 1000)) : 0
+      const delta = same ? position - Number(previous.positionSeconds) : 0
+      // Seeking to the end is not watched time. Accept only plausible playback increments.
+      const credited = delta > 0 && delta <= elapsed * 2.5 + 1 ? Math.min(delta, elapsed * 2.5) : 0
+      const watched = Math.min(duration, (same ? Number(previous.watchedSeconds) : 0) + credited)
+      const values = { source, positionSeconds: position.toFixed(3), durationSeconds: duration.toFixed(3), watchedSeconds: watched.toFixed(3), updatedAt: new Date() }
+      await tx.insert(lessonPlayback).values({ enrollmentId: enrollment.id, lessonId, ...values }).onConflictDoUpdate({ target: [lessonPlayback.enrollmentId, lessonPlayback.lessonId], set: values })
+      if (dto.ended && position >= duration - 1 && watched >= duration * .9) {
+        await tx.insert(lessonProgress).values({ enrollmentId: enrollment.id, lessonId }).onConflictDoNothing()
+        await this.refresh(tx, enrollment.id, courseId)
+      }
+      return { positionSeconds: position, durationSeconds: duration, watchedSeconds: watched, completed: !!(await tx.select().from(lessonProgress).where(and(eq(lessonProgress.enrollmentId, enrollment.id), eq(lessonProgress.lessonId, lessonId))))[0] }
+    })
+  }
 
   /** Un curso se puede tomar si está publicado, su organización está activa y tiene lecciones. */
   private async takeable(courseId: string) {

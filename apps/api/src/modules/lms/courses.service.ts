@@ -4,14 +4,17 @@ import { validationError } from '../../common/errors'
 import { escapeLike, pageOf } from '../../common/pagination'
 import type { AppRequest, AuthUser } from '../../common/types'
 import { DB, type Database } from '../../database/database.module'
-import { contractors, courseStages, courses, enrollments, lessonProgress, lessons, providers, stageMaster, users } from '../../database/schema'
+import { contractors, instructorProfiles, courseSections, courses, enrollments, lessonPlayback, lessonProgress, lessons, lessonVideos, providers, users } from '../../database/schema'
+import { videoSource } from './video-tools'
+import { coursePublication } from './course-publication'
 import { AuditService } from '../audit/audit.service'
 import { OrgAccessService } from '../organizations/org-access.service'
-import type { CreateCourseDto, LessonDto, ListCoursesQuery, ManageQuery, UpdateCourseDto, UpdateLessonDto } from './lms.schemas'
+import { StorageService } from '../documents/storage.service'
+import type { ImageUpload } from '../documents/image-upload'
+import type { CreateCourseDto, LessonDto, ListCoursesQuery, ManageQuery, UpdateCourseDto, UpdateLessonDto, SectionDto, UpdateSectionDto } from './lms.schemas'
 
 type Tx = Parameters<Parameters<Database['transaction']>[0]>[0]
 type CourseRow = typeof courses.$inferSelect
-type Tag = { code: string; name: string }
 
 @Injectable()
 export class CoursesService {
@@ -19,6 +22,7 @@ export class CoursesService {
     @Inject(DB) private readonly db: Database,
     private readonly access: OrgAccessService,
     private readonly audit: AuditService,
+    private readonly storage: StorageService,
   ) {}
 
   // ---------- Propietario y permisos ----------
@@ -56,20 +60,55 @@ export class CoursesService {
     return course
   }
 
-  // ---------- Etiquetas ----------
-
-  private async stagesFor(ids: string[]) {
-    const map = new Map<string, Tag[]>()
-    if (ids.length === 0) return map
-    const rows = await this.db
-      .select({ courseId: courseStages.courseId, code: stageMaster.code, name: stageMaster.name })
-      .from(courseStages)
-      .innerJoin(stageMaster, eq(stageMaster.id, courseStages.stageMasterId))
-      .where(inArray(courseStages.courseId, ids))
-      .orderBy(asc(stageMaster.sequenceDefault))
-    for (const r of rows) map.set(r.courseId, [...(map.get(r.courseId) ?? []), { code: r.code, name: r.name }])
-    return map
+  async assertManageLesson(courseId: string, lessonId: string, user: AuthUser) {
+    await this.loadForManage(courseId, user)
+    const [lesson] = await this.db.select().from(lessons).where(and(eq(lessons.id, lessonId), eq(lessons.courseId, courseId)))
+    if (!lesson) throw new NotFoundException('Lección no encontrada')
+    return lesson
   }
+
+  async assertManageCourse(id: string, user: AuthUser) { return this.loadForManage(id, user) }
+
+  async saveCover(id: string, image: ImageUpload, version: string, user: AuthUser, req: AppRequest) {
+    await this.loadForManage(id, user)
+    const key = `lms/covers/${id}/${version}.${image.extension}`
+    await this.storage.put(key, image.data)
+    let before: CourseRow | undefined
+    try {
+      before = await this.db.transaction(async tx => {
+        const [current] = await tx.select().from(courses).where(eq(courses.id, id)).for('update')
+        if (!current) throw new NotFoundException('Curso no encontrado')
+        await tx.update(courses).set({coverKey:key,coverMime:image.mimeType,coverUpdatedAt:new Date(),coverUrl:null,updatedAt:new Date()}).where(eq(courses.id,id))
+        return current
+      })
+    } catch (error) { await this.storage.delete(key).catch(() => undefined); throw error }
+    if (before?.coverKey) await this.storage.delete(before.coverKey).catch(() => undefined)
+    await this.audit.record(req,{module:'lms',entityType:'course',entityId:id,action:'cover.updated',newData:{mimeType:image.mimeType,sizeBytes:image.data.length}})
+    return this.get(id,user)
+  }
+
+  async openCover(id: string, user?: AuthUser) {
+    await this.get(id,user)
+    const [course] = await this.db.select().from(courses).where(eq(courses.id,id))
+    if (!course?.coverKey || !course.coverMime) return null
+    const stream = await this.storage.open(course.coverKey).catch(() => { throw new NotFoundException('Portada no disponible') })
+    return {stream,mime:course.coverMime}
+  }
+
+  async assertReadLesson(courseId: string, lessonId: string, user: AuthUser) {
+    const course = await this.get(courseId, user)
+    if (!course.canManage && (!course.myEnrollment || course.myEnrollment.status === 'DROPPED')) throw new ForbiddenException('Inscríbete en el curso para reproducir sus videos')
+    const lesson = course.lessons.find((item) => item.id === lessonId)
+    if (!lesson) throw new NotFoundException('Lección no encontrada')
+    return lesson
+  }
+
+  private async discardVideo(video: typeof lessonVideos.$inferSelect | undefined) {
+    if (!video) return
+    for (const key of [video.sourceKey, video.playbackKey]) if (key) await this.storage.delete(key).catch(() => undefined)
+  }
+
+  // ---------- Etiquetas ----------
 
   private async lessonCounts(ids: string[]) {
     if (ids.length === 0) return new Map<string, number>()
@@ -85,9 +124,10 @@ export class CoursesService {
 
   private async toCards(rows: CourseRow[], user: AuthUser | undefined) {
     const ids = rows.map((r) => r.id)
-    const [stages, counts, mine] = await Promise.all([this.stagesFor(ids), this.lessonCounts(ids), this.myEnrollments(ids, user)])
+    const [counts, mine] = await Promise.all([this.lessonCounts(ids), this.myEnrollments(ids, user)])
     return Promise.all(
       rows.map(async (c) => {
+        const [profile] = c.instructorProfileId ? await this.db.select().from(instructorProfiles).where(eq(instructorProfiles.id,c.instructorProfileId)) : []
         const owner = await this.owner(c)
         return {
           id: c.id,
@@ -99,10 +139,17 @@ export class CoursesService {
           /** Precio fijado por quien ofrece el curso; 0 = gratuito. */
           price: Number(c.price),
           currency: c.currency,
-          instructorName: c.instructorName,
+          instructorName: profile?.name ?? c.instructorName,
           status: c.status,
           owner: { type: owner.type, id: owner.id, name: owner.name, verified: owner.verified },
-          stages: stages.get(c.id) ?? [],
+          stages: [], // Compatibility field; stage links are historical and no longer drive courses.
+          subtitle: c.subtitle, category: c.category, language: c.language,
+          coverUrl: c.coverKey && c.coverUpdatedAt ? `/courses/${c.id}/cover?v=${c.coverUpdatedAt.getTime()}` : c.coverUrl,
+          coverSource: c.coverKey ? 'upload' : c.coverUrl ? 'url' : null,
+          promoVideoUrl: c.promoVideoUrl, instructorBio: profile?.bio ?? c.instructorBio,
+          instructorProfileId: c.instructorProfileId,
+          instructor: profile ? {id:profile.id,name:profile.name,headline:profile.headline,bio:profile.bio,avatarUrl:profile.avatarKey ? `/instructors/${profile.id}/avatar?v=${profile.updatedAt.getTime()}` : null} : null,
+          learningObjectives: c.learningObjectives, requirements: c.requirements, targetAudience: c.targetAudience,
           lessonCount: counts.get(c.id) ?? 0,
           myEnrollment: mine.get(c.id) ?? null,
           createdAt: c.createdAt,
@@ -121,13 +168,13 @@ export class CoursesService {
         or (${courses.providerType} = 'PROVIDER' and exists (select 1 from ${providers} p where p.id = ${courses.providerId} and p.status = 'ACTIVE'))
         or (${courses.providerType} = 'CONTRACTOR' and exists (select 1 from ${contractors} k where k.id = ${courses.contractorId} and k.status = 'ACTIVE')))`,
       q.level ? eq(courses.level, q.level) : undefined,
+      q.category ? eq(courses.category, q.category) : undefined,
       q.ownerType ? eq(courses.providerType, q.ownerType) : undefined,
       q.providerId ? eq(courses.providerId, q.providerId) : undefined,
       q.contractorId ? eq(courses.contractorId, q.contractorId) : undefined,
       q.maxMinutes !== undefined ? lte(courses.durationMinutes, q.maxMinutes) : undefined,
       q.certificate === '1' ? eq(courses.certificate, true) : undefined,
       q.free === '1' ? sql`${courses.price} = 0` : q.free === '0' ? sql`${courses.price} > 0` : undefined,
-      q.stage ? sql`exists (select 1 from ${courseStages} cs inner join ${stageMaster} sm on sm.id = cs.stage_master_id where cs.course_id = ${courses.id} and sm.code = ${q.stage})` : undefined,
     ]
     if (q.search) {
       const like = `%${escapeLike(q.search)}%`
@@ -171,20 +218,32 @@ export class CoursesService {
     const done = mine ? new Set((await this.db.select({ lessonId: lessonProgress.lessonId }).from(lessonProgress).where(eq(lessonProgress.enrollmentId, mine.id))).map((r) => r.lessonId)) : new Set<string>()
     // El contenido es para quien lo estudia (inscrito) o lo gestiona; el público ve el temario.
     const canRead = manager || (!!mine && mine.status !== 'DROPPED')
+    const media = canRead && rows.length ? await this.db.select().from(lessonVideos).where(inArray(lessonVideos.lessonId, rows.map((row) => row.id))) : []
+    const playback = canRead && mine ? await this.db.select().from(lessonPlayback).where(eq(lessonPlayback.enrollmentId, mine.id)) : []
 
     const [card] = await this.toCards([course], user)
     return {
       ...card,
       canManage: manager,
-      lessons: rows.map((l) => ({
+      sections: await this.db.select().from(courseSections).where(eq(courseSections.courseId, id)).orderBy(asc(courseSections.position), asc(courseSections.id)),
+      publication: manager ? coursePublication(course, rows.map(l => ({ ...l, video: media.find(v => v.lessonId === l.id) })), owner.active) : undefined,
+      lessons: rows.map((l) => {
+        const video = media.find((item) => item.lessonId === l.id)
+        const source = videoSource(l.videoUrl, video?.id)
+        const saved = playback.find((item) => item.lessonId === l.id && item.source === source)
+        return {
         id: l.id,
+        sectionId: l.sectionId,
         position: l.position,
         title: l.title,
         durationMinutes: l.durationMinutes,
         content: canRead ? l.content : null,
         videoUrl: canRead ? l.videoUrl : null,
+        playbackSource: canRead ? source : null,
         completed: done.has(l.id),
-      })),
+        video: video ? { id: video.id, status: video.status, originalName: video.originalName, durationSeconds: video.durationSeconds === null ? null : Number(video.durationSeconds), error: video.error } : null,
+        playback: saved ? { positionSeconds: Number(saved.positionSeconds), durationSeconds: Number(saved.durationSeconds), watchedSeconds: Number(saved.watchedSeconds) } : null,
+      }}),
       myEnrollment: mine
         ? { id: mine.id, status: mine.status, progressPercent: rows.length === 0 ? 0 : Math.round((done.size / rows.length) * 10_000) / 100, startedAt: mine.startedAt, completedAt: mine.completedAt, certificateCode: mine.certificateCode }
         : null,
@@ -222,14 +281,6 @@ export class CoursesService {
     return pageOf(cards.map((c) => ({ ...c, enrolledCount: enrolled.find((e) => e.courseId === c.id)?.n ?? 0 })), total, q.page, q.pageSize)
   }
 
-  private async resolveStageIds(tx: Tx | Database, codes: string[]) {
-    if (codes.length === 0) return []
-    const rows = await tx.select({ id: stageMaster.id, code: stageMaster.code }).from(stageMaster).where(inArray(stageMaster.code, codes))
-    const missing = codes.filter((c) => !rows.some((r) => r.code === c))
-    if (missing.length) throw validationError('stageCodes', `Etapas inexistentes: ${missing.join(', ')}`)
-    return rows.map((r) => r.id)
-  }
-
   async create(dto: CreateCourseDto, user: AuthUser, req: AppRequest) {
     let providerId: string | undefined
     let contractorId: string | undefined
@@ -247,13 +298,12 @@ export class CoursesService {
       if (dto.ownerType === 'PROVIDER') providerId = dto.ownerId
       else contractorId = dto.ownerId
     }
-    const stageIds = await this.resolveStageIds(this.db, dto.stageCodes)
     const created = await this.db.transaction(async (tx) => {
       const [row] = await tx
         .insert(courses)
-        .values({ title: dto.title, description: dto.description, providerType: dto.ownerType, providerId, contractorId, level: dto.level, instructorName: dto.instructorName, certificate: dto.certificate, price: String(dto.price), currency: dto.currency, createdBy: user.id })
+        .values({ subtitle: dto.subtitle, category: dto.category, language: dto.language, learningObjectives: dto.learningObjectives, requirements: dto.requirements, targetAudience: dto.targetAudience, coverUrl: dto.coverUrl, promoVideoUrl: dto.promoVideoUrl, instructorBio: dto.instructorBio, title: dto.title, description: dto.description, providerType: dto.ownerType, providerId, contractorId, level: dto.level, instructorName: dto.instructorName, certificate: dto.certificate, price: String(dto.price), currency: dto.currency, createdBy: user.id })
         .returning({ id: courses.id })
-      if (stageIds.length) await tx.insert(courseStages).values([...new Set(stageIds)].map((stageMasterId) => ({ courseId: row.id, stageMasterId })))
+      await tx.insert(courseSections).values({ courseId: row.id, title: 'Primer módulo', position: 0 })
       return row
     })
     await this.audit.record(req, { module: 'lms', entityType: 'course', entityId: created.id, action: 'created', newData: { title: dto.title, ownerType: dto.ownerType, ownerId: dto.ownerId ?? null } })
@@ -262,31 +312,34 @@ export class CoursesService {
 
   async update(id: string, dto: UpdateCourseDto, user: AuthUser, req: AppRequest) {
     const before = await this.loadForManage(id, user)
-    const owner = await this.owner(before)
-    const stageIds = dto.stageCodes ? await this.resolveStageIds(this.db, dto.stageCodes) : undefined
-
-    if (dto.status === 'PUBLISHED' && before.status !== 'PUBLISHED') {
-      if (!owner.active) throw new ConflictException('La organización debe estar activa para publicar cursos')
-      const [{ n }] = await this.db.select({ n: sql<number>`count(*)::int` }).from(lessons).where(eq(lessons.courseId, id))
-      if (n === 0) throw validationError('status', 'Agregue al menos una lección para publicar el curso')
-      const stageCount = stageIds ? new Set(stageIds).size : (await this.db.select({ n: sql<number>`count(*)::int` }).from(courseStages).where(eq(courseStages.courseId, id)))[0].n
-      // Sin etapa no aparecería en el filtro principal del catálogo.
-      if (stageCount === 0) throw validationError('stageCodes', 'Indique al menos una etapa para publicar el curso')
-    }
-    if (dto.status === 'DRAFT' && before.status !== 'DRAFT') {
-      const [{ n }] = await this.db.select({ n: sql<number>`count(*)::int` }).from(enrollments).where(and(eq(enrollments.courseId, id), sql`${enrollments.status} <> 'DROPPED'`))
-      // Volver a borrador oculta el curso a quien ya lo estudia: se archiva en su lugar.
-      if (n > 0) throw new ConflictException('El curso tiene inscritos: archívalo en lugar de volverlo a borrador')
-    }
-
-    const { stageCodes: _s, price, ...fields } = dto
-    await this.db.transaction(async (tx) => {
-      await tx.update(courses).set({ ...fields, ...(price !== undefined && { price: String(price) }), updatedAt: new Date() }).where(eq(courses.id, id))
-      if (stageIds) {
-        await tx.delete(courseStages).where(eq(courseStages.courseId, id))
-        if (stageIds.length) await tx.insert(courseStages).values([...new Set(stageIds)].map((stageMasterId) => ({ courseId: id, stageMasterId })))
+    const { price, ...fields } = dto
+    const removedCover = await this.db.transaction(async (tx) => {
+      const [current] = await tx.select().from(courses).where(eq(courses.id, id)).for('update')
+      if (!current) throw new NotFoundException('Curso no encontrado')
+      if (current.instructorProfileId) {
+        const [profile] = await tx.select().from(instructorProfiles).where(eq(instructorProfiles.id,current.instructorProfileId))
+        if (profile) { fields.instructorName = profile.name; fields.instructorBio = profile.bio }
       }
+      const owner = await this.owner(current)
+      if (dto.status === 'PUBLISHED' && current.status !== 'PUBLISHED') {
+        if (!owner.active) throw new ConflictException('La organización debe estar activa para publicar cursos')
+        const content = await tx.select().from(lessons).where(eq(lessons.courseId, id))
+        const media = content.length ? await tx.select().from(lessonVideos).where(inArray(lessonVideos.lessonId, content.map(l => l.id))) : []
+        const readiness = coursePublication({ ...current, ...dto }, content.map(l => ({ ...l, video: media.find(v => v.lessonId === l.id) })), owner.active)
+        const missing = readiness.checks.filter(c => !c.complete)
+        if (missing.length) throw validationError('status', missing.map(c => c.label).join(' · '))
+      }
+      if (dto.status === 'DRAFT' && current.status !== 'DRAFT') {
+        const [{ n }] = await tx.select({ n: sql<number>`count(*)::int` }).from(enrollments).where(and(eq(enrollments.courseId, id), sql`${enrollments.status} <> 'DROPPED'`))
+        // Volver a borrador oculta el curso a quien ya lo estudia: se archiva en su lugar.
+        if (n > 0) throw new ConflictException('El curso tiene inscritos: archívalo en lugar de volverlo a borrador')
+      }
+
+      const replacingCover = dto.coverUrl !== undefined
+      await tx.update(courses).set({ ...fields, ...(replacingCover && {coverKey:null,coverMime:null,coverUpdatedAt:null}), ...(price !== undefined && { price: String(price) }), updatedAt: new Date() }).where(eq(courses.id, id))
+      return replacingCover ? current.coverKey : null
     })
+    if (removedCover) await this.storage.delete(removedCover).catch(() => undefined)
     await this.audit.record(req, {
       module: 'lms',
       entityType: 'course',
@@ -301,7 +354,7 @@ export class CoursesService {
   // ---------- Lecciones ----------
 
   private async recompute(tx: Tx, courseId: string) {
-    const rows = await tx.select({ id: lessons.id }).from(lessons).where(eq(lessons.courseId, courseId)).orderBy(asc(lessons.position), asc(lessons.id))
+    const rows = await tx.select({ id: lessons.id }).from(lessons).leftJoin(courseSections, eq(lessons.sectionId, courseSections.id)).where(eq(lessons.courseId, courseId)).orderBy(sql`coalesce(${courseSections.position}, 2147483647)`, asc(lessons.position), asc(lessons.id))
     // Posiciones consecutivas 0..n-1 (sin huecos tras borrar o mover) y duración total del curso.
     for (const [i, r] of rows.entries()) await tx.update(lessons).set({ position: i }).where(eq(lessons.id, r.id))
     const [{ total }] = await tx.select({ total: sql<number>`coalesce(sum(${lessons.durationMinutes}), 0)::int` }).from(lessons).where(eq(lessons.courseId, courseId))
@@ -313,21 +366,26 @@ export class CoursesService {
     const lessonId = await this.db.transaction(async (tx) => {
       await tx.select({ id: courses.id }).from(courses).where(eq(courses.id, courseId)).for('update') // serializa cambios del temario
       const [{ n }] = await tx.select({ n: sql<number>`count(*)::int` }).from(lessons).where(eq(lessons.courseId, courseId))
-      const [row] = await tx.insert(lessons).values({ courseId, position: n, title: dto.title, content: dto.content, videoUrl: dto.videoUrl, durationMinutes: dto.durationMinutes }).returning({ id: lessons.id })
+      const [firstSection] = await tx.select().from(courseSections).where(eq(courseSections.courseId, courseId)).orderBy(asc(courseSections.position)).limit(1)
+      const sectionId = dto.sectionId === undefined ? firstSection?.id ?? null : dto.sectionId
+      await this.assertSection(tx, courseId, sectionId)
+      const [row] = await tx.insert(lessons).values({ courseId, sectionId, position: n, title: dto.title, content: dto.content, videoUrl: dto.videoUrl, durationMinutes: dto.durationMinutes }).returning({ id: lessons.id })
       await this.recompute(tx, courseId)
       return row.id
     })
     await this.audit.record(req, { module: 'lms', entityType: 'lesson', entityId: lessonId, action: 'created', newData: { courseId, title: dto.title } })
-    return this.get(courseId, user)
+    return { ...await this.get(courseId, user), createdLessonId: lessonId }
   }
 
   async updateLesson(courseId: string, lessonId: string, dto: UpdateLessonDto, user: AuthUser, req: AppRequest) {
     await this.loadForManage(courseId, user)
-    await this.db.transaction(async (tx) => {
+    const removedVideo = await this.db.transaction(async (tx) => {
       await tx.select({ id: courses.id }).from(courses).where(eq(courses.id, courseId)).for('update')
       const [lesson] = await tx.select().from(lessons).where(and(eq(lessons.id, lessonId), eq(lessons.courseId, courseId)))
       if (!lesson) throw new NotFoundException('Lección no encontrada')
+      if (dto.sectionId !== undefined) await this.assertSection(tx, courseId, dto.sectionId)
       const { position, ...fields } = dto
+      const removed = dto.videoUrl ? await tx.delete(lessonVideos).where(eq(lessonVideos.lessonId, lessonId)).returning() : []
       if (Object.keys(fields).length) await tx.update(lessons).set(fields).where(eq(lessons.id, lessonId))
       if (position !== undefined) {
         // Mover = quitarla del orden actual y reinsertarla en la nueva posición.
@@ -337,26 +395,84 @@ export class CoursesService {
         for (const [i, id] of order.entries()) await tx.update(lessons).set({ position: i }).where(eq(lessons.id, id))
       }
       await this.recompute(tx, courseId)
+      return removed[0]
     })
+    await this.discardVideo(removedVideo)
     await this.audit.record(req, { module: 'lms', entityType: 'lesson', entityId: lessonId, action: 'updated', newData: dto })
     return this.get(courseId, user)
   }
 
   async deleteLesson(courseId: string, lessonId: string, user: AuthUser, req: AppRequest) {
-    const course = await this.loadForManage(courseId, user)
-    await this.db.transaction(async (tx) => {
-      await tx.select({ id: courses.id }).from(courses).where(eq(courses.id, courseId)).for('update')
+    await this.loadForManage(courseId, user)
+    const video = await this.db.transaction(async (tx) => {
+      const [current] = await tx.select({ id: courses.id, status: courses.status }).from(courses).where(eq(courses.id, courseId)).for('update')
       const [lesson] = await tx.select({ id: lessons.id }).from(lessons).where(and(eq(lessons.id, lessonId), eq(lessons.courseId, courseId)))
       if (!lesson) throw new NotFoundException('Lección no encontrada')
       // El progreso de quienes ya la completaron es historial: no se borra una lección que alguien terminó.
       const [{ n }] = await tx.select({ n: sql<number>`count(*)::int` }).from(lessonProgress).where(eq(lessonProgress.lessonId, lessonId))
       if (n > 0) throw new ConflictException('Esta lección ya fue completada por alumnos; no se puede eliminar')
       const [{ left }] = await tx.select({ left: sql<number>`count(*)::int` }).from(lessons).where(eq(lessons.courseId, courseId))
-      if (course.status === 'PUBLISHED' && left <= 1) throw new ConflictException('Un curso publicado necesita al menos una lección: despublícalo antes de quitarla')
+      if (current?.status === 'PUBLISHED' && left <= 1) throw new ConflictException('Un curso publicado necesita al menos una lección: despublícalo antes de quitarla')
+      const [video] = await tx.select().from(lessonVideos).where(eq(lessonVideos.lessonId, lessonId))
       await tx.delete(lessons).where(eq(lessons.id, lessonId))
       await this.recompute(tx, courseId)
+      return video
     })
+    await this.discardVideo(video)
     await this.audit.record(req, { module: 'lms', entityType: 'lesson', entityId: lessonId, action: 'deleted', oldData: { courseId } })
+    return this.get(courseId, user)
+  }
+
+  private async assertSection(tx: Tx, courseId: string, sectionId: string | null) {
+    if (!sectionId) return
+    const [section] = await tx.select().from(courseSections).where(and(eq(courseSections.id, sectionId), eq(courseSections.courseId, courseId)))
+    if (!section) throw validationError('sectionId', 'El módulo no pertenece a este curso')
+  }
+
+  async addSection(courseId: string, dto: SectionDto, user: AuthUser, req: AppRequest) {
+    await this.loadForManage(courseId, user)
+    const section = await this.db.transaction(async tx => {
+      await tx.select({ id: courses.id }).from(courses).where(eq(courses.id, courseId)).for('update')
+      const rows = await tx.select().from(courseSections).where(eq(courseSections.courseId, courseId))
+      if (rows.length >= 500) throw new ConflictException('Máximo 500 módulos por curso')
+      const [created] = await tx.insert(courseSections).values({ courseId, ...dto, position: rows.length }).returning()
+      return created
+    })
+    await this.audit.record(req, { module: 'lms', entityType: 'course-section', entityId: section.id, action: 'created', newData: { courseId, ...dto } })
+    return this.get(courseId, user)
+  }
+
+  async updateSection(courseId: string, sectionId: string, dto: UpdateSectionDto, user: AuthUser, req: AppRequest) {
+    await this.loadForManage(courseId, user)
+    await this.db.transaction(async tx => {
+      await tx.select({ id: courses.id }).from(courses).where(eq(courses.id, courseId)).for('update')
+      await this.assertSection(tx, courseId, sectionId)
+      const { position, ...fields } = dto
+      if (Object.keys(fields).length) await tx.update(courseSections).set(fields).where(eq(courseSections.id, sectionId))
+      if (position !== undefined) {
+        const rows = await tx.select().from(courseSections).where(eq(courseSections.courseId, courseId)).orderBy(asc(courseSections.position), asc(courseSections.id))
+        const order = rows.map(r => r.id).filter(id => id !== sectionId)
+        order.splice(Math.min(position, order.length), 0, sectionId)
+        for (const [i, id] of order.entries()) await tx.update(courseSections).set({ position: i }).where(eq(courseSections.id, id))
+        await this.recompute(tx, courseId)
+      }
+    })
+    await this.audit.record(req, { module: 'lms', entityType: 'course-section', entityId: sectionId, action: 'updated', newData: { courseId, ...dto } })
+    return this.get(courseId, user)
+  }
+
+  async deleteSection(courseId: string, sectionId: string, user: AuthUser, req: AppRequest) {
+    await this.loadForManage(courseId, user)
+    await this.db.transaction(async tx => {
+      await tx.select({ id: courses.id }).from(courses).where(eq(courses.id, courseId)).for('update')
+      await this.assertSection(tx, courseId, sectionId)
+      const [lesson] = await tx.select({ id: lessons.id }).from(lessons).where(eq(lessons.sectionId, sectionId)).limit(1)
+      if (lesson) throw new ConflictException('Mueve las lecciones a otro módulo antes de eliminar este')
+      await tx.delete(courseSections).where(eq(courseSections.id, sectionId))
+      const remaining = await tx.select().from(courseSections).where(eq(courseSections.courseId, courseId)).orderBy(asc(courseSections.position), asc(courseSections.id))
+      for (const [i, row] of remaining.entries()) await tx.update(courseSections).set({ position: i }).where(eq(courseSections.id, row.id))
+    })
+    await this.audit.record(req, { module: 'lms', entityType: 'course-section', entityId: sectionId, action: 'deleted', oldData: { courseId } })
     return this.get(courseId, user)
   }
 

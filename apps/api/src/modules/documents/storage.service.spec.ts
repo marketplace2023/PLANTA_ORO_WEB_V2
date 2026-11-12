@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import type { ConfigService } from '@nestjs/config'
@@ -12,7 +12,10 @@ describe('LocalStorageService', () => {
     dir = await mkdtemp(path.join(os.tmpdir(), 'fur-storage-'))
     storage = new LocalStorageService({ get: () => dir } as unknown as ConfigService<never, true>)
   })
-  afterEach(() => rm(dir, { recursive: true, force: true }))
+  afterEach(() => {
+    if (!path.resolve(dir).startsWith(path.join(path.resolve(os.tmpdir()), 'fur-storage-'))) throw new Error('Unexpected test directory')
+    return rm(dir, { recursive: true, force: true })
+  })
 
   const read = async (stream: NodeJS.ReadableStream) => {
     const chunks: Buffer[] = []
@@ -48,5 +51,15 @@ describe('LocalStorageService', () => {
     await storage.put('x/y.pdf', Buffer.from('1'))
     await storage.delete('x/y.pdf')
     await expect(storage.open('x/y.pdf')).rejects.toThrow()
+  })
+
+  it('copies disk uploads without overwrite and reads an inclusive byte range', async () => {
+    const source = path.join(dir, 'source.mp4')
+    await writeFile(source, '0123456789')
+    await storage.putFile('videos/private.mp4', source)
+    expect(await storage.size('videos/private.mp4')).toBe(10)
+    expect((await read(await storage.openRange('videos/private.mp4', 2, 5))).toString()).toBe('2345')
+    await expect(storage.putFile('videos/private.mp4', source)).rejects.toThrow()
+    await expect(storage.putFile('../escape.mp4', source)).rejects.toThrow()
   })
 })

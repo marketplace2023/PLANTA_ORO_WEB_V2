@@ -85,7 +85,7 @@ export function ProviderSheet({ id, onClose }: { id: string; onClose: () => void
   const products = useListings({ providerId: id }, 6)
 
   return (
-    <Frame title={p?.organizationName ?? 'Proveedor'} description="Ficha del proveedor" onClose={onClose}>
+    <Frame title={p?.organizationName ?? 'Vendedor'} description="Perfil del vendedor" onClose={onClose}>
       {isLoading ? (
         <Loading />
       ) : error instanceof ApiError && error.status === 404 ? (
@@ -99,7 +99,7 @@ export function ProviderSheet({ id, onClose }: { id: string; onClose: () => void
             <div className="space-y-1">
               <Location city={p.city} countryCode={p.countryCode} />
               <div className="flex flex-wrap items-center gap-2">
-                <VerifiedBadge verified={p.verified} />
+                <Badge variant={p.verified ? 'default' : 'outline'}>{p.verified ? 'Tienda verificada' : 'Vendedor particular no verificado'}</Badge>
                 <Rating rating={p.rating} />
                 {p.status !== 'ACTIVE' && <Badge variant="outline">{ORG_STATUS_LABELS[p.status]}</Badge>}
               </div>
@@ -118,13 +118,7 @@ export function ProviderSheet({ id, onClose }: { id: string; onClose: () => void
             <StageTags stages={p.stages} max={20} />
           </section>
           <Contact email={p.contactEmail} website={p.website} />
-          {p.canManage && (
-            <Button asChild>
-              <Link to={`/providers/${p.id}/manage`}>
-                <Settings /> Gestionar mi organización
-              </Link>
-            </Button>
-          )}
+
 
           <section aria-labelledby="pprods">
             <div className="mb-2 flex items-center justify-between gap-2">

@@ -1,9 +1,11 @@
+import { STAFF_ROLES } from './commerce-rules'
+import { PROFESSIONAL_ROLES } from './professional.schemas'
 import { ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { and, asc, eq, sql } from 'drizzle-orm'
 import { validationError } from '../../common/errors'
 import type { AppRequest, AuthUser } from '../../common/types'
 import { DB, type Database } from '../../database/database.module'
-import { contractorMembers, contractors, providerMembers, providers, users } from '../../database/schema'
+import { professionalStaff, shopStaffRoles, contractorMembers, contractors, providerMembers, providers, users } from '../../database/schema'
 import { AuditService } from '../audit/audit.service'
 import type { AddMemberDto } from './organizations.schemas'
 
@@ -40,6 +42,26 @@ export class OrgAccessService {
     const role = await this.roleOf(kind, orgId, user?.id)
     if (!role) throw new ForbiddenException('No gestionas esta organización')
     return role as 'OWNER' | 'MEMBER'
+  }
+
+  async providerPermissions(providerId: string, user: AuthUser | undefined): Promise<readonly string[]> {
+    const role = await this.assertManage('provider',providerId,user)
+    const full = ['PRODUCTS', 'ORDERS', 'SUPPORT', 'FINANCE', 'REPORTS']
+    if (role === 'ADMIN' || role === 'OWNER') return full
+    const [scoped] = await this.db.select().from(shopStaffRoles).where(and(eq(shopStaffRoles.providerId,providerId),eq(shopStaffRoles.userId,user!.id)))
+    return scoped ? STAFF_ROLES[scoped.role as keyof typeof STAFF_ROLES] ?? [] : full
+  }
+
+  async assertProviderPermission(providerId: string, user: AuthUser | undefined, permission: string) {
+    if (!(await this.providerPermissions(providerId, user)).includes(permission)) throw new ForbiddenException('Tu rol no permite esta operación')
+  }
+
+  async assertContractorPermission(contractorId: string, user: AuthUser, permission: string) {
+    const role = await this.assertManage('contractor',contractorId,user)
+    if(role === 'ADMIN' || role === 'OWNER') return role
+    const [scope] = await this.db.select().from(professionalStaff).where(and(eq(professionalStaff.contractorId,contractorId),eq(professionalStaff.userId,user.id)))
+    if(!(PROFESSIONAL_ROLES[scope?.role ?? 'FULL'] ?? []).includes(permission)) throw new ForbiddenException('Tu rol no permite esta operación')
+    return role
   }
 
   async assertOwner(kind: OrgKind, orgId: string, user: AuthUser | undefined) {
@@ -96,6 +118,8 @@ export class OrgAccessService {
         // Una organización gestionada por miembros no puede quedarse sin responsable; el administrador puede reasignarlo.
         if (owners.length <= 1 && !user?.isGlobalAdmin) throw new ConflictException('No se puede quitar al único responsable de la organización')
       }
+      if (kind === 'provider') await tx.delete(shopStaffRoles).where(and(eq(shopStaffRoles.providerId, orgId), eq(shopStaffRoles.userId, userId)))
+      else await tx.delete(professionalStaff).where(and(eq(professionalStaff.contractorId, orgId),eq(professionalStaff.userId,userId)))
       await tx.delete(t.table).where(and(eq(t.orgId, orgId), eq(t.userId, userId)))
       return row
     })

@@ -93,12 +93,12 @@ export function CatalogPage() {
   const data = models.data
 
   return (
-    <>
-      <PageHeader title="Catálogo" description="Tipos y modelos de activos disponibles en todo el ecosistema. Los activos físicos de cada planta se crean a partir de estos modelos." />
+    <div className="directory-page catalog-page">
+      <PageHeader shortcutVariant="icons" title="Catálogo" description="Tipos y modelos de activos disponibles en todo el ecosistema. Los activos físicos de cada planta se crean a partir de estos modelos." />
 
-      <PlantMap />
+      <details className="catalog-map-panel"><summary>Mapas de las plantas</summary><PlantMap /></details>
 
-      <div className="mb-4 space-y-3 rounded-lg border border-border bg-card p-4">
+      <div className="directory-filters mb-4 space-y-3 rounded-lg border border-border bg-card p-4">
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-56 flex-1 space-y-1">
             <label htmlFor="catalog-search" className="text-xs text-fur-gray-600">
@@ -244,6 +244,6 @@ export function CatalogPage() {
           </>
         )
       )}
-    </>
+    </div>
   )
 }

@@ -1,0 +1,44 @@
+.process-cycle { --cycle-line: #c8d9ed; --cycle-accent: #e6ad00; }
+.process-cycle-toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; padding: 12px 16px; background: #f5f8fd; border: 1px solid #e5edf8; border-radius: 8px; }
+.process-cycle-toolbar > p { display: flex; align-items: center; gap: 12px; color: var(--fur-navy-900); font-size: 13px; font-weight: 650; }
+.process-cycle-toolbar > p > svg { width: 34px; height: 34px; padding: 7px; border-radius: 9px; background: #fff3bc; color: #9a7500; }
+.process-cycle-toolbar p span span { display: block; margin-top: 3px; font-size: 11px; font-weight: 400; color: var(--fur-gray-600); }
+.process-cycle-controls { display: flex; align-items: center; gap: 18px; }
+.process-cycle-counter { font-family: var(--font-mono); font-size: 16px; font-weight: 700; color: var(--fur-navy-900); }
+.process-cycle-counter span { font-family: var(--font-sans); font-size: 11px; font-weight: 450; color: var(--fur-gray-600); }
+.process-cycle-controls button { background: white; font-size: 11px; }
+.process-cycle-canvas { position: relative; isolation: isolate; margin-top: 12px; border-radius: 10px; background-image: radial-gradient(#bacde54a .8px, transparent .8px); background-size: 14px 14px; }
+.process-cycle-nodes { position: relative; display: grid; grid-template-columns: repeat(var(--cycle-columns), minmax(0, 1fr)); grid-auto-rows: 108px; gap: 36px; padding: 32px; margin: 0; list-style: none; }
+.process-cycle-connections { position: absolute; width: 100%; height: 100%; inset: 0; overflow: visible; pointer-events: none; }
+.cycle-connection, .cycle-return { fill: none; stroke: var(--cycle-line); stroke-width: 2; stroke-linejoin: round; }
+.cycle-return { stroke-dasharray: 5 7; opacity: .6; }
+.cycle-connection.is-active, .cycle-return.is-active { stroke: var(--cycle-accent); stroke-width: 2.5; stroke-dasharray: 5 5; opacity: 1; animation: cycle-current 1s linear infinite; }
+.cycle-particle { fill: #d6a200; offset-distance: 0%; animation: cycle-travel 1.2s linear infinite; }
+.process-cycle-node { position: relative; display: flex; flex-direction: column; gap: 10px; width: 100%; height: 100%; padding: 14px 16px; background: white; border: 1px solid #dce7f5; border-radius: 10px; text-align: left; color: var(--fur-navy-900); box-shadow: 0 3px 8px #08254c06; transition: border-color .3s, background .3s, box-shadow .3s; }
+.process-cycle-node[data-highlighted=true] { border-color: #e9bf35; background: linear-gradient(120deg, #fff8db, #fffdf5); box-shadow: 0 0 0 3px #ffda2440, 0 4px 14px #e6ad0010; }
+.process-cycle-node:hover { border-color: #c39813; background: #fff9e3; box-shadow: 0 5px 16px #08254c10; }
+.process-cycle-node:focus-visible { outline: 3px solid var(--ring); outline-offset: 4px; }
+.cycle-node-top { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.cycle-node-top .fur-code { padding: 4px 7px; border-radius: 6px; background: var(--fur-navy-900); color: #ffdc35; font-size: 11px; line-height: 1.2; }
+.cycle-node-group { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #6b7e98; font-size: 10px; }
+.cycle-node-top > svg { width: 14px; height: 14px; flex-shrink: 0; color: #9aaec6; }
+.cycle-node-name { padding-right: 4px; font-size: 12px; font-weight: 600; line-height: 1.45; text-wrap: pretty; }
+.cycle-node-dot { position: absolute; right: -4px; bottom: 12px; width: 7px; height: 7px; border: 2px solid white; border-radius: 50%; background: #c8d9ed; }
+.process-cycle-node[data-highlighted=true] .cycle-node-dot { background: #dca900; box-shadow: 0 0 0 3px #ffda2430; }
+.process-cycle-legend { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 10px 16px 0; font-size: 10px; color: #70829a; }
+.process-cycle-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.process-cycle-legend i { width: 7px; height: 7px; background: #dcad16; border-radius: 50%; }
+.process-cycle-legend svg { width: 12px; height: 12px; }
+.process-cycle-empty { padding: 32px; text-align: center; color: var(--fur-gray-600); font-size: 13px; }
+.process-cycle[data-running=false] .cycle-connection, .process-cycle[data-running=false] .cycle-return, .process-cycle[data-running=false] .cycle-particle { animation-play-state: paused; }
+@keyframes cycle-current { to { stroke-dashoffset: -20; } }
+@keyframes cycle-travel { to { offset-distance: 100%; } }
+@media (max-width: 600px) {
+  .process-cycle-toolbar { padding: 12px; gap: 12px; }
+  .process-cycle-controls { width: 100%; justify-content: space-between; }
+  .cycle-node-name { font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cycle-connection, .cycle-return, .cycle-particle { animation: none !important; }
+  .cycle-particle { display: none; }
+}

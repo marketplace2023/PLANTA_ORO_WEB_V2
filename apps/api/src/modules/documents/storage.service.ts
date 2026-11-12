@@ -1,8 +1,8 @@
-import { createReadStream } from 'node:fs'
-import { access, mkdir, rm, writeFile } from 'node:fs/promises'
+import { constants, createReadStream } from 'node:fs'
+import { access, copyFile, mkdir, rm, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import type { Readable } from 'node:stream'
-import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import type { Env } from '../../config/env'
@@ -15,6 +15,9 @@ export abstract class StorageService {
   abstract put(key: string, data: Buffer): Promise<void>
   abstract open(key: string): Promise<Readable>
   abstract delete(key: string): Promise<void>
+  abstract putFile(key: string, file: string): Promise<void>
+  abstract size(key: string): Promise<number>
+  abstract openRange(key: string, start: number, end: number): Promise<Readable>
 }
 
 @Injectable()
@@ -49,6 +52,15 @@ export class LocalStorageService extends StorageService {
   async delete(key: string) {
     await rm(this.resolve(key), { force: true })
   }
+
+  async putFile(key: string, source: string) {
+    const file = this.resolve(key)
+    await mkdir(path.dirname(file), { recursive: true })
+    await copyFile(source, file, constants.COPYFILE_EXCL)
+  }
+
+  async size(key: string) { return (await stat(this.resolve(key))).size }
+  async openRange(key: string, start: number, end: number) { return createReadStream(this.resolve(key), { start, end }) }
 }
 
 /** Mínimo del cliente S3 que usa el driver (permite probarlo sin red). */
@@ -87,5 +99,22 @@ export class S3StorageService extends StorageService {
 
   async delete(key: string) {
     await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }))
+  }
+
+  async putFile(key: string, source: string) {
+    if (!key || key.startsWith('/') || key.split('/').includes('..')) throw new Error('Clave de almacenamiento inválida')
+    await this.client.send(new PutObjectCommand({ Bucket: this.bucket, Key: key, Body: createReadStream(source), ContentLength: (await stat(source)).size, IfNoneMatch: '*' }))
+  }
+
+  async size(key: string) {
+    const result = await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: key }))
+    if (result.ContentLength === undefined) throw new Error('Tamaño de archivo no disponible')
+    return result.ContentLength
+  }
+
+  async openRange(key: string, start: number, end: number) {
+    const result = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key, Range: `bytes=${start}-${end}` }))
+    if (!result.Body) throw new Error('Objeto vacío')
+    return result.Body as Readable
   }
 }

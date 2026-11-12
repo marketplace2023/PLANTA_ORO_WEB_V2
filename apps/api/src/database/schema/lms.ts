@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { boolean, check, index, integer, numeric, pgSchema, primaryKey, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core'
+import { boolean, check, index, integer, jsonb, numeric, pgSchema, primaryKey, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core'
 import { createdAt, pk, updatedAt } from './common'
 import { plants } from './core'
 import { users } from './iam'
@@ -17,12 +17,35 @@ export const COURSE_STATUSES = ['DRAFT', 'PUBLISHED', 'ARCHIVED'] as const
 export const COURSE_LEVELS = ['BASIC', 'INTERMEDIATE', 'ADVANCED'] as const
 export const ENROLLMENT_STATUSES = ['ENROLLED', 'COMPLETED', 'DROPPED'] as const
 
+export const instructorProfiles = lmsSchema.table('instructor_profiles', {
+  id: uuid('id').primaryKey().references(() => users.id, {onDelete:'cascade'}),
+  name: varchar('name', {length:160}).notNull(),
+  headline: varchar('headline', {length:200}),
+  bio: text('bio'),
+  avatarKey: text('avatar_key'),
+  avatarMime: varchar('avatar_mime', {length:100}),
+  updatedAt: updatedAt(),
+})
+
 export const courses = lmsSchema.table(
   'courses',
   {
     id: pk(),
     title: varchar('title', { length: 200 }).notNull(),
     description: text('description'),
+    subtitle: varchar('subtitle', { length: 240 }),
+    category: varchar('category', { length: 100 }).notNull().default('General'),
+    language: varchar('language', { length: 10 }).notNull().default('es'),
+    learningObjectives: jsonb('learning_objectives').$type<string[]>().notNull().default([]),
+    requirements: jsonb('requirements').$type<string[]>().notNull().default([]),
+    targetAudience: jsonb('target_audience').$type<string[]>().notNull().default([]),
+    coverUrl: text('cover_url'),
+    coverKey: text('cover_key'),
+    coverMime: varchar('cover_mime', { length: 100 }),
+    coverUpdatedAt: timestamp('cover_updated_at', { withTimezone: true }),
+    promoVideoUrl: text('promo_video_url'),
+    instructorBio: text('instructor_bio'),
+    instructorProfileId: uuid('instructor_profile_id').references(() => instructorProfiles.id, {onDelete:'set null'}),
     /** Quién publica el curso. El FK que corresponde se rellena y el otro queda en null (ver CHECK). */
     providerType: varchar('provider_type', { length: 20 }).notNull().default('ECOSYSTEM'),
     providerId: uuid('provider_id').references(() => providers.id, { onDelete: 'cascade' }),
@@ -52,6 +75,7 @@ export const courses = lmsSchema.table(
   ],
 )
 
+/** Historical links retained for data compatibility; course authoring and discovery use categories. */
 export const courseStages = lmsSchema.table(
   'course_stages',
   {
@@ -65,6 +89,14 @@ export const courseStages = lmsSchema.table(
   (t) => [primaryKey({ columns: [t.courseId, t.stageMasterId] })],
 )
 
+export const courseSections = lmsSchema.table('course_sections', {
+  id: pk(),
+  courseId: uuid('course_id').notNull().references(() => courses.id, { onDelete: 'cascade' }),
+  title: varchar('title', { length: 200 }).notNull(),
+  description: text('description'),
+  position: integer('position').notNull().default(0),
+}, (t) => [index('idx_course_sections_course').on(t.courseId, t.position)])
+
 export const lessons = lmsSchema.table(
   'lessons',
   {
@@ -72,11 +104,12 @@ export const lessons = lmsSchema.table(
     courseId: uuid('course_id')
       .notNull()
       .references(() => courses.id, { onDelete: 'cascade' }),
+    sectionId: uuid('section_id').references(() => courseSections.id, { onDelete: 'set null' }),
     position: integer('position').notNull().default(0),
     title: varchar('title', { length: 200 }).notNull(),
     /** Texto plano: se muestra tal cual (sin HTML), así no hay XSS almacenado. */
     content: text('content'),
-    /** Enlace externo a un video (http/https); se muestra como enlace, nunca se incrusta. */
+    /** Video externo compatible con el reproductor; excluyente con un archivo privado. */
     videoUrl: text('video_url'),
     durationMinutes: integer('duration_minutes').notNull().default(0),
   },
@@ -122,3 +155,30 @@ export const lessonProgress = lmsSchema.table(
   },
   (t) => [primaryKey({ columns: [t.enrollmentId, t.lessonId] })],
 )
+
+/** Un archivo privado por lección; la fila también es la cola durable de procesamiento. */
+export const lessonVideos = lmsSchema.table('lesson_videos', {
+  id: pk(),
+  lessonId: uuid('lesson_id').notNull().unique().references(() => lessons.id, { onDelete: 'cascade' }),
+  sourceKey: text('source_key').notNull(),
+  playbackKey: text('playback_key'),
+  originalName: text('original_name').notNull(),
+  status: varchar('status', { length: 20 }).notNull().default('PENDING'),
+  error: text('error'),
+  durationSeconds: numeric('duration_seconds', { precision: 12, scale: 3 }),
+  sizeBytes: numeric('size_bytes', { precision: 18, scale: 0 }),
+  leaseToken: uuid('lease_token'),
+  leaseAt: timestamp('lease_at', { withTimezone: true }),
+  createdAt: createdAt(),
+}, (t) => [check('lesson_videos_status', sql`${t.status} in ('PENDING','PROCESSING','READY','FAILED')`), index('idx_lesson_videos_status').on(t.status)])
+
+/** Posición de reproducción independiente de las lecciones ya completadas. */
+export const lessonPlayback = lmsSchema.table('lesson_playback', {
+  enrollmentId: uuid('enrollment_id').notNull().references(() => enrollments.id, { onDelete: 'cascade' }),
+  lessonId: uuid('lesson_id').notNull().references(() => lessons.id, { onDelete: 'cascade' }),
+  source: text('source').notNull(),
+  positionSeconds: numeric('position_seconds', { precision: 12, scale: 3 }).notNull().default('0'),
+  durationSeconds: numeric('duration_seconds', { precision: 12, scale: 3 }).notNull().default('0'),
+  watchedSeconds: numeric('watched_seconds', { precision: 12, scale: 3 }).notNull().default('0'),
+  updatedAt: updatedAt(),
+}, (t) => [primaryKey({ columns: [t.enrollmentId, t.lessonId] }), check('lesson_playback_nonnegative', sql`${t.positionSeconds} >= 0 and ${t.durationSeconds} >= 0 and ${t.watchedSeconds} >= 0`)])

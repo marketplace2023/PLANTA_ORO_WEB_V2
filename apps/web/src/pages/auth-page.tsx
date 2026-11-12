@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
+import { ArrowUpRight, Eye, EyeOff, KeyRound, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -42,6 +43,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const [errors, setErrors] = useState<Errors>({})
   const [formError, setFormError] = useState<string>()
   const [submitting, setSubmitting] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   if (status === 'authenticated') return <Navigate to={from} replace />
 
@@ -77,6 +79,9 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const field = (id: keyof typeof values, label: string, props: React.ComponentProps<typeof Input> = {}) => (
     <div className="space-y-1.5">
       <Label htmlFor={id}>{label}</Label>
+      <div className={id === 'password' || id === 'email' ? 'auth-input-wrap' : undefined}>
+      {id === 'password' && <KeyRound className="auth-input-icon" aria-hidden />}
+      {id === 'email' && <Mail className="auth-input-icon" aria-hidden />}
       <Input
         id={id}
         value={values[id]}
@@ -85,7 +90,10 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
         aria-describedby={errors[id] ? `${id}-error` : undefined}
         className="h-10"
         {...props}
+        {...(id === 'password' ? { type: showPassword ? 'text' : 'password' } : {})}
       />
+      {id === 'password' && <button type="button" className="auth-password-toggle" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'} aria-pressed={showPassword}>{showPassword ? <EyeOff aria-hidden /> : <Eye aria-hidden />}</button>}
+      </div>
       {errors[id] && (
         <p id={`${id}-error`} className="text-sm text-fur-red-500">
           {errors[id]}
@@ -95,10 +103,12 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   )
 
   return (
-    <div>
-      <Card>
+    <div className="auth-page">
+      <div className="auth-mode-tabs" aria-label="Opciones de acceso"><Link to="/login" state={location.state} aria-current={isLogin ? 'page' : undefined}>Iniciar sesión</Link><Link to="/register" state={location.state} aria-current={!isLogin ? 'page' : undefined}>Crear cuenta</Link></div>
+      <Card className="auth-form-card">
         <CardHeader>
-          <CardTitle className="text-xl">{isLogin ? 'Iniciar sesión' : 'Crear cuenta'}</CardTitle>
+          <p className="auth-form-eyebrow">{isLogin ? 'Bienvenido a tu espacio de trabajo' : 'Empieza a formar parte del ecosistema'}</p>
+          <CardTitle className="text-xl"><h1>{isLogin ? 'Iniciar sesión' : 'Crear cuenta'}</h1></CardTitle>
           <CardDescription>
             {isLogin
               ? 'Accede para ver tus plantas y trabajar según tu rol.'
@@ -125,6 +135,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
 
             <Button type="submit" size="lg" className="w-full" disabled={submitting}>
               {submitting ? 'Un momento…' : isLogin ? 'Entrar' : 'Crear cuenta'}
+              {!submitting && <ArrowUpRight aria-hidden />}
             </Button>
           </form>
 
@@ -147,11 +158,14 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
           </p>
 
           {import.meta.env.DEV && isLogin && (
-            <p className="mt-4 rounded-md bg-muted p-3 text-xs text-fur-gray-600">
+            <details className="auth-demo">
+              <summary>Accesos de demostración</summary>
+              <p>
               <strong>Demo local:</strong> admin@fur.local · gerente@fur.local · mantenimiento@fur.local · lector@fur.local
               <br />
               Contraseña: <span className="fur-code">fur-local-2026</span>
-            </p>
+              </p>
+            </details>
           )}
         </CardContent>
       </Card>

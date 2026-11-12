@@ -1,0 +1,298 @@
+{
+  "input": {
+    "title": "Ejemplo · Montaje de soportes",
+    "project": "Obra de demostración",
+    "client": "Cliente de demostración",
+    "notes": "Datos ficticios para verificar el flujo. Tarifas e impuesto ilustrativos, sin validez comercial.",
+    "publicationId": "20000000-0000-4000-8000-000000000001",
+    "currency": "USD",
+    "precision": 2,
+    "rates": {
+      "fcasPct": "50",
+      "overheadPct": "10",
+      "utilityPct": "10",
+      "financePct": "0",
+      "taxPct": "16"
+    },
+    "chapters": [
+      {
+        "id": "montaje",
+        "name": "Montaje",
+        "parentId": null
+      },
+      {
+        "id": "inspeccion",
+        "name": "Inspección",
+        "parentId": null
+      }
+    ],
+    "overrides": [],
+    "lines": [
+      {
+        "id": "demo-montaje",
+        "chapterId": "montaje",
+        "apuId": "20000000-0000-4000-8000-000000000002",
+        "mode": "CALCULATED",
+        "code": "DEMO-MON-001",
+        "description": "Montaje de soporte · demostración",
+        "unit": "UND",
+        "quantity": "25",
+        "manualPrice": null,
+        "reason": "",
+        "taxable": true
+      },
+      {
+        "id": "demo-inspeccion",
+        "chapterId": "inspeccion",
+        "apuId": null,
+        "mode": "MANUAL",
+        "code": "DEMO-INS-001",
+        "description": "Inspección de montaje",
+        "unit": "UND",
+        "quantity": "4",
+        "manualPrice": "125",
+        "reason": "Servicio ficticio para comprobar una partida manual",
+        "taxable": true
+      }
+    ]
+  },
+  "calculation": {
+    "result": {
+      "profile": "FUR_LULO_MVP_1",
+      "currency": "USD",
+      "precision": 2,
+      "demo": true,
+      "lines": [
+        {
+          "id": "demo-montaje",
+          "chapterId": "montaje",
+          "mode": "CALCULATED",
+          "apuId": "20000000-0000-4000-8000-000000000002",
+          "code": "DEMO-MON-001",
+          "description": "Montaje de soporte · demostración",
+          "unit": "UND",
+          "quantity": "25",
+          "manualPrice": null,
+          "reason": "",
+          "taxable": true,
+          "price": "137.94",
+          "amount": "3448.50",
+          "apu": {
+            "id": "20000000-0000-4000-8000-000000000002",
+            "code": "DEMO-MON-001",
+            "name": "Montaje de soporte · demostración",
+            "unit": "UND",
+            "publicationId": "20000000-0000-4000-8000-000000000001",
+            "yieldValue": "10",
+            "yieldBasis": "DAY",
+            "hoursPerDay": "8",
+            "methodNote": "Material por unidad y cuadrilla por jornada; ejemplo ficticio de aceptación",
+            "components": [
+              {
+                "resourceId": "20000000-0000-4000-8000-000000000003",
+                "code": "DEMO-MAT-001",
+                "name": "Perfil preparado · ficticio",
+                "type": "MATERIAL",
+                "unit": "UND",
+                "quantity": "2",
+                "wastePct": "5",
+                "consumption": "2.10000000",
+                "price": "40.00000000",
+                "cost": "84.00000000",
+                "privatePrice": false
+              },
+              {
+                "resourceId": "20000000-0000-4000-8000-000000000004",
+                "code": "DEMO-EQ-001",
+                "name": "Equipo de montaje · ficticio",
+                "type": "EQUIPMENT",
+                "unit": "DIA",
+                "quantity": "1",
+                "wastePct": "0",
+                "consumption": "0.10000000",
+                "price": "120.00000000",
+                "cost": "12.00000000",
+                "privatePrice": false
+              },
+              {
+                "resourceId": "20000000-0000-4000-8000-000000000005",
+                "code": "DEMO-MO-001",
+                "name": "Montador · ficticio",
+                "type": "LABOR",
+                "unit": "DIA",
+                "quantity": "2",
+                "wastePct": "0",
+                "consumption": "0.20000000",
+                "price": "60.00000000",
+                "cost": "18.00000000",
+                "privatePrice": false
+              }
+            ],
+            "breakdown": {
+              "material": "84.00000000",
+              "equipment": "12.00000000",
+              "labor": "18.00000000",
+              "direct": "114.00000000",
+              "overhead": "11.40000000",
+              "utility": "12.54000000",
+              "finance": "0.00000000"
+            },
+            "price": "137.94"
+          }
+        },
+        {
+          "id": "demo-inspeccion",
+          "chapterId": "inspeccion",
+          "mode": "MANUAL",
+          "apuId": null,
+          "code": "DEMO-INS-001",
+          "description": "Inspección de montaje",
+          "unit": "UND",
+          "quantity": "4",
+          "manualPrice": "125",
+          "reason": "Servicio ficticio para comprobar una partida manual",
+          "taxable": true,
+          "price": "125.00",
+          "amount": "500.00",
+          "apu": null
+        }
+      ],
+      "chapters": [
+        {
+          "id": "montaje",
+          "name": "Montaje",
+          "parentId": null,
+          "subtotal": "3448.50"
+        },
+        {
+          "id": "inspeccion",
+          "name": "Inspección",
+          "parentId": null,
+          "subtotal": "500.00"
+        }
+      ],
+      "resources": [
+        {
+          "resourceId": "20000000-0000-4000-8000-000000000003",
+          "code": "DEMO-MAT-001",
+          "name": "Perfil preparado · ficticio",
+          "type": "MATERIAL",
+          "unit": "UND",
+          "price": "40.00000000",
+          "quantity": "52.50000000",
+          "cost": "2100.00000000",
+          "privatePrice": false
+        },
+        {
+          "resourceId": "20000000-0000-4000-8000-000000000004",
+          "code": "DEMO-EQ-001",
+          "name": "Equipo de montaje · ficticio",
+          "type": "EQUIPMENT",
+          "unit": "DIA",
+          "price": "120.00000000",
+          "quantity": "2.50000000",
+          "cost": "300.00000000",
+          "privatePrice": false
+        },
+        {
+          "resourceId": "20000000-0000-4000-8000-000000000005",
+          "code": "DEMO-MO-001",
+          "name": "Montador · ficticio",
+          "type": "LABOR",
+          "unit": "DIA",
+          "price": "60.00000000",
+          "quantity": "5.00000000",
+          "cost": "450.00000000",
+          "privatePrice": false
+        }
+      ],
+      "totals": {
+        "subtotal": "3948.50",
+        "taxable": "3948.50",
+        "tax": "631.76",
+        "total": "4580.26"
+      }
+    },
+    "warnings": [],
+    "catalog": {
+      "profile": "FUR_LULO_MVP_1",
+      "publicationId": "20000000-0000-4000-8000-000000000001",
+      "label": "Ejemplo FUR · datos ficticios",
+      "version": 1,
+      "demo": true,
+      "currency": "USD",
+      "denomination": "USD ficticio de demostración",
+      "hash": "ca21c87754264869cc4bd9a9e707af52a83c8e7485f4284287ea16489716b7f5",
+      "apus": [
+        {
+          "id": "20000000-0000-4000-8000-000000000002",
+          "code": "DEMO-MON-001",
+          "name": "Montaje de soporte · demostración",
+          "unit": "UND",
+          "yieldValue": "10",
+          "yieldBasis": "DAY",
+          "hoursPerDay": "8",
+          "methodNote": "Material por unidad y cuadrilla por jornada; ejemplo ficticio de aceptación",
+          "publicationId": "20000000-0000-4000-8000-000000000001",
+          "components": [
+            {
+              "resource": {
+                "id": "20000000-0000-4000-8000-000000000003",
+                "code": "DEMO-MAT-001",
+                "name": "Perfil preparado · ficticio",
+                "type": "MATERIAL",
+                "unit": "UND",
+                "amount": "40",
+                "costBasis": "UNIT",
+                "currency": "USD",
+                "denomination": "USD ficticio de demostración",
+                "baseDate": "2026-01-01",
+                "validUntil": "2099-12-31",
+                "evidence": "Precio verificado en la publicación del catálogo"
+              },
+              "quantity": "2",
+              "wastePct": "5"
+            },
+            {
+              "resource": {
+                "id": "20000000-0000-4000-8000-000000000004",
+                "code": "DEMO-EQ-001",
+                "name": "Equipo de montaje · ficticio",
+                "type": "EQUIPMENT",
+                "unit": "DIA",
+                "amount": "120",
+                "costBasis": "DAY",
+                "currency": "USD",
+                "denomination": "USD ficticio de demostración",
+                "baseDate": "2026-01-01",
+                "validUntil": "2099-12-31",
+                "evidence": "Precio verificado en la publicación del catálogo"
+              },
+              "quantity": "1",
+              "wastePct": "0"
+            },
+            {
+              "resource": {
+                "id": "20000000-0000-4000-8000-000000000005",
+                "code": "DEMO-MO-001",
+                "name": "Montador · ficticio",
+                "type": "LABOR",
+                "unit": "DIA",
+                "amount": "60",
+                "costBasis": "DAY",
+                "currency": "USD",
+                "denomination": "USD ficticio de demostración",
+                "baseDate": "2026-01-01",
+                "validUntil": "2099-12-31",
+                "evidence": "Precio verificado en la publicación del catálogo"
+              },
+              "quantity": "2",
+              "wastePct": "0"
+            }
+          ]
+        }
+      ]
+    },
+    "hash": "5385fa538b71f2b2c6ca651fe29327d401a4ef45d80d4ca2d5cba3a1b52c758a"
+  }
+}

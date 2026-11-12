@@ -7,21 +7,21 @@
   --fur-navy-700: #184d7c;
 
   /* Gold — CTA, selección, estados activos */
-  --fur-gold-600: #e89600;
-  --fur-gold-500: #f5a800;
-  --fur-gold-400: #fdba2d;
+  --fur-gold-600: #edb800;
+  --fur-gold-500: #ffd21c;
+  --fur-gold-400: #ffe777;
 
   --fur-orange-500: #e87912;
 
   --fur-white: #ffffff;
-  --fur-gray-50: #f7f9fc;
+  --fur-gray-50: #f3f7fd;
   --fur-gray-100: #eef2f6;
-  --fur-gray-200: #dce3eb;
+  --fur-gray-200: #dce8f8;
   --fur-gray-300: #cbd5e1;
   --fur-gray-500: #7b899a;
   --fur-gray-600: #58677a;
   --fur-gray-800: #283544;
-  --fur-gray-900: #17202b;
+  --fur-gray-900: #10254b;
 
   /* Estados / acentos */
   --fur-green-500: #1f9d55;
@@ -61,8 +61,8 @@
   /* Radios y sombras (§8) */
   --fur-radius-sm: 6px;
   --fur-radius-md: 10px;
-  --fur-radius-lg: 14px;
-  --fur-radius-xl: 18px;
+  --fur-radius-lg: 8px;
+  --fur-radius-xl: 10px;
   --fur-radius-pill: 9999px;
 
   --fur-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);

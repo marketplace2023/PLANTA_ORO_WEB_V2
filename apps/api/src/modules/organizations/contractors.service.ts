@@ -200,7 +200,7 @@ export class ContractorsService {
 
   async update(id: string, dto: UpdateContractorDto, user: AuthUser, req: AppRequest) {
     const before = await this.loadVisible(id, user)
-    const role = await this.access.assertManage('contractor', id, user)
+    const role = await this.access.assertContractorPermission(id, user, 'CATALOG')
     if (role !== 'ADMIN') {
       const forbidden = ADMIN_ONLY_FIELDS.filter((f) => dto[f] !== undefined)
       if (forbidden.length) throw new ForbiddenException(`Solo el administrador del ecosistema puede cambiar: ${forbidden.join(', ')}`)
@@ -233,7 +233,7 @@ export class ContractorsService {
 
   private async loadForLogo(id: string, user: AuthUser) {
     const before = await this.loadVisible(id, user)
-    const role = await this.access.assertManage('contractor', id, user)
+    const role = await this.access.assertContractorPermission(id, user, 'CATALOG')
     if (role !== 'ADMIN' && before.status === 'SUSPENDED') throw new ConflictException('La organización está suspendida; contacta al administrador')
     return before
   }
@@ -290,7 +290,7 @@ export class ContractorsService {
 
   async createService(contractorId: string, dto: CreateServiceDto, user: AuthUser, req: AppRequest) {
     await this.loadVisible(contractorId, user)
-    await this.access.assertManage('contractor', contractorId, user)
+    await this.access.assertContractorPermission(contractorId, user, 'CATALOG')
     await this.assertActive(contractorId)
     const stageIds = await this.resolveStageIds(this.db, dto.stageCodes)
     const created = await this.db.transaction(async (tx) => {
@@ -304,7 +304,7 @@ export class ContractorsService {
 
   async updateService(contractorId: string, id: string, dto: UpdateServiceDto, user: AuthUser, req: AppRequest) {
     await this.loadVisible(contractorId, user)
-    const role = await this.access.assertManage('contractor', contractorId, user)
+    const role = await this.access.assertContractorPermission(contractorId, user, 'CATALOG')
     const [before] = await this.db.select().from(services).where(and(eq(services.id, id), eq(services.contractorId, contractorId)))
     if (!before) throw new NotFoundException('Servicio no encontrado')
     if (role !== 'ADMIN') await this.assertActive(contractorId)

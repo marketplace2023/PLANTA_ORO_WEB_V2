@@ -1,0 +1,39 @@
+{
+  "nota": "Datos ficticios para verificar el cálculo. Las tarifas y el porcentaje de impuesto son ilustrativos.",
+  "obra": {"codigo": "DEMO-01", "nombre": "Montaje de soportes en planta", "cliente": "Cliente de demostración"},
+  "moneda": "USD",
+  "decimales_moneda": 2,
+  "impuesto_pct": "16",
+  "renglones": [
+    {
+      "id": "001",
+      "capitulo": "Montaje",
+      "codigo_partida": "P-MON-001",
+      "descripcion": "Montaje de soporte",
+      "unidad": "unidad",
+      "cantidad": "25",
+      "modo": "CALCULADO",
+      "gravado": true,
+      "apu": {
+        "rendimiento_dia": "10",
+        "factores_pct": {"recargo_fcas": "50", "administracion": "10", "utilidad": "10", "financiamiento": "0"},
+        "insumos": [
+          {"codigo": "MAT-001", "descripcion": "Perfil preparado", "tipo": "MATERIAL", "unidad": "unidad", "cantidad": "2", "moneda": "USD", "costo": "40", "base_costo": "POR_UNIDAD_INSUMO", "desperdicio_pct": "5"},
+          {"codigo": "EQ-001", "descripcion": "Equipo de montaje", "tipo": "EQUIPO", "unidad": "equipo-día", "cantidad": "1", "moneda": "USD", "costo": "120", "base_costo": "POR_EQUIPO_DIA"},
+          {"codigo": "MO-001", "descripcion": "Montador", "tipo": "MANO_OBRA", "unidad": "persona-día", "cantidad": "2", "moneda": "USD", "costo": "60", "base_costo": "POR_PERSONA_DIA"}
+        ]
+      }
+    },
+    {
+      "id": "002",
+      "capitulo": "Inspección",
+      "codigo_partida": "P-INS-001",
+      "descripcion": "Servicio de inspección cotizado",
+      "unidad": "unidad",
+      "cantidad": "4",
+      "modo": "MANUAL",
+      "precio_manual": "125",
+      "gravado": true
+    }
+  ]
+}

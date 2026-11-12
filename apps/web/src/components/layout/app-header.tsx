@@ -1,81 +1,42 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Bell, Menu, Search, Star } from 'lucide-react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { Calculator, GraduationCap, Menu, Search, Store } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { MainNavbar } from './main-navbar'
 import { PlantSelector } from './plant-selector'
 import { UserMenu } from './user-menu'
-
-const headerIconButton = 'text-white hover:bg-fur-navy-800 hover:text-white'
-
-function Logo() {
-  return (
-    <Link to="/" className="flex items-center gap-2 text-white" aria-label="Ecosistema FUR — inicio">
-      <span className="grid size-9 place-items-center rounded-md bg-fur-gold-500 font-mono text-sm font-bold text-fur-navy-900">
-        FUR
-      </span>
-      <span className="hidden text-base font-bold tracking-tight sm:block">Ecosistema FUR</span>
-    </Link>
-  )
-}
+import { BrandLogo } from './brand-logo'
 
 export function AppHeader() {
   const [menuOpen, setMenuOpen] = useState(false)
-
+  const [search, setSearch] = useState('')
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const isLearning = /^\/(courses|my-learning)(\/|$)/.test(pathname)
+  const isMarketplace = /^\/marketplace(\/|$)/.test(pathname)
+  const isLuloPublic = pathname === '/budgets'
+  const isGlobal = isLearning || isMarketplace || isLuloPublic
   return (
-    <header className="sticky top-0 z-40 bg-fur-navy-900 text-white shadow-md">
-      <div className="mx-auto flex h-16 max-w-fur items-center gap-3 px-4 md:px-5 lg:px-6">
-        <Button
-          variant="ghost"
-          size="icon"
-          className={`${headerIconButton} lg:hidden`}
-          onClick={() => setMenuOpen(true)}
-          aria-label="Abrir menú"
-        >
-          <Menu />
-        </Button>
-
-        <Logo />
-        <PlantSelector />
-
-        <div className="relative mx-2 hidden max-w-xl flex-1 md:block">
-          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-fur-gray-500" />
-          <Input
-            type="search"
-            aria-label="Búsqueda global"
-            placeholder="Buscar activos, procesos, servicios, cursos, proveedores, documentos..."
-            className="h-10 border-transparent bg-white pl-9 text-fur-gray-900"
-          />
-        </div>
-
-        <div className="ml-auto flex items-center gap-1">
-          <Button variant="ghost" size="icon" className={headerIconButton} aria-label="Favoritos">
-            <Star />
-          </Button>
-          <Button variant="ghost" size="icon" className={headerIconButton} aria-label="Alertas">
-            <Bell />
-          </Button>
-          <UserMenu />
-        </div>
+    <header className="app-header sticky top-0 z-40">
+      <a className="skip-link" href="#main-content">Saltar al contenido</a>
+      <div className="header-top">
+        <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMenuOpen(true)} aria-label="Abrir menú"><Menu /></Button>
+        <BrandLogo />
+        <form className="header-search" role="search" onSubmit={(event) => { event.preventDefault(); navigate(`${isLearning ? '/courses' : isMarketplace ? '/marketplace' : '/catalog'}${search.trim() ? `?search=${encodeURIComponent(search.trim())}` : ''}`) }}>
+          <label htmlFor="global-search" className="sr-only">Búsqueda global</label>
+          <span className="search-category">{isLearning ? 'Formación FUR' : isMarketplace ? 'Marketplace FUR' : 'Catálogo FUR'}</span>
+          <Input id="global-search" type="search" placeholder={isLearning ? 'Buscar cursos por título, categoría o instructor…' : isMarketplace ? 'Buscar productos, marcas, SKU o tiendas…' : 'Buscar por FUR, nombre, categoría, fabricante…'} value={search} onChange={(event) => setSearch(event.target.value)} />
+          <Button type="submit" size="icon" aria-label={isLearning ? 'Buscar cursos' : isMarketplace ? 'Buscar productos' : 'Buscar en el catálogo'}><Search /></Button>
+        </form>
+        <div className="header-account">{isGlobal ? <div className="header-course-context">{isLearning ? <GraduationCap aria-hidden /> : isLuloPublic ? <Calculator aria-hidden /> : <Store aria-hidden />}<span><small>{isLearning ? 'FORMACIÓN' : isLuloPublic ? 'PRESUPUESTOS' : 'COMPRAS'}</small><strong>{isLuloPublic ? 'Estimación pública' : 'Catálogo global'}</strong></span></div> : <PlantSelector />}<UserMenu /></div>
       </div>
-
-      <div className="hidden border-t border-fur-navy-800 lg:block">
-        <div className="mx-auto max-w-fur overflow-x-auto px-6">
-          <MainNavbar />
-        </div>
-      </div>
-
-      {/* En mobile la navbar pasa a drawer (docs/design.md §49) */}
+      <div className="header-nav hidden lg:block"><MainNavbar /></div>
       <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-        <SheetContent side="left" className="w-72 border-fur-navy-800 bg-fur-navy-900 text-white">
-          <SheetHeader>
-            <SheetTitle className="text-white">Ecosistema FUR</SheetTitle>
-          </SheetHeader>
-          <div className="px-2 pb-4">
-            <MainNavbar orientation="vertical" onNavigate={() => setMenuOpen(false)} />
-          </div>
+        <SheetContent side="left" className="mobile-navigation w-80">
+          <SheetHeader><SheetTitle>Ecosistema FUR</SheetTitle></SheetHeader>
+          <div className="overflow-y-auto px-2 pb-4"><MainNavbar orientation="vertical" onNavigate={() => setMenuOpen(false)} /></div>
         </SheetContent>
       </Sheet>
     </header>

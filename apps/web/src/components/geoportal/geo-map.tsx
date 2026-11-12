@@ -5,7 +5,9 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/compone
 import type { AssetItem } from '@/features/assets/use-assets'
 import type { MapPosition, PlantStage } from '@/features/plant/use-plant-data'
 import { plantMapUrl } from '@/lib/plant-maps'
+import { stageLayoutPosition } from '@/lib/stage-layout'
 import { cn } from '@/lib/utils'
+import { STATUS_META } from '@/lib/assets'
 import { GeoPanel } from './geo-panel'
 import { stageNumber } from './stage-number'
 
@@ -31,10 +33,11 @@ type CanvasProps = {
   /** Con valor, el mapa está en modo «ubicar»: un clic coloca lo elegido en ese punto. */
   placing?: { label: string; onPlace: (position: MapPosition) => void }
   imgClassName: string
+  referenceLayout?: boolean
 }
 
 /** Imagen del mapa con las etapas y los activos ubicados encima. Las posiciones son porcentajes de la imagen. */
-function MapCanvas({ url, alt, layers, stages, selectedStage, assets, selectedAssetId, onSelectStage, onSelectAsset, placing, imgClassName }: CanvasProps) {
+function MapCanvas({ url, alt, layers, stages, selectedStage, assets, selectedAssetId, onSelectStage, onSelectAsset, placing, imgClassName, referenceLayout }: CanvasProps) {
   const place = (e: React.MouseEvent<HTMLButtonElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()
     const clamp = (n: number) => Math.min(100, Math.max(0, n))
@@ -42,7 +45,7 @@ function MapCanvas({ url, alt, layers, stages, selectedStage, assets, selectedAs
   }
 
   return (
-    <div className="relative mx-auto w-fit max-w-full bg-white">
+    <div className="geo-map-canvas relative mx-auto w-fit max-w-full bg-white" data-reference-layout={referenceLayout || undefined}>
       <img src={url} alt={alt} className={imgClassName} />
 
       {layers.stages &&
@@ -62,7 +65,7 @@ function MapCanvas({ url, alt, layers, stages, selectedStage, assets, selectedAs
                 style={pct(s.mapPosition!)}
                 className={cn(
                   'absolute flex -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-md border border-fur-navy-900/60 text-[11px] font-bold shadow-md outline-none focus-visible:ring-3 focus-visible:ring-ring/60 disabled:pointer-events-none',
-                  active ? 'z-20 scale-110' : 'z-10',
+                  active ? 'z-20 scale-110' : 'z-10', referenceLayout && 'layout-stage-chip',
                 )}
               >
                 <span className={cn('px-1.5 py-0.5 text-white', active ? 'bg-fur-orange-500' : 'bg-fur-navy-900')}>{stageNumber(s.code)}</span>
@@ -76,7 +79,7 @@ function MapCanvas({ url, alt, layers, stages, selectedStage, assets, selectedAs
           .filter((a) => a.mapPosition)
           .map((a) => {
             const active = a.id === selectedAssetId
-            const color = layers.networks && a.networks[0]?.colorToken ? `var(--${a.networks[0].colorToken})` : undefined
+            const color = referenceLayout ? STATUS_META[a.status].color : layers.networks && a.networks[0]?.colorToken ? `var(--${a.networks[0].colorToken})` : undefined
             return (
               <button
                 key={a.id}
@@ -86,7 +89,7 @@ function MapCanvas({ url, alt, layers, stages, selectedStage, assets, selectedAs
                 aria-label={`Activo ${a.tag} ${a.name}`}
                 onClick={() => onSelectAsset(a.id)}
                 style={pct(a.mapPosition!)}
-                className={cn('group absolute flex -translate-y-1/2 items-center gap-1 outline-none disabled:pointer-events-none', active ? 'z-30' : 'z-20')}
+                className={cn('group absolute flex -translate-y-1/2 items-center gap-1 outline-none disabled:pointer-events-none', active ? 'z-30' : 'z-20', referenceLayout && 'layout-asset-pointer', referenceLayout && a.mapPosition!.x > 70 && 'layout-asset-pointer-left')}
               >
                 <span
                   className={cn('-ml-2.5 grid size-5 shrink-0 place-items-center rounded-full text-fur-navy-950 shadow ring-2 ring-white', !color && (active ? 'bg-fur-orange-500' : 'bg-fur-gold-500'))}
@@ -100,8 +103,8 @@ function MapCanvas({ url, alt, layers, stages, selectedStage, assets, selectedAs
                     active ? 'bg-fur-orange-500 text-white' : 'bg-fur-gold-400 text-fur-navy-950',
                   )}
                 >
-                  <span className="fur-code block">{a.tag}</span>
-                  <span className="block truncate font-medium">{a.name}</span>
+                  <span className="fur-code block">{referenceLayout ? a.stage?.name ?? a.tag : a.tag}</span>
+                  <span className="block truncate font-medium">{referenceLayout ? `${a.tag} · ${a.name}` : a.name}</span>
                 </span>
               </button>
             )
@@ -115,6 +118,7 @@ function MapCanvas({ url, alt, layers, stages, selectedStage, assets, selectedAs
 }
 
 export type GeoMapProps = {
+  variant?: 'diagram' | 'layout'
   plantName: string
   plantCode: string
   /** Etapas habilitadas, con su posición si ya se ubicaron. */
@@ -138,7 +142,9 @@ export type GeoMapProps = {
  */
 export function GeoMap(props: GeoMapProps) {
   const { plantName, plantCode, stages, selectedStage, assets, selectedAsset, canPlaceStages, canPlaceAssets } = props
-  const url = plantMapUrl(plantCode)
+  const [mapView, setMapView] = useState<'diagram' | 'layout'>(props.variant === 'layout' && plantCode === 'REV-II' ? 'layout' : 'diagram')
+  const referenceLayout = mapView === 'layout' && plantCode === 'REV-II'
+  const url = referenceLayout ? '/Layout.png' : plantMapUrl(plantCode)
   const [zoom, setZoom] = useState(false)
   const [layers, setLayers] = useState<Layers>({ assets: true, stages: true, networks: true })
   const [editing, setEditing] = useState(false)
@@ -152,7 +158,7 @@ export function GeoMap(props: GeoMapProps) {
     )
   }
 
-  const canEdit = canPlaceStages || canPlaceAssets
+  const canEdit = !referenceLayout && (canPlaceStages || canPlaceAssets)
   // El destino real: lo elegido si se puede, o el otro si solo se puede uno.
   const kind: 'stage' | 'asset' = target === 'stage' ? (canPlaceStages ? 'stage' : 'asset') : canPlaceAssets ? 'asset' : 'stage'
   const stageTarget = kind === 'stage' ? selectedStage : undefined
@@ -161,21 +167,25 @@ export function GeoMap(props: GeoMapProps) {
   const targetPosition = stageTarget?.mapPosition ?? assetTarget?.mapPosition ?? null
 
   const placing =
-    editing && targetLabel
+    !referenceLayout && editing && targetLabel
       ? {
           label: targetLabel,
           onPlace: (p: MapPosition) => (stageTarget ? props.onPlaceStage(stageTarget, p) : assetTarget && props.onPlaceAsset(assetTarget, p)),
         }
       : undefined
 
+  const referencePosition = stageLayoutPosition(selectedAsset?.stage?.code)
+  const referenceAssets = selectedAsset && referencePosition
+    ? [{ ...selectedAsset, mapPosition: { x: referencePosition.x, y: referencePosition.y + 5 } }] : []
   const canvas = (imgClassName: string) => (
     <MapCanvas
       url={url}
       alt={`Mapa de ${plantName}`}
       layers={layers}
-      stages={stages}
+      referenceLayout={referenceLayout}
+      stages={referenceLayout ? stages.filter((stage) => stage.code === selectedStage?.code).map((stage) => ({ ...stage, mapPosition: stageLayoutPosition(stage.code) })) : stages}
       selectedStage={selectedStage?.code}
-      assets={assets}
+      assets={referenceLayout ? referenceAssets : assets}
       selectedAssetId={selectedAsset?.id}
       onSelectStage={props.onSelectStage}
       onSelectAsset={props.onSelectAsset}
@@ -187,11 +197,15 @@ export function GeoMap(props: GeoMapProps) {
   const placed = assets.filter((a) => a.mapPosition).length
 
   return (
-    <GeoPanel title="Mapa integral de activos físicos de la planta" icon={MapIcon} bodyClassName="p-0">
+    <GeoPanel title={props.variant === 'layout' ? `Mapa de planta · ${plantName}` : 'Mapa integral de activos físicos de la planta'} icon={MapIcon} bodyClassName="p-0" className="assets-map-panel">
+      {props.variant === 'layout' && plantCode === 'REV-II' && <div className="asset-map-views" role="group" aria-label="Tipo de mapa">
+        <button type="button" aria-pressed={referenceLayout} onClick={() => { setMapView('layout'); setEditing(false) }}>Vista de planta</button>
+        <button type="button" aria-pressed={!referenceLayout} onClick={() => setMapView('diagram')}>Diagrama técnico</button>
+      </div>}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2">
         <fieldset className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <legend className="sr-only">Capas del mapa</legend>
-          {LAYER_LABELS.map(([key, label]) => (
+          {LAYER_LABELS.filter(([key]) => !referenceLayout || key !== 'networks').map(([key, label]) => (
             <label key={key} className="flex items-center gap-1.5 text-sm">
               <input type="checkbox" className="size-4 accent-fur-navy-900" checked={layers[key]} onChange={(e) => setLayers((l) => ({ ...l, [key]: e.target.checked }))} />
               {label}
@@ -238,9 +252,15 @@ export function GeoMap(props: GeoMapProps) {
         </div>
       )}
 
-      {canvas('block h-auto max-h-[26rem] w-auto max-w-full')}
+      <div className="asset-map-viewport">{canvas('block h-auto max-h-[26rem] w-auto max-w-full')}</div>
 
-      {!editing && placed === 0 && !stages.some((s) => s.mapPosition) && (
+      {referenceLayout && <p className="layout-map-note">
+        {selectedAsset ? `${selectedAsset.tag} · ${selectedAsset.stage?.code ?? 'Sin etapa'} — ` : ''}
+        {selectedAsset && !stageLayoutPosition(selectedAsset.stage?.code) ? 'Este activo no tiene un área de etapa identificada en esta vista.' : 'El puntero indica el área de referencia de la etapa, no la posición exacta del equipo.'}
+        {' '}El diagrama técnico conserva las ubicaciones registradas.
+      </p>}
+
+      {!referenceLayout && !editing && placed === 0 && !stages.some((s) => s.mapPosition) && (
         <p className="border-t border-border px-3 py-2 text-xs text-muted-foreground">
           {canEdit ? 'Aún no hay etapas ni activos ubicados en el mapa: usa «Ubicar en el mapa» para colocarlos.' : 'Aún no hay etapas ni activos ubicados en el mapa.'}
         </p>

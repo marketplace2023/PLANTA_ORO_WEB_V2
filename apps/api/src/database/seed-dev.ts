@@ -629,6 +629,8 @@ export async function runSeedDev(url: string, password = DEV_PASSWORD, { include
           .values({
             title: c.title,
             description: c.description,
+            learningObjectives: ['Aplicar los procedimientos presentados en las lecciones'],
+            targetAudience: ['Personal técnico y operativo'],
             providerType: ownerType,
             providerId,
             contractorId,
@@ -640,10 +642,10 @@ export async function runSeedDev(url: string, password = DEV_PASSWORD, { include
             createdBy: adminUser.id,
           })
           .returning()
-        await tx.insert(s.courseStages).values(c.stages.map((code) => ({ courseId: course.id, stageMasterId: stageIdByCode.get(code)! })))
+        const [section] = await tx.insert(s.courseSections).values({courseId: course.id, title: 'Contenido del curso', position: 0}).returning()
         const lessonRows = await tx
           .insert(s.lessons)
-          .values(c.lessons.map((l, i) => ({ courseId: course.id, position: i, title: l.title, content: l.content, videoUrl: l.videoUrl, durationMinutes: l.minutes })))
+          .values(c.lessons.map((l, i) => ({ courseId: course.id, sectionId: section.id, position: i, title: l.title, content: l.content, videoUrl: l.videoUrl, durationMinutes: l.minutes })))
           .returning({ id: s.lessons.id, position: s.lessons.position })
         if (c.title.startsWith('Seguridad operativa')) {
           const [enr] = await tx.insert(s.enrollments).values({ courseId: course.id, userId: reader.id, progressPercent: '33.33' }).returning()

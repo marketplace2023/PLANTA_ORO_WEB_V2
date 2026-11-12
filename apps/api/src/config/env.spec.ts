@@ -22,6 +22,9 @@ describe('validateEnv', () => {
       S3_REGION: '',
       STORAGE_DIR: './.local/storage',
       MAX_UPLOAD_MB: 25,
+      MAX_VIDEO_UPLOAD_MB: 500,
+      FFMPEG_PATH: '',
+      FFPROBE_PATH: '',
       TRUST_PROXY_HOPS: 1,
       ACCESS_MODE: 'members',
     })
@@ -71,5 +74,10 @@ describe('validateEnv', () => {
     expect(() => validateEnv({ ...base, COOKIE_SAMESITE: 'whatever' })).toThrow(/COOKIE_SAMESITE/)
     expect(() => validateEnv({ ...base, ACCESS_TOKEN_TTL_SECONDS: '5' })).toThrow(/ACCESS_TOKEN_TTL_SECONDS/)
     expect(() => validateEnv({ ...base, AUTH_RATE_LIMIT_PER_MINUTE: '0' })).toThrow(/AUTH_RATE_LIMIT_PER_MINUTE/)
+  })
+
+  it('keeps the video limit separate from document uploads', () => {
+    expect(validateEnv({ ...base, MAX_VIDEO_UPLOAD_MB: '1024' })).toMatchObject({ MAX_UPLOAD_MB: 25, MAX_VIDEO_UPLOAD_MB: 1024 })
+    for (const limit of ['0', '-1', '2.5', '2049']) expect(() => validateEnv({ ...base, MAX_VIDEO_UPLOAD_MB: limit })).toThrow(/MAX_VIDEO_UPLOAD_MB/)
   })
 })

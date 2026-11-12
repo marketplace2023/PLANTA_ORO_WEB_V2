@@ -1,0 +1,124 @@
+/* Photographic navigation: the same destinations, with room for the original imagery. */
+.module-shortcuts {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 4fr);
+  gap: 22px;
+  margin: 0 0 24px;
+  padding: 18px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: visible;
+}
+.module-shortcut-group { min-width: 0; }
+.module-shortcut-group:first-child { padding-right: 22px; border-right: 1px solid var(--border); }
+.module-group-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 16px; padding: 0 2px 12px; }
+.module-group-title { display: flex; align-items: center; gap: 8px; color: var(--foreground); font-size: 12px; font-weight: 600; }
+.module-group-title svg { width: 15px; height: 15px; color: var(--muted-foreground); stroke-width: 1.6; }
+.module-group-links {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(94px, 1fr);
+  gap: 10px;
+  margin: -5px;
+  padding: 5px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--input) transparent;
+  scroll-snap-type: x proximity;
+  scroll-padding: 5px;
+}
+.module-group-links .module-shortcut {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0;
+  min-width: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--background);
+  color: var(--foreground);
+  text-align: left;
+  scroll-snap-align: start;
+  isolation: isolate;
+  transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+}
+.module-shortcut-art { position: relative; display: block; width: 100%; height: 84px; overflow: hidden; border-radius: 11px 11px 0 0; background: #182c40; }
+.module-shortcut-art img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 62% center; transition: transform .6s cubic-bezier(.2,.65,.3,1); }
+.module-shortcut-glint { position: absolute; inset: 0; background: linear-gradient(115deg, transparent 25%, #ffe7a340 48%, transparent 72%); opacity: 0; transform: translateX(-100%); pointer-events: none; transition: transform .7s ease, opacity .4s ease; }
+.module-shortcut-caption { position: relative; display: flex; align-items: center; gap: 5px; flex: 1; min-height: 47px; padding: 9px 8px; }
+.module-shortcut-label { flex: 1; font-size: 10px; font-weight: 550; line-height: 1.45; text-wrap: balance; }
+.module-shortcut .module-shortcut-arrow { width: 12px; height: 12px; flex-shrink: 0; color: var(--muted-foreground); transition: transform .25s ease, color .25s ease; }
+.module-shortcuts .module-shortcut:hover { background: var(--background); border-color: #c3a040; box-shadow: 0 6px 16px #08254c12; transform: translateY(-3px); }
+.module-shortcut:hover img, .module-shortcut:focus-visible img { transform: scale(1.07); }
+.module-shortcut:hover .module-shortcut-glint, .module-shortcut:focus-visible .module-shortcut-glint { transform: translateX(100%); opacity: 1; }
+.module-shortcut:hover .module-shortcut-arrow, .module-shortcut:focus-visible .module-shortcut-arrow { transform: translate(1px, -1px); color: var(--foreground); }
+.module-shortcuts .module-shortcut[aria-current=page] { background: var(--background); border-color: #c3a040; box-shadow: 0 0 0 1px #c3a040; }
+.module-shortcut[aria-current=page] .module-shortcut-caption::after { content: ''; position: absolute; bottom: 0; left: 10px; right: 10px; height: 3px; border-radius: 3px 3px 0 0; background: var(--fur-gold-500); }
+.module-shortcut:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; }
+.module-shortcuts .module-shortcut:active { transform: translateY(0) scale(.985); }
+
+.module-shortcuts.category-carousel { grid-template-columns: minmax(0, 1fr); gap: 18px; padding: 24px; }
+.category-carousel-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.category-carousel-heading > p { font-size: 18px; font-weight: 600; letter-spacing: -.03em; color: var(--foreground); }
+.category-carousel-controls { display: flex; gap: 8px; }
+.category-carousel-controls button { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--border); border-radius: 50%; color: var(--foreground); background: var(--background); }
+.category-carousel-controls button svg { width: 16px; height: 16px; }
+.category-carousel-controls button:hover:not(:disabled) { background: var(--fur-gold-400); border-color: var(--fur-gold-500); color: #08254c; }
+.category-carousel-controls button:disabled { opacity: .35; cursor: default; }
+.category-carousel-controls button:focus-visible, .category-carousel-track:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; }
+.module-shortcuts .category-carousel-track { min-width: 0; grid-auto-columns: clamp(212px, 24%, 300px); gap: 16px; scrollbar-width: none; }
+.category-carousel-track::-webkit-scrollbar { display: none; }
+.category-carousel .module-shortcut-art { height: clamp(150px, 13vw, 190px); }
+.category-carousel .module-shortcut-caption { min-height: 58px; padding: 14px; }
+.category-carousel .module-shortcut-label { font-size: 13px; }
+.category-carousel .module-shortcut-arrow { width: 15px; height: 15px; }
+.dark .module-shortcuts .module-shortcut:hover { box-shadow: 0 6px 18px #0004; }
+
+@media (max-width: 1279px) {
+  .module-shortcuts { grid-template-columns: 1fr; gap: 18px; }
+  .module-shortcut-group:first-child { padding: 0 0 18px; border-right: 0; border-bottom: 1px solid var(--border); }
+  .module-shortcut-art { height: 76px; }
+}
+@media (max-width: 767px) {
+  .module-shortcuts, .module-shortcuts[data-variant=featured] { padding: 16px; border-radius: 16px; }
+  .module-group-links { grid-auto-columns: minmax(128px, 1fr); }
+  .module-shortcuts .category-carousel-track { grid-auto-columns: min(82%, 260px); gap: 12px; }
+  .category-carousel .module-shortcut-art { height: 155px; }
+  .module-shortcut-art { height: 82px; }
+  .module-shortcut-caption { min-height: 47px; padding: 9px; }
+  .module-shortcut-label { font-size: 11px; }
+  .module-group-heading { align-items: flex-start; flex-direction: column; gap: 5px; }
+}
+/* Catalog keeps its original compact icon navigation. */
+.module-shortcuts[data-variant=icons] { grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); padding: 16px; gap: 0; border-radius: 16px; }
+.module-shortcuts[data-variant=icons] .module-shortcut-group:first-child { padding: 0 18px 0 0; margin-right: 18px; border-right: 1px solid var(--border); border-bottom: 0; }
+.module-shortcuts[data-variant=icons] .module-group-heading { padding: 0 7px 9px; }
+.module-shortcuts[data-variant=icons] .module-group-title { font-size: 10px; color: var(--muted-foreground); }
+.module-shortcuts[data-variant=icons] .module-group-title svg { width: 13px; height: 13px; }
+.module-shortcuts[data-variant=icons] .module-group-links { display: flex; gap: 3px; margin: 0; padding: 4px 0; }
+.module-shortcuts[data-variant=icons] .module-group-links .module-shortcut { flex: 1 0 82px; min-width: 82px; align-items: center; justify-content: center; padding: 10px 6px; gap: 9px; border: 0; border-radius: 10px; background: transparent; text-align: center; box-shadow: none; transform: none; }
+.module-shortcuts[data-variant=icons] .module-shortcut-label { flex: initial; font-size: 10px; font-weight: 500; }
+.module-shortcut-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px; background: var(--muted); transition: background .2s, transform .2s; }
+.module-shortcut-icon svg { width: 19px; height: 19px; stroke-width: 1.5; }
+.module-shortcuts[data-variant=icons] .module-shortcut:nth-child(3n) .module-shortcut-icon { color: var(--ring); }
+.module-shortcuts[data-variant=icons] .module-shortcut:nth-child(5n) .module-shortcut-icon { color: var(--network-lab); }
+.module-shortcuts[data-variant=icons] .module-group-links .module-shortcut:hover,
+.module-shortcuts[data-variant=icons] .module-group-links .module-shortcut[aria-current=page] { background: color-mix(in srgb, var(--fur-gold-500) 12%, var(--card)); }
+.module-shortcuts[data-variant=icons] .module-shortcut:hover .module-shortcut-icon { background: color-mix(in srgb, var(--fur-gold-500) 25%, var(--card)); transform: translateY(-3px); }
+@media (max-width: 900px) {
+  .module-shortcuts[data-variant=icons] { grid-template-columns: 1fr; gap: 14px; }
+  .module-shortcuts[data-variant=icons] .module-shortcut-group:first-child { padding: 0 0 12px; margin-right: 0; border-right: 0; border-bottom: 1px solid var(--border); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .module-shortcut-icon { transition: none; }
+  .module-shortcuts[data-variant=icons] .module-shortcut:hover .module-shortcut-icon { transform: none; }
+  .module-group-links .module-shortcut, .module-shortcut-art img, .module-shortcut-glint, .module-shortcut .module-shortcut-arrow { transition: none; }
+  .module-shortcuts .module-shortcut:hover, .module-shortcuts .module-shortcut:active,
+  .module-shortcut:hover img, .module-shortcut:focus-visible img,
+  .module-shortcut:hover .module-shortcut-arrow, .module-shortcut:focus-visible .module-shortcut-arrow { transform: none; }
+  .module-shortcut-glint { display: none; }
+}

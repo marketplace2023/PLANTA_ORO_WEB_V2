@@ -321,7 +321,6 @@ export const DEMO_COURSES: Array<{
   certificate: boolean
   instructor: string
   owner: { type: 'ECOSYSTEM' } | { type: 'PROVIDER' | 'CONTRACTOR'; name: string }
-  stages: string[]
   status: 'DRAFT' | 'PUBLISHED'
   lessons: Array<{ title: string; content: string; minutes: number; videoUrl?: string }>
 }> = [
@@ -332,7 +331,6 @@ export const DEMO_COURSES: Array<{
     certificate: true,
     instructor: 'Ing. Rosa Quispe',
     owner: { type: 'ECOSYSTEM' },
-    stages: ['D05', 'D06', 'D07'],
     status: 'PUBLISHED',
     lessons: [
       { title: 'Riesgos del circuito de molienda', content: 'Identificación de energías peligrosas: mecánica, eléctrica, hidráulica y cargas suspendidas.', minutes: 20 },
@@ -347,7 +345,6 @@ export const DEMO_COURSES: Array<{
     certificate: true,
     instructor: 'M.Sc. Daniel Ríos',
     owner: { type: 'ECOSYSTEM' },
-    stages: ['D08', 'D09', 'D10', 'D12'],
     status: 'PUBLISHED',
     lessons: [
       { title: 'Química de la disolución del oro', content: 'Reacción con cianuro, rol del oxígeno y factores que limitan la cinética.', minutes: 35 },
@@ -362,7 +359,6 @@ export const DEMO_COURSES: Array<{
     certificate: false,
     instructor: 'Equipo técnico de Repuestos Andinos',
     owner: { type: 'PROVIDER', name: 'Repuestos Andinos S.A.C.' },
-    stages: ['D05', 'D07'],
     status: 'PUBLISHED',
     lessons: [
       { title: 'Espectros de vibración', content: 'Lectura de espectros, armónicos y fallas típicas de rodamientos y desalineación.', minutes: 50, videoUrl: 'https://example.com/video/vibraciones' },
@@ -376,7 +372,6 @@ export const DEMO_COURSES: Array<{
     certificate: true,
     instructor: 'Téc. Mario Cáceres',
     owner: { type: 'CONTRACTOR', name: 'Mecánica Industrial Minera' },
-    stages: ['D05', 'D06'],
     status: 'PUBLISHED',
     lessons: [
       { title: 'Pie cojo y tolerancias', content: 'Detección y corrección de pie cojo; tolerancias por velocidad de giro.', minutes: 30 },
@@ -390,7 +385,6 @@ export const DEMO_COURSES: Array<{
     certificate: false,
     instructor: 'Por definir',
     owner: { type: 'ECOSYSTEM' },
-    stages: ['D16'],
     status: 'DRAFT',
     lessons: [{ title: 'Introducción', content: 'Contenido en elaboración.', minutes: 10 }],
   },

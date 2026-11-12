@@ -243,7 +243,9 @@ describe('Dashboards (contexto ecosistema)', () => {
     expect(screen.getByRole('link', { name: /REVEMIN II/ })).toHaveAttribute('href', '/plants/revemin-ii/dashboard')
     expect(screen.getByText('Jefe de mantenimiento')).toBeInTheDocument()
     expect(screen.getByText('solo lectura')).toBeInTheDocument() // en Planta Norte no tiene rol
-    expect(screen.getByRole('link', { name: 'Marketplace' })).toHaveAttribute('href', '/marketplace')
+    for (const link of screen.getAllByRole('link', { name: 'Marketplace' })) {
+      expect(link).toHaveAttribute('href', '/marketplace')
+    }
     expect(m.calls).toHaveLength(0)
   })
 })

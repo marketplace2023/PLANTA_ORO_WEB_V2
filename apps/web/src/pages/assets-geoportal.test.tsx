@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -75,6 +75,12 @@ const renderGeo = (route = BASE) =>
     </Routes>,
     { route },
   )
+
+const renderDiagram = async (route = BASE) => {
+  const result = renderGeo(route)
+  await userEvent.click(await screen.findByRole('button', { name: 'Diagrama t\u00e9cnico' }))
+  return result
+}
 
 /** Las tarjetas de la etapa (el mismo activo también aparece como marcador en el mapa). */
 const cards = async () => within(await screen.findByRole('list', { name: 'Activos de la etapa' }))
@@ -252,25 +258,12 @@ describe('Geoportal de Activos Físicos', () => {
       expect(within(ficha).queryByText('Variables clave')).not.toBeInTheDocument()
     })
 
-    it('en pantalla ancha toma la altura de la columna central y se desplaza por dentro', async () => {
-      const observers: Array<(entries: Array<{ contentRect: { height: number } }>) => void> = []
-      class FakeResizeObserver {
-        constructor(cb: (entries: Array<{ contentRect: { height: number } }>) => void) {
-          observers.push(cb)
-        }
-        observe() {}
-        disconnect() {}
-      }
-      vi.stubGlobal('ResizeObserver', FakeResizeObserver)
-      vi.stubGlobal('matchMedia', (query: string) => ({ matches: true, media: query, addEventListener() {}, removeEventListener() {} }))
+    it('la ficha lateral tiene desplazamiento independiente del listado', async () => {
       setup()
       renderGeo()
-
-      const ficha = (await screen.findByRole('heading', { name: /^Ficha técnica general/ })).closest('section')!
-      await waitFor(() => expect(observers.length).toBeGreaterThan(0))
-      act(() => observers.forEach((cb) => cb([{ contentRect: { height: 812 } }])))
-      await waitFor(() => expect(ficha).toHaveStyle({ maxHeight: '812px' }))
-      // el contenido es el que se desplaza, no la tarjeta entera
+      const ficha = (await screen.findByRole('heading', { name: /^Ficha t\u00e9cnica general/ })).closest('section')!
+      await within(ficha).findByRole('link', { name: /Abrir la ficha completa/ })
+      expect(ficha.style.maxHeight).toBe('')
       expect(ficha.lastElementChild).toHaveClass('overflow-y-auto')
       expect(ficha.firstElementChild?.tagName).toBe('HEADER')
     })
@@ -357,9 +350,28 @@ describe('Geoportal de Activos Físicos', () => {
   })
 
   describe('Mapa', () => {
+    it('abre el layout con un puntero de etapa aunque el activo no tenga posición registrada', async () => {
+      setup()
+      renderGeo(`${BASE}?stage=D07&asset=a2`)
+      expect(await screen.findByAltText('Mapa de REVEMIN II')).toHaveAttribute('src', '/Layout.png')
+      const pointer = await screen.findByRole('button', { name: 'Activo MT-301 Motor del molino' })
+      expect(pointer).toHaveStyle({ left: '65%', top: '25%' })
+      expect(screen.getByText(/El puntero indica el área de referencia/)).toBeInTheDocument()
+    })
+
+    it('un enlace con solo asset selecciona su etapa incluso fuera de la página visible', async () => {
+      const mock = setup(page([asset({ id: 'another', tag: 'OTRO' })], 101, 1, 100), SUMMARY, {
+        'GET /plants/revemin-ii/assets/a6/fur': { body: fur({}, { id: 'a6', tag: 'M-06' }) },
+      })
+      renderGeo(`${BASE}?asset=a6`)
+      await waitFor(() => expect(lastQuery(mock).get('stage')).toBe('D06'))
+      expect(await screen.findByRole('button', { name: /^Activo M-06/ })).toHaveStyle({ left: '47%', top: '32%' })
+      expect(within(screen.getByRole('list', { name: 'Etapas' })).getByRole('button', { name: /Molienda Primaria/ })).toHaveAttribute('aria-current', 'true')
+    })
+
     it('muestra la imagen de la planta con las etapas y los activos ya ubicados, que se pueden elegir', async () => {
       setup()
-      renderGeo()
+      await renderDiagram()
 
       expect(await screen.findByAltText('Mapa de REVEMIN II')).toHaveAttribute('src', '/MAPA%20REVEMIN_NUEVO.jpg')
       const stageChip = await screen.findByRole('button', { name: 'Etapa 07 Molienda Secundaria' })
@@ -376,7 +388,7 @@ describe('Geoportal de Activos Físicos', () => {
 
     it('elegir un activo desde el mapa actualiza la ficha técnica', async () => {
       setup()
-      renderGeo(`${BASE}?stage=D07&asset=a2`)
+      await renderDiagram(`${BASE}?stage=D07&asset=a2`)
       const ficha = (await screen.findByRole('heading', { name: /^Ficha técnica general/ })).closest('section')!
       await waitFor(() => expect(within(ficha).getByRole('link', { name: /Abrir la ficha completa/ })).toHaveAttribute('href', '/plants/revemin-ii/assets/a2'))
 
@@ -386,7 +398,7 @@ describe('Geoportal de Activos Físicos', () => {
 
     it('las capas se activan y desactivan', async () => {
       setup()
-      renderGeo()
+      await renderDiagram()
       await screen.findByRole('button', { name: /^Activo MB-301/ })
 
       await userEvent.click(screen.getByRole('checkbox', { name: 'Activos físicos' }))
@@ -401,7 +413,7 @@ describe('Geoportal de Activos Físicos', () => {
 
     it('se puede ampliar y el mapa ampliado conserva los marcadores', async () => {
       setup()
-      renderGeo()
+      await renderDiagram()
       await screen.findByRole('button', { name: /^Activo MB-301/ })
       await userEvent.click(screen.getByRole('button', { name: 'Ampliar el mapa de REVEMIN II' }))
       const dialog = await screen.findByRole('dialog')
@@ -417,7 +429,7 @@ describe('Geoportal de Activos Físicos', () => {
 
       it('sin permisos no hay botón para ubicar', async () => {
         setup()
-        renderGeo()
+        await renderDiagram()
         await screen.findByRole('button', { name: /^Activo MB-301/ })
         expect(screen.queryByRole('button', { name: /Ubicar en el mapa/ })).not.toBeInTheDocument()
       })
@@ -425,7 +437,7 @@ describe('Geoportal de Activos Físicos', () => {
       it('con permiso de editar activos ubica el activo elegido donde se hace clic (en porcentaje) y se guarda', async () => {
         state.permissions = ['asset.update']
         const mock = setup()
-        renderGeo(`${BASE}?stage=D07&asset=a2`)
+        await renderDiagram(`${BASE}?stage=D07&asset=a2`)
         await screen.findByRole('button', { name: /^Activo MB-301/ })
 
         await userEvent.click(screen.getByRole('button', { name: /Ubicar en el mapa/ }))
@@ -441,7 +453,7 @@ describe('Geoportal de Activos Físicos', () => {
       it('con permiso de configurar la planta ubica la etapa elegida', async () => {
         state.permissions = ['plant.configure']
         const mock = setup()
-        renderGeo()
+        await renderDiagram()
         await screen.findByRole('button', { name: /^Activo MB-301/ })
 
         await userEvent.click(screen.getByRole('button', { name: /Ubicar en el mapa/ }))
@@ -455,7 +467,7 @@ describe('Geoportal de Activos Físicos', () => {
       it('«Quitar posición» envía null y «Listo» sale del modo ubicar', async () => {
         state.permissions = ['asset.update']
         const mock = setup()
-        renderGeo()
+        await renderDiagram()
         await screen.findByRole('button', { name: /^Activo MB-301/ })
         await userEvent.click(screen.getByRole('button', { name: /Ubicar en el mapa/ }))
 
@@ -470,7 +482,7 @@ describe('Geoportal de Activos Físicos', () => {
       it('mientras se ubica, los marcadores no se pueden pulsar (el clic es para colocar)', async () => {
         state.permissions = ['asset.update']
         setup()
-        renderGeo()
+        await renderDiagram()
         const marker = await screen.findByRole('button', { name: /^Activo MB-301/ })
         await userEvent.click(screen.getByRole('button', { name: /Ubicar en el mapa/ }))
         expect(marker).toBeDisabled()

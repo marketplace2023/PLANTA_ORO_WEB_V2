@@ -104,8 +104,8 @@ export function NetworkList({
                     className="flex w-full cursor-not-allowed items-center gap-2 rounded-md border border-transparent px-2.5 py-1.5 text-left text-sm text-fur-gray-500 opacity-70"
                   >
                     <Lock className="size-3.5 shrink-0" aria-hidden />
-                    <span className="fur-code shrink-0 text-xs">{n.code}</span>
-                    <span className="truncate">{n.name}</span>
+                    <span className="network-filter-code fur-code shrink-0 text-xs">{n.code}</span>
+                    <span className="network-filter-name truncate">{n.name}</span>
                   </button>
                 </li>
               )
@@ -116,6 +116,8 @@ export function NetworkList({
                 <button
                   type="button"
                   aria-pressed={active}
+                  aria-label={`${n.code} ${n.name}`}
+                  title={`${n.code} · ${n.name}`}
                   onClick={() => onSelect(onlyNetwork ? undefined : active ? undefined : n.code)}
                   className={cn(
                     'flex w-full items-center gap-2 rounded-md border px-2.5 py-1.5 text-left text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
@@ -123,8 +125,8 @@ export function NetworkList({
                   )}
                 >
                   <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: n.colorToken ? `var(--${n.colorToken})` : 'var(--fur-steel-500)' }} aria-hidden />
-                  <span className="fur-code shrink-0 text-xs">{n.code}</span>
-                  <span className="truncate text-fur-gray-600">{n.name}</span>
+                  <span className="network-filter-code fur-code shrink-0 text-xs">{n.code}</span>
+                  <span className="network-filter-name truncate text-fur-gray-600">{n.name}</span>
                   {active || onlyNetwork ? <span className="ml-auto shrink-0 rounded-full bg-fur-gold-500 px-2 py-0.5 text-[10px] font-bold text-fur-navy-950 uppercase">Activa</span> : count(counts?.[n.code])}
                 </button>
               </li>

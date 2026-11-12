@@ -86,24 +86,27 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('Catálogo de cursos', () => {
-  it('CourseCard: nivel, certificado, instructor, ofrece, duración, lecciones y etapas', async () => {
+  it('shows compact cards with a single course link, instructor and price', async () => {
     setup()
     at(<CoursesPage />, '/courses', '/courses')
-    const c = (await screen.findByRole('link', { name: 'Seguridad operativa en molienda' })).closest('[data-slot="card"]') as HTMLElement
-    expect(within(c).getByText('Básico')).toBeInTheDocument()
-    expect(within(c).getByText('Certificado')).toBeInTheDocument()
+    const link = await screen.findByRole('link', {name:'Seguridad operativa en molienda'})
+    const c = link.closest('[data-slot="card"]') as HTMLElement
+    expect(link).toHaveAttribute('href','/courses/c1')
     expect(within(c).getByText('Ing. Quispe')).toBeInTheDocument()
-    expect(within(c).getByText('Ecosistema FUR')).toBeInTheDocument()
-    expect(within(c).getByText(/1 h 15 min · 3 lecciones/)).toBeInTheDocument()
-    expect(within(c).getByRole('link', { name: 'Ver curso Seguridad operativa en molienda' })).toHaveAttribute('href', '/courses/c1')
+    expect(within(c).getByLabelText('Precio: Gratis')).toBeInTheDocument()
+    expect(within(c).getAllByRole('link')).toHaveLength(1)
+    expect(within(c).queryByText('LOTO y espacios confinados')).not.toBeInTheDocument()
+    expect(within(c).queryByText('Ecosistema FUR')).not.toBeInTheDocument()
+    expect(within(c).queryByText('Certificado')).not.toBeInTheDocument()
+    expect(within(c).queryByText('Ver curso')).not.toBeInTheDocument()
   })
 
   it('los filtros viven en la URL y llegan a la API; se pueden quitar como chips', async () => {
     const m = setup()
-    at(<CoursesPage />, '/courses', '/courses?stage=D06&level=ADVANCED&certificate=1&maxMinutes=60')
+    at(<CoursesPage />, '/courses', '/courses?category=Mantenimiento&stage=D06&level=ADVANCED&certificate=1&maxMinutes=60')
     await screen.findByText('Alineación láser')
     const q = calls(m, '/courses').at(-1)!.query
-    expect([q.get('stage'), q.get('level'), q.get('certificate'), q.get('maxMinutes')]).toEqual(['D06', 'ADVANCED', '1', '60'])
+    expect([q.get('category'), q.get('stage'), q.get('level'), q.get('certificate'), q.get('maxMinutes')]).toEqual(['Mantenimiento', null, 'ADVANCED', '1', '60'])
     await userEvent.click(screen.getByRole('button', { name: 'Quitar filtro Nivel: Avanzado' }))
     await waitFor(() => expect(calls(m, '/courses').at(-1)!.query.get('level')).toBeNull())
   })
@@ -198,6 +201,35 @@ describe('Curso: temario, inscripción y estudio', () => {
     expect(await screen.findByLabelText('Precio: USD 300.00')).toBeInTheDocument()
   })
 
+  it('keeps course details focused and places enrollment together with the cover', async () => {
+    open(detail({coverUrl:'https://media.example/cover.jpg',subtitle:'Aprende con procedimientos aplicados',learningObjectives:['Planificar una intervención'],targetAudience:['Técnicos'],requirements:['Conocimientos básicos'],instructorBio:'Experiencia en mantenimiento industrial.'}))
+    expect(await screen.findByRole('heading',{level:1,name:'Seguridad operativa en molienda'})).toBeInTheDocument()
+    expect(screen.queryByRole('navigation',{name:'Explorar el ecosistema'})).not.toBeInTheDocument()
+    expect(screen.getByRole('link',{name:'Todos los cursos'})).toHaveAttribute('href','/courses')
+    const enrollment = screen.getByRole('complementary',{name:'Inscripción al curso'})
+    expect(within(enrollment).getByRole('img')).toHaveAttribute('src','https://media.example/cover.jpg')
+    expect(within(enrollment).getByLabelText('Precio: Gratis')).toBeInTheDocument()
+    expect(within(enrollment).getByRole('link',{name:'Inicia sesión'})).toBeInTheDocument()
+    expect(screen.getByRole('heading',{name:'Qué aprenderás'})).toBeInTheDocument()
+    expect(screen.getByText('Experiencia en mantenimiento industrial.')).toBeInTheDocument()
+  })
+
+  it('navigates between lessons and keeps module controls usable', async () => {
+    login()
+    open(detail({canManage:true,sections:[{id:'section-1',title:'Primer módulo',position:0,description:null}],lessons:readable(detail().lessons).map(l=>({...l,sectionId:'section-1'}))}))
+    expect(await screen.findByText('Contenido de Riesgos')).toBeInTheDocument()
+    const previous = screen.getByRole('button',{name:'Anterior'})
+    expect(previous).toBeDisabled()
+    await userEvent.click(screen.getByRole('button',{name:'Siguiente'}))
+    expect(screen.getByText('Contenido de Bloqueo y etiquetado')).toBeInTheDocument()
+    await userEvent.click(previous)
+    expect(screen.getByText('Contenido de Riesgos')).toBeInTheDocument()
+    const module = screen.getByText('Primer módulo').closest('details')!
+    expect(module).toHaveAttribute('open')
+    await userEvent.click(screen.getByText('Primer módulo'))
+    expect(module).not.toHaveAttribute('open')
+  })
+
   it('un curso sin precio se muestra como gratuito', async () => {
     open(detail())
     expect(await screen.findByLabelText('Precio: Gratis')).toBeInTheDocument()
@@ -268,7 +300,7 @@ describe('Curso: temario, inscripción y estudio', () => {
     login()
     open(detail({ canManage: true, status: 'DRAFT', lessons: readable(detail().lessons) }))
     expect(await screen.findByText('Contenido de Riesgos')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Editar curso/ })).toHaveAttribute('href', '/courses/c1/edit')
+    expect(screen.getByRole('link', { name: /Editar curso/ })).toHaveAttribute('href', '/courses/c1/edit?editor=1')
     expect(screen.getByText(/Borrador \(no visible al público\)/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Inscribirme' })).not.toBeInTheDocument()
   })
@@ -368,22 +400,20 @@ describe('Gestión de cursos', () => {
     expect(await screen.findByText('Sin acceso')).toBeInTheDocument()
   })
 
-  it('crea un curso: valida el título y envía propietario, nivel, certificado y etapas', async () => {
+  it('crea un borrador desde el estudio sin relacionarlo con etapas', async () => {
     login()
     const m = setup({ 'GET /courses/manage': { body: page([]) }, 'POST /courses': { status: 201, body: detail({ id: 'new' }) } })
     at(<CourseManagePage />, '/courses/manage', manageRoute)
     await userEvent.click((await screen.findAllByRole('button', { name: /Nuevo curso/ }))[0])
     const dialog = await screen.findByRole('dialog')
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Crear curso' }))
-    expect(await within(dialog).findByText('Requerido')).toBeInTheDocument()
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Guardar borrador' }))
+    expect(await within(dialog).findByText(/Escribe un t\u00edtulo/)).toBeInTheDocument()
     expect(calls(m, '/courses', 'POST')).toHaveLength(0)
-    await userEvent.type(within(dialog).getByLabelText('Título'), 'Curso nuevo')
-    await userEvent.click(within(dialog).getByRole('combobox', { name: 'Nivel' }))
-    await userEvent.click(await screen.findByRole('option', { name: 'Avanzado' }))
-    await userEvent.click(within(dialog).getByRole('checkbox', { name: /Emite certificado/ }))
-    await userEvent.click(within(dialog).getByRole('checkbox', { name: /D11/ }))
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Crear curso' }))
-    await waitFor(() => expect(body(m, 'POST', '/courses')).toEqual({ ownerType: 'PROVIDER', ownerId: OID, title: 'Curso nuevo', level: 'ADVANCED', certificate: true, stageCodes: ['D11'] }))
+    await userEvent.type(within(dialog).getByLabelText('T\u00edtulo del curso'), 'Curso nuevo')
+    expect(within(dialog).queryByText('Etapas relacionadas')).not.toBeInTheDocument()
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Guardar borrador' }))
+    await waitFor(() => expect(body(m, 'POST', '/courses')).toMatchObject({ ownerType: 'PROVIDER', ownerId: OID, title: 'Curso nuevo', category: 'General', learningObjectives: [] }))
+    expect(body(m, 'POST', '/courses')).not.toHaveProperty('stageCodes')
   })
 })
 
@@ -427,6 +457,7 @@ describe('Editor del curso', () => {
     expect(await within(dialog).findByText('Requerido')).toBeInTheDocument()
     await userEvent.type(within(dialog).getByLabelText('Título'), 'Nueva')
     await userEvent.type(within(dialog).getByLabelText('Contenido'), 'Texto')
+    await userEvent.click(within(dialog).getByRole('radio', { name: 'Enlace externo' }))
     await userEvent.type(within(dialog).getByLabelText('Video (enlace)'), 'https://v.test/1')
     await userEvent.clear(within(dialog).getByLabelText('Duración (minutos)'))
     await userEvent.type(within(dialog).getByLabelText('Duración (minutos)'), '15')
@@ -434,15 +465,16 @@ describe('Editor del curso', () => {
     await waitFor(() => expect(body(m, 'POST', '/courses/c1/lessons')).toEqual({ title: 'Nueva', content: 'Texto', videoUrl: 'https://v.test/1', durationMinutes: 15 }))
   })
 
-  it('el servidor rechaza un enlace no http(s): se ve bajo el campo y el diálogo sigue abierto', async () => {
+  it('rechaza un enlace no http(s): se ve bajo el campo y el diálogo sigue abierto', async () => {
     login()
     mount(mine(), { 'POST /courses/c1/lessons': { status: 400, body: { message: 'Datos inválidos', errors: [{ path: 'videoUrl', message: 'URL inválida' }] } } })
     await userEvent.click(await screen.findByRole('button', { name: /Nueva lección/ }))
     const dialog = await screen.findByRole('dialog')
     await userEvent.type(within(dialog).getByLabelText('Título'), 'X')
+    await userEvent.click(within(dialog).getByRole('radio', { name: 'Enlace externo' }))
     await userEvent.type(within(dialog).getByLabelText('Video (enlace)'), 'javascript:alert(1)')
     await userEvent.click(within(dialog).getByRole('button', { name: 'Agregar lección' }))
-    expect(await within(dialog).findByText('URL inválida')).toBeInTheDocument()
+    expect(await within(dialog).findByText('Indica un enlace http o https válido')).toBeInTheDocument()
   })
 
   it('eliminar: el rechazo del servidor (lección ya completada) se informa', async () => {
@@ -453,13 +485,13 @@ describe('Editor del curso', () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/ya fue completada/)))
   })
 
-  it('publicar envía el estado; si falta una etapa, el motivo del servidor se muestra', async () => {
+  it('publicar informa los objetivos que faltan', async () => {
     login()
     const { toast } = await import('sonner')
-    const m = mount(mine(), { 'PATCH /courses/c1': { status: 400, body: { message: 'Datos inválidos', errors: [{ path: 'stageCodes', message: 'Indique al menos una etapa para publicar el curso' }] } } })
+    const m = mount(mine(), { 'PATCH /courses/c1': { status: 400, body: { message: 'Datos inválidos', errors: [{ path: 'status', message: 'Al menos un objetivo de aprendizaje' }] } } })
     await userEvent.click(await screen.findByRole('button', { name: /Publicar/ }))
     await waitFor(() => expect(body(m, 'PATCH', '/courses/c1')).toEqual({ status: 'PUBLISHED' }))
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Indique al menos una etapa para publicar el curso'))
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Al menos un objetivo de aprendizaje'))
   })
 
   it('un curso publicado ofrece archivar y pasar a borrador, no publicar', async () => {

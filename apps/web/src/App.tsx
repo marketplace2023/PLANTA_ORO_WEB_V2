@@ -1,3 +1,5 @@
+import { ShopCartPage } from '@/pages/shop-cart-page'
+import { ShopOrders } from '@/components/shop-orders'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/app-layout'
 import { AuthLayout } from '@/components/layout/auth-layout'
@@ -25,7 +27,7 @@ import { NetworkDashboardPage } from '@/pages/network-dashboard-page'
 import { NetworksPage } from '@/pages/networks-page'
 import { MarketplacePage } from '@/pages/marketplace-page'
 import { MyLearningPage } from '@/pages/my-learning-page'
-import { ProfessionalsPage } from '@/pages/professionals-page'
+import { ProfessionalsStudioPage, ProfessionalServicePage, MyServiceOrdersPage, MyServiceOrderPage } from '@/pages/professionals-studio-page'
 import { ProviderManagePage } from '@/pages/provider-manage-page'
 import { ProvidersPage } from '@/pages/providers-page'
 import { ModulePlaceholder } from '@/pages/module-placeholder'
@@ -34,6 +36,7 @@ import { PlantDashboardPage } from '@/pages/plant-dashboard-page'
 import { PlantRoute } from '@/pages/plant-route'
 import { PlantsPage } from '@/pages/plants-page'
 import { ProcessesPage } from '@/pages/processes-page'
+import { LuloPublicPage, LuloPlantNewPage, LuloPlantDocumentPage, LuloPlantContractPage } from '@/pages/lulo-pages'
 
 // Rutas según docs/Ecosistema_FUR_Arquitectura_Tecnica.md §36
 export default function App() {
@@ -48,10 +51,13 @@ export default function App() {
       <Route element={<AppLayout />}>
         <Route index element={<HomePage />} />
         <Route path="catalog" element={<CatalogPage />} />
+        <Route path="budgets" element={<LuloPublicPage />} />
         <Route element={<RequireAuth />}>
           <Route path="plants" element={<PlantsPage />} />
           <Route path="admin/catalog" element={<AdminCatalogPage />} />
           <Route path="marketplace" element={<MarketplacePage />} />
+          <Route path="marketplace/cart" element={<ShopCartPage />} />
+          <Route path="marketplace/orders" element={<ShopOrders />} />
           <Route path="courses" element={<CoursesPage />} />
           <Route path="courses/mine" element={<MyLearningPage />} />
           <Route path="courses/manage" element={<CourseManagePage />} />
@@ -60,7 +66,10 @@ export default function App() {
           <Route path="certificates/:code" element={<CertificatePage />} />
           <Route path="providers" element={<ProvidersPage />} />
           <Route path="providers/:id/manage" element={<ProviderManagePage />} />
-          <Route path="professionals" element={<ProfessionalsPage />} />
+          <Route path="professionals" element={<ProfessionalsStudioPage />} />
+          <Route path="professionals/:id" element={<ProfessionalServicePage />} />
+          <Route path="service-orders" element={<MyServiceOrdersPage />} />
+          <Route path="service-orders/:id" element={<MyServiceOrderPage />} />
           <Route path="contractors/:id/manage" element={<ContractorManagePage />} />
 
           <Route path="plants/:plantSlug" element={<PlantRoute />}>
@@ -76,6 +85,9 @@ export default function App() {
             <Route path="networks" element={<NetworksPage />} />
             <Route path="networks/:code" element={<NetworkDashboardPage />} />
             <Route path="budgets" element={<BudgetsPage />} />
+            <Route path="budgets/new" element={<LuloPlantNewPage />} />
+            <Route path="budgets/lulo/:luloId" element={<LuloPlantDocumentPage />} />
+            <Route path="budgets/contracts/:contractId" element={<LuloPlantContractPage />} />
             <Route path="budgets/apus/:apuId" element={<ApuEditorPage />} />
             <Route path="budgets/:budgetId" element={<BudgetEditorPage />} />
           </Route>

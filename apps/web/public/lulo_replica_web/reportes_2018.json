@@ -1,0 +1,1417 @@
+{
+  "fuente": ".\\LULO\\LWNG_2018\\LWNG_2018\\LuloWin NG 2018\\PrimaryVolumePath\\LuloWinNG\\MenuRep.xml",
+  "sha256": "487132257A4DB5B7988B01B4E9B011A352BC30E5030EE3E876334909D9122BE1",
+  "cantidad": 45,
+  "interpretacion": "Parámetros y valores literales del XML. Su presencia no confirma el valor inicial, el comportamiento en ejecución ni el diseño impreso.",
+  "reportes": [
+    {
+      "id": "Pan01.01",
+      "titulo": "Analisis de Precios Unitarios estándar",
+      "ruta_menu": [
+        "Analisis de Precios Unitarios"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Analisis de Precios Unitarios estándar",
+        "Ventana": "RepAna01",
+        "Reporte": "CANA001.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarTodo": "SI",
+        "MostrarMontoEnLetras": "SI",
+        "MostrarIndices": "SI",
+        "MostrarDuracionDias": "SI",
+        "MostrarHorasHombre": "SI",
+        "MostrarNotas": "SI",
+        "MostrarRendimientoEnMeses": "SI",
+        "MostrarCodigoDeInsumos": "SI",
+        "MostrarTotalDePartida": "SI",
+        "MostrarFecha": "SI",
+        "MostrarTituloFCAS": "SI",
+        "MostrarTituloGastosMedicos": "SI",
+        "MostrarTasaCambio": "SI",
+        "MostrarIdioma": "SI",
+        "MostrarVistaPrevia": "SI",
+        "MostrarExcel": "SI",
+        "PantallaFirmantes": "Pan01.01",
+        "MostrarFirmantes": "6",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarFirmantesCargo4": "",
+        "MostrarFirmantesCargo5": "",
+        "MostrarFirmantesCargo6": "",
+        "MostrarLogo": "SI"
+      }
+    },
+    {
+      "id": "Pan01.02",
+      "titulo": "Analisis de Precios (Formato Resumido)",
+      "ruta_menu": [
+        "Analisis de Precios Unitarios"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Analisis de Precios (Formato Resumido)",
+        "Ventana": "RepAna01",
+        "Reporte": "CANA001_SL.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarTodo": "SI",
+        "MostrarMontoEnLetras": "NO",
+        "MostrarIndices": "NO",
+        "MostrarDuracionDias": "NO",
+        "MostrarHorasHombre": "NO",
+        "MostrarNotas": "NO",
+        "MostrarRendimientoEnMeses": "NO",
+        "MostrarCodigoDeInsumos": "NO",
+        "MostrarTotalDePartida": "NO",
+        "MostrarFecha": "SI",
+        "MostrarTituloFCAS": "NO",
+        "MostrarTituloGastosMedicos": "NO",
+        "MostrarTasaCambio": "NO",
+        "MostrarIdioma": "NO",
+        "MostrarVistaPrevia": "NO",
+        "MostrarExcel": "NO",
+        "MostrarLogo": "NO",
+        "PantallaFirmantes": "Pan01.02",
+        "MostrarFirmantes": "6",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarFirmantesCargo4": "",
+        "MostrarFirmantesCargo5": "",
+        "MostrarFirmantesCargo6": ""
+      }
+    },
+    {
+      "id": "Pan01.03",
+      "titulo": "Analisis de Precios Unitarios G.M.V.V.",
+      "ruta_menu": [
+        "Analisis de Precios Unitarios"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Analisis de Precios Unitarios G.M.V.V.",
+        "Ventana": "RepAna01",
+        "Reporte": "CANA001_GMVV.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarTodo": "SI",
+        "MostrarMontoEnLetras": "SI",
+        "MostrarIndices": "SI",
+        "MostrarDuracionDias": "SI",
+        "MostrarHorasHombre": "SI",
+        "MostrarNotas": "SI",
+        "MostrarRendimientoEnMeses": "SI",
+        "MostrarCodigoDeInsumos": "SI",
+        "MostrarTotalDePartida": "SI",
+        "MostrarFecha": "SI",
+        "MostrarTituloFCAS": "SI",
+        "MostrarTituloGastosMedicos": "SI",
+        "MostrarTasaCambio": "SI",
+        "MostrarIdioma": "SI",
+        "MostrarVistaPrevia": "SI",
+        "MostrarExcel": "SI",
+        "PantallaFirmantes": "Pan01.01",
+        "MostrarFirmantes": "6",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarFirmantesCargo4": "",
+        "MostrarFirmantesCargo5": "",
+        "MostrarFirmantesCargo6": "",
+        "MostrarLogo": "SI"
+      }
+    },
+    {
+      "id": "Pan01.04",
+      "titulo": "Analisis de Precios (Re-expresado en Horas)",
+      "ruta_menu": [
+        "Analisis de Precios Unitarios"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Analisis de Precios (Re-expresado en Horas)",
+        "Ventana": "RepAna01",
+        "Reporte": "CANAPORHRS.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarTodo": "SI",
+        "MostrarMontoEnLetras": "SI",
+        "MostrarIndices": "NO",
+        "MostrarDuracionDias": "NO",
+        "MostrarHorasHombre": "NO",
+        "MostrarNotas": "NO",
+        "MostrarRendimientoEnMeses": "NO",
+        "MostrarCodigoDeInsumos": "NO",
+        "MostrarTotalDePartida": "SI",
+        "MostrarFecha": "SI",
+        "MostrarTituloFCAS": "NO",
+        "MostrarTituloGastosMedicos": "NO",
+        "MostrarTasaCambio": "NO",
+        "MostrarIdioma": "NO",
+        "MostrarVistaPrevia": "SI",
+        "MostrarExcel": "NO",
+        "PantallaFirmantes": "Pan01.03",
+        "MostrarFirmantes": "6",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarFirmantesCargo4": "",
+        "MostrarFirmantesCargo5": "",
+        "MostrarFirmantesCargo6": "",
+        "MostrarLogo": "SI"
+      }
+    },
+    {
+      "id": "Pan01.05",
+      "titulo": "Analisis de Precios (PDVSA)",
+      "ruta_menu": [
+        "Analisis de Precios Unitarios"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Analisis de Precios (PDVSA)",
+        "Ventana": "RepAna01",
+        "Reporte": "CANA_PDVSA.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarTodo": "SI",
+        "MostrarMontoEnLetras": "SI",
+        "MostrarIndices": "SI",
+        "MostrarDuracionDias": "SI",
+        "MostrarHorasHombre": "SI",
+        "MostrarNotas": "SI",
+        "MostrarRendimientoEnMeses": "SI",
+        "MostrarCodigoDeInsumos": "SI",
+        "MostrarTotalDePartida": "SI",
+        "MostrarFecha": "SI",
+        "MostrarTituloFCAS": "SI",
+        "MostrarTituloGastosMedicos": "SI",
+        "MostrarTasaCambio": "SI",
+        "MostrarIdioma": "SI",
+        "MostrarVistaPrevia": "SI",
+        "MostrarExcel": "SI",
+        "MostrarLogo": "SI",
+        "PantallaFirmantes": "Pan01.04"
+      }
+    },
+    {
+      "id": "Pan01.06",
+      "titulo": "Analisis de Precios (PDVSA GAS)",
+      "ruta_menu": [
+        "Analisis de Precios Unitarios"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Analisis de Precios (PDVSA GAS)",
+        "Ventana": "RepAna01",
+        "Reporte": "CANA_PDVSA_GAS.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarTodo": "SI",
+        "MostrarMontoEnLetras": "SI",
+        "MostrarIndices": "SI",
+        "MostrarDuracionDias": "SI",
+        "MostrarHorasHombre": "SI",
+        "MostrarNotas": "SI",
+        "MostrarRendimientoEnMeses": "SI",
+        "MostrarCodigoDeInsumos": "SI",
+        "MostrarTotalDePartida": "SI",
+        "MostrarFecha": "SI",
+        "MostrarTituloFCAS": "SI",
+        "MostrarTituloGastosMedicos": "SI",
+        "MostrarTasaCambio": "SI",
+        "MostrarIdioma": "SI",
+        "MostrarVistaPrevia": "SI",
+        "MostrarExcel": "SI",
+        "MostrarLogo": "NO"
+      }
+    },
+    {
+      "id": "Pan02.01",
+      "titulo": "Presupuesto estándar",
+      "ruta_menu": [
+        "Presupuestos"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Presupuesto estándar",
+        "Ventana": "RepPre01",
+        "Reporte": "CPRE000.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarTodo": "SI",
+        "MostrarFecha": "SI",
+        "MostrarCondiciones": "SI",
+        "PantallaFirmantes": "Pan02.01",
+        "MostrarFirmantes": "6",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarFirmantesCargo4": "",
+        "MostrarFirmantesCargo5": "",
+        "MostrarFirmantesCargo6": "",
+        "MostrarCodigos": "SI",
+        "MostrarIncidencia": "SI",
+        "MostrarPreciosCantidades": "SI",
+        "MostrarTotalesPorPagina": "SI",
+        "MostrarCapitulos": "SI",
+        "MostrarIncidenciaCapitulos": "SI",
+        "MostrarUnitarioEnLEtras": "SI",
+        "MostrarTotalEnLEtras": "SI",
+        "MostrarAlternos": "SI",
+        "MostrarCodigoProyecto": "SI",
+        "MostrarUnaLinea": "SI",
+        "MostrarSeparacion": "SI",
+        "MostrarFactura": "SI",
+        "MostrarFides": "SI",
+        "MostrarOrdenado": "SI",
+        "MostrarIdioma": "SI",
+        "MostrarGraficos": "SI",
+        "MostrarVistaPrevia": "SI",
+        "MostrarTitulo": "SI",
+        "MostrarSubtitulo": "SI",
+        "MostrarExcel": "SI",
+        "MostrarLogo": "SI"
+      }
+    },
+    {
+      "id": "Pan02.01B",
+      "titulo": "Presupuesto por Capítulos",
+      "ruta_menu": [
+        "Presupuestos"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Presupuesto por Capítulos",
+        "Ventana": "RepPre01",
+        "Reporte": "CPRE001.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarTodo": "NO",
+        "MostrarFecha": "SI",
+        "MostrarCondiciones": "NO",
+        "PantallaFirmantes": "Pan02.01B",
+        "MostrarFirmantes": "6",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarFirmantesCargo4": "",
+        "MostrarFirmantesCargo5": "",
+        "MostrarFirmantesCargo6": "",
+        "MostrarCodigos": "NO",
+        "MostrarIncidencia": "NO",
+        "MostrarPreciosCantidades": "NO",
+        "MostrarTotalesPorPagina": "NO",
+        "MostrarCapitulos": "NO",
+        "MostrarIncidenciaCapitulos": "SI",
+        "MostrarUnitarioEnLEtras": "NO",
+        "MostrarTotalEnLEtras": "SI",
+        "MostrarAlternos": "NO",
+        "MostrarCodigoProyecto": "SI",
+        "MostrarUnaLinea": "NO",
+        "MostrarSeparacion": "NO",
+        "MostrarFactura": "SI",
+        "MostrarFides": "SI",
+        "MostrarOrdenado": "NO",
+        "MostrarIdioma": "NO",
+        "MostrarGraficos": "SI",
+        "MostrarVistaPrevia": "SI",
+        "MostrarTitulo": "SI",
+        "MostrarSubtitulo": "SI",
+        "MostrarExcel": "NO",
+        "MostrarLogo": "SI"
+      }
+    },
+    {
+      "id": "Pan02.02",
+      "titulo": "Presupuesto CORPOELEC",
+      "ruta_menu": [
+        "Presupuestos",
+        "Otros Presupuestos"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Presupuesto CORPOELEC",
+        "Ventana": "RepPre01",
+        "Reporte": "CPRE_CORPOELEC.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarTodo": "SI",
+        "MostrarFecha": "SI",
+        "MostrarCondiciones": "NO",
+        "PantallaFirmantes": "Pan02.01",
+        "MostrarFirmantes": "6",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarFirmantesCargo4": "",
+        "MostrarFirmantesCargo5": "",
+        "MostrarFirmantesCargo6": "",
+        "MostrarCodigos": "SI",
+        "MostrarIncidencia": "NO",
+        "MostrarPreciosCantidades": "SI",
+        "MostrarTotalesPorPagina": "NO",
+        "MostrarCapitulos": "SI",
+        "MostrarIncidenciaCapitulos": "SI",
+        "MostrarUnitarioEnLEtras": "NO",
+        "MostrarTotalEnLEtras": "NO",
+        "MostrarAlternos": "SI",
+        "MostrarCodigoProyecto": "SI",
+        "MostrarUnaLinea": "SI",
+        "MostrarSeparacion": "SI",
+        "MostrarFactura": "NO",
+        "MostrarFides": "NO",
+        "MostrarOrdenado": "SI",
+        "MostrarIdioma": "NO",
+        "MostrarGraficos": "NO",
+        "MostrarVistaPrevia": "SI",
+        "MostrarTitulo": "NO",
+        "MostrarSubtitulo": "NO",
+        "MostrarExcel": "NO",
+        "MostrarLogo": "NO"
+      }
+    },
+    {
+      "id": "Pan02.03",
+      "titulo": "Presupuesto SINFRA CARABOBO",
+      "ruta_menu": [
+        "Presupuestos",
+        "Otros Presupuestos"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Presupuesto SINFRA CARABOBO",
+        "Ventana": "RepPre01",
+        "Reporte": "CPRECARABOBO.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarTodo": "SI",
+        "MostrarFecha": "SI",
+        "MostrarCondiciones": "NO",
+        "PantallaFirmantes": "Pan02.02",
+        "MostrarFirmantes": "3",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarCodigos": "NO",
+        "MostrarIncidencia": "NO",
+        "MostrarPreciosCantidades": "NO",
+        "MostrarTotalesPorPagina": "SI",
+        "MostrarCapitulos": "SI",
+        "MostrarIncidenciaCapitulos": "NO",
+        "MostrarUnitarioEnLEtras": "NO",
+        "MostrarTotalEnLEtras": "NO",
+        "MostrarAlternos": "NO",
+        "MostrarCodigoProyecto": "NO",
+        "MostrarUnaLinea": "SI",
+        "MostrarSeparacion": "SI",
+        "MostrarFactura": "NO",
+        "MostrarFides": "NO",
+        "MostrarOrdenado": "NO",
+        "MostrarIdioma": "NO",
+        "MostrarGraficos": "NO",
+        "MostrarVistaPrevia": "SI",
+        "MostrarTitulo": "NO",
+        "MostrarSubtitulo": "NO",
+        "MostrarExcel": "NO",
+        "MostrarLogo": "NO"
+      }
+    },
+    {
+      "id": "Pan02.04",
+      "titulo": "Presupuesto GMVV",
+      "ruta_menu": [
+        "Presupuestos",
+        "Otros Presupuestos"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Presupuesto GMVV",
+        "Ventana": "RepPre01",
+        "Reporte": "CPRE000_GMVV.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarTodo": "SI",
+        "MostrarFecha": "SI",
+        "MostrarCondiciones": "SI",
+        "PantallaFirmantes": "Pan02.01",
+        "MostrarFirmantes": "6",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarFirmantesCargo4": "",
+        "MostrarFirmantesCargo5": "",
+        "MostrarFirmantesCargo6": "",
+        "MostrarCodigos": "SI",
+        "MostrarIncidencia": "SI",
+        "MostrarPreciosCantidades": "SI",
+        "MostrarTotalesPorPagina": "SI",
+        "MostrarCapitulos": "SI",
+        "MostrarIncidenciaCapitulos": "SI",
+        "MostrarUnitarioEnLEtras": "SI",
+        "MostrarTotalEnLEtras": "SI",
+        "MostrarAlternos": "SI",
+        "MostrarCodigoProyecto": "SI",
+        "MostrarUnaLinea": "SI",
+        "MostrarSeparacion": "SI",
+        "MostrarFactura": "SI",
+        "MostrarFides": "SI",
+        "MostrarOrdenado": "SI",
+        "MostrarIdioma": "SI",
+        "MostrarGraficos": "SI",
+        "MostrarVistaPrevia": "SI",
+        "MostrarTitulo": "SI",
+        "MostrarSubtitulo": "SI",
+        "MostrarExcel": "SI",
+        "MostrarLogo": "SI"
+      }
+    },
+    {
+      "id": "Pan03A.01",
+      "titulo": "Medición estándar",
+      "ruta_menu": [
+        "Mediciones"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Medición estándar",
+        "Ventana": "RepMed01",
+        "Reporte": "CMED001.RPT"
+      },
+      "parametros_declarados": {
+        "PantallaFirmantes": "Pan03A.01",
+        "MostrarFirmantes": "4",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarFirmantesCargo4": "",
+        "MostrarFirmantesCargo5": "",
+        "MostrarFirmantesCargo6": ""
+      }
+    },
+    {
+      "id": "Pan03B.01",
+      "titulo": "Computos Métricos",
+      "ruta_menu": [
+        "Computos"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Computos Métricos",
+        "Ventana": "RepCom01",
+        "Reporte": "CMED001.RPT"
+      },
+      "parametros_declarados": {
+        "PantallaFirmantes": "Pan03B.01",
+        "MostrarFirmantes": "6",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarFirmantesCargo4": "",
+        "MostrarFirmantesCargo5": "",
+        "MostrarFirmantesCargo6": ""
+      }
+    },
+    {
+      "id": "Pan04.0.1",
+      "titulo": "Valuación estándar CON acumulados",
+      "ruta_menu": [
+        "Valuaciones",
+        "Valuaciones estándar"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Valuación estándar CON acumulados",
+        "Ventana": "RepVal01",
+        "Reporte": "CVAL001.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarValuacion": "SI",
+        "MostrarTodo": "SI",
+        "MostrarFecha": "SI",
+        "MostrarFactura": "SI",
+        "PantallaFirmantes": "Pan04.0.1",
+        "MostrarFirmantes": "6",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarFirmantesCargo4": "",
+        "MostrarFirmantesCargo5": "",
+        "MostrarFirmantesCargo6": "",
+        "MostrarCapitulos": "SI",
+        "MostrarCodigoPartidas": "SI",
+        "MostrarCodigoProyecto": "SI",
+        "MostrarSinMovimiento": "SI",
+        "MostrarSeparacion": "SI",
+        "MostrarUnaLinea": "SI",
+        "MostrarVistaPrevia": "SI",
+        "MostrarExcel": "SI",
+        "MostrarLogo": "SI"
+      }
+    },
+    {
+      "id": "Pan04.0.2",
+      "titulo": "Valuación estándar SIN acumulados",
+      "ruta_menu": [
+        "Valuaciones",
+        "Valuaciones estándar"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Valuación estándar SIN acumulados",
+        "Ventana": "RepVal02",
+        "Reporte": "CVAL002.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarValuacion": "SI",
+        "MostrarTodo": "SI",
+        "MostrarFecha": "SI",
+        "MostrarFactura": "SI",
+        "PantallaFirmantes": "Pan04.0.2",
+        "MostrarFirmantes": "6",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarFirmantesCargo4": "",
+        "MostrarFirmantesCargo5": "",
+        "MostrarFirmantesCargo6": "",
+        "MostrarCapitulos": "SI",
+        "MostrarCodigoPartidas": "SI",
+        "MostrarCodigoProyecto": "SI",
+        "MostrarSinMovimiento": "SI",
+        "MostrarSeparacion": "SI",
+        "MostrarUnaLinea": "SI",
+        "MostrarVistaPrevia": "SI",
+        "MostrarExcel": "SI",
+        "MostrarLogo": "SI"
+      }
+    },
+    {
+      "id": "Pan04.0.3",
+      "titulo": "Valuación estándar con avance",
+      "ruta_menu": [
+        "Valuaciones",
+        "Valuaciones estándar"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Valuación estándar con avance",
+        "Ventana": "RepVal03",
+        "Reporte": "CVAL003.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarValuacion": "SOLOMOSTRAR",
+        "MostrarTodo": "SI",
+        "MostrarFecha": "SI",
+        "MostrarFactura": "SI",
+        "PantallaFirmantes": "Pan04.0.3",
+        "MostrarFirmantes": "6",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarFirmantesCargo4": "",
+        "MostrarFirmantesCargo5": "",
+        "MostrarFirmantesCargo6": "",
+        "MostrarCapitulos": "SI",
+        "MostrarCodigoPartidas": "SI",
+        "MostrarCodigoProyecto": "SI",
+        "MostrarSinMovimiento": "SI",
+        "MostrarSeparacion": "SI",
+        "MostrarUnaLinea": "SI",
+        "MostrarVistaPrevia": "SI",
+        "MostrarExcel": "SI",
+        "MostrarLogo": "SI"
+      }
+    },
+    {
+      "id": "Pan04.0.4",
+      "titulo": "Valuación por Capítulos",
+      "ruta_menu": [
+        "Valuaciones",
+        "Valuaciones estándar"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Valuación por Capítulos",
+        "Ventana": "RepVal01",
+        "Reporte": "CVCAPITULOS.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarValuacion": "SI",
+        "MostrarTodo": "SI",
+        "MostrarFecha": "SI",
+        "MostrarFactura": "NO",
+        "PantallaFirmantes": "Pan04.0.4",
+        "MostrarFirmantes": "3",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarCapitulos": "NO",
+        "MostrarCodigoPartidas": "NO",
+        "MostrarCodigoProyecto": "NO",
+        "MostrarSinMovimiento": "NO",
+        "MostrarSeparacion": "SI",
+        "MostrarUnaLinea": "SI",
+        "MostrarVistaPrevia": "SI",
+        "MostrarExcel": "SI",
+        "MostrarLogo": "SI",
+        "titulo1": "N°CRÉDITO",
+        "titulo2": "MONTO DEL CRÉDITO",
+        "titulo3": "FECHA DEL REGISTRO"
+      }
+    },
+    {
+      "id": "Pan04.0.5",
+      "titulo": "Carátula estándar",
+      "ruta_menu": [
+        "Valuaciones",
+        "Valuaciones estándar"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Carátula estándar",
+        "Ventana": "RepCar01",
+        "Reporte": "CARAGENE.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarValuacion": "SI",
+        "MostrarFecha": "SI",
+        "MostrarUbicacion": "SI",
+        "MostrarTitulo": "SI",
+        "PantallaFirmantes": "Pan04.0.5",
+        "MostrarFirmantes": "6",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarFirmantesCargo4": "",
+        "MostrarFirmantesCargo5": "",
+        "MostrarFirmantesCargo6": "",
+        "MostrarReconsideracion": "SI",
+        "MostrarIVADeducciones": "SI",
+        "MostrarUltimaValuacion": "SI",
+        "MostrarVistaPrevia": "SI",
+        "MostrarExcel": "NO",
+        "MostrarLogo": "SI"
+      }
+    },
+    {
+      "id": "Pan04.0.6",
+      "titulo": "Factura SENIAT",
+      "ruta_menu": [
+        "Valuaciones",
+        "Valuaciones estándar"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Factura SENIAT",
+        "Ventana": "RepVal02",
+        "Reporte": "FacturaSENIAT.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarTodo": "SI",
+        "MostrarFecha": "SI",
+        "MostrarCondiciones": "NO",
+        "MostrarFirmantes": "0",
+        "MostrarCodigos": "NO",
+        "MostrarIncidencia": "NO",
+        "MostrarPreciosCantidades": "NO",
+        "MostrarTotalesPorPagina": "SI",
+        "MostrarCapitulos": "SI",
+        "MostrarIncidenciaCapitulos": "NO",
+        "MostrarUnitarioEnLEtras": "NO",
+        "MostrarTotalEnLEtras": "NO",
+        "MostrarAlternos": "NO",
+        "MostrarCodigoProyecto": "NO",
+        "MostrarUnaLinea": "SI",
+        "MostrarSeparacion": "SI",
+        "MostrarFactura": "NO",
+        "MostrarFides": "NO",
+        "MostrarOrdenado": "NO",
+        "MostrarIdioma": "NO",
+        "MostrarGraficos": "NO",
+        "MostrarVistaPrevia": "SI",
+        "MostrarTitulo": "NO",
+        "MostrarSubtitulo": "NO",
+        "MostrarExcel": "NO",
+        "MostrarLogo": "NO"
+      }
+    },
+    {
+      "id": "Pan04.1.1",
+      "titulo": "Valuación BANESCO",
+      "ruta_menu": [
+        "Valuaciones",
+        "Valuaciones Bancos y Privados"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Valuación BANESCO",
+        "Ventana": "RepVal01",
+        "Reporte": "CVBANESCO.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarValuacion": "SI",
+        "MostrarTodo": "SI",
+        "MostrarFecha": "SI",
+        "MostrarFactura": "NO",
+        "PantallaFirmantes": "Pan04.1.1",
+        "MostrarFirmantes": "3",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarCapitulos": "SI",
+        "MostrarCodigoPartidas": "NO",
+        "MostrarCodigoProyecto": "NO",
+        "MostrarSinMovimiento": "SI",
+        "MostrarSeparacion": "SI",
+        "MostrarUnaLinea": "SI",
+        "MostrarVistaPrevia": "SI",
+        "MostrarExcel": "SI",
+        "MostrarLogo": "NO"
+      }
+    },
+    {
+      "id": "Pan04.1.2",
+      "titulo": "Valuación Banco de Venezuela",
+      "ruta_menu": [
+        "Valuaciones",
+        "Valuaciones Bancos y Privados"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Valuación Banco de Venezuela",
+        "Ventana": "RepVal01",
+        "Reporte": "CVAL_BANCO_DE_VENEZUELA.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarValuacion": "SI",
+        "MostrarTodo": "SI",
+        "MostrarFecha": "SI",
+        "MostrarFactura": "NO",
+        "MostrarFirmantes": "3",
+        "PantallaFirmantes": "Pan04.1.2",
+        "MostrarFirmantesCargo1": "Por el/la Ingeniero(a) Inspector(a)",
+        "MostrarFirmantesCargo2": "Por el/la Ingeniero(a) Residente",
+        "MostrarFirmantesCargo3": "Por el Contratista",
+        "MostrarCapitulos": "NO",
+        "MostrarCodigoPartidas": "NO",
+        "MostrarCodigoProyecto": "NO",
+        "MostrarSinMovimiento": "NO",
+        "MostrarSeparacion": "SI",
+        "MostrarUnaLinea": "SI",
+        "MostrarVistaPrevia": "SI",
+        "MostrarExcel": "NO",
+        "MostrarLogo": "NO"
+      }
+    },
+    {
+      "id": "Pan04.2.1",
+      "titulo": "Valuación Fundación Propatria 2000",
+      "ruta_menu": [
+        "Valuaciones",
+        "Valuaciones Orgamismos Públicos"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Valuación Fundación Propatria 2000",
+        "Ventana": "RepVal01",
+        "Reporte": "CVPROPATRIA2000.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarValuacion": "SI",
+        "MostrarTodo": "SI",
+        "MostrarFecha": "SI",
+        "MostrarFactura": "NO",
+        "PantallaFirmantes": "Pan04.2.1",
+        "MostrarFirmantes": "4",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarFirmantesCargo4": "",
+        "MostrarCapitulos": "SI",
+        "MostrarCodigoPartidas": "NO",
+        "MostrarCodigoProyecto": "NO",
+        "MostrarSinMovimiento": "NO",
+        "MostrarSeparacion": "SI",
+        "MostrarUnaLinea": "SI",
+        "MostrarVistaPrevia": "SI",
+        "MostrarExcel": "NO",
+        "MostrarLogo": "NO",
+        "titulo1": "Ubicación:"
+      }
+    },
+    {
+      "id": "Pan04.2.2",
+      "titulo": "Valuación C.A.N.T.V",
+      "ruta_menu": [
+        "Valuaciones",
+        "Valuaciones Orgamismos Públicos"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Valuación C.A.N.T.V",
+        "Ventana": "RepVal02",
+        "Reporte": "CVALCANTV.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarValuacion": "SI",
+        "MostrarTodo": "SI",
+        "MostrarFecha": "SI",
+        "MostrarFactura": "NO",
+        "PantallaFirmantes": "Pan04.2.2",
+        "MostrarFirmantes": "2",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarCapitulos": "SI",
+        "MostrarCodigoPartidas": "SI",
+        "MostrarCodigoProyecto": "NO",
+        "MostrarSinMovimiento": "SI",
+        "MostrarSeparacion": "SI",
+        "MostrarUnaLinea": "SI",
+        "MostrarVistaPrevia": "SI",
+        "MostrarExcel": "NO",
+        "MostrarLogo": "NO",
+        "titulo1": "GERENCIA",
+        "titulo2": "DEPARTAMENTO"
+      }
+    },
+    {
+      "id": "Pan04.2.3",
+      "titulo": "Valuación Metro de Valencia",
+      "ruta_menu": [
+        "Valuaciones",
+        "Valuaciones Orgamismos Públicos"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Valuación Metro de Valencia",
+        "Ventana": "RepVal01",
+        "Reporte": "CVMETROVALENCIA.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarValuacion": "SI",
+        "MostrarTodo": "SI",
+        "MostrarFecha": "SI",
+        "MostrarFactura": "NO",
+        "PantallaFirmantes": "Pan04.2.3",
+        "MostrarFirmantes": "4",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarFirmantesCargo4": "",
+        "MostrarCapitulos": "SI",
+        "MostrarCodigoPartidas": "NO",
+        "MostrarCodigoProyecto": "NO",
+        "MostrarSinMovimiento": "NO",
+        "MostrarSeparacion": "SI",
+        "MostrarUnaLinea": "SI",
+        "MostrarVistaPrevia": "SI",
+        "MostrarExcel": "NO",
+        "MostrarLogo": "NO",
+        "titulo1": "ORDEN DE SERVICIO",
+        "titulo2": "OBJETO DEL CONTRATO"
+      }
+    },
+    {
+      "id": "Pan04.2.4",
+      "titulo": "Valuación IVSS",
+      "ruta_menu": [
+        "Valuaciones",
+        "Valuaciones Orgamismos Públicos"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Valuación IVSS",
+        "Ventana": "RepVal01",
+        "Reporte": "CV_IVSS.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarValuacion": "SI",
+        "MostrarTodo": "SI",
+        "MostrarFecha": "SI",
+        "MostrarFactura": "NO",
+        "PantallaFirmantes": "Pan04.2.4",
+        "MostrarFirmantes": "5",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarFirmantesCargo4": "",
+        "MostrarFirmantesCargo5": "",
+        "MostrarCapitulos": "NO",
+        "MostrarCodigoPartidas": "NO",
+        "MostrarCodigoProyecto": "NO",
+        "MostrarSinMovimiento": "NO",
+        "MostrarSeparacion": "SI",
+        "MostrarUnaLinea": "SI",
+        "MostrarVistaPrevia": "SI",
+        "MostrarExcel": "NO",
+        "MostrarLogo": "NO",
+        "titulo1": "NOMBRE CONTRATISTA",
+        "titulo2": "CEDULA DE IDENTIDAD",
+        "titulo3": "LUGAR"
+      }
+    },
+    {
+      "id": "Pan04.2.5",
+      "titulo": "Valuación HIDROVEN",
+      "ruta_menu": [
+        "Valuaciones",
+        "Valuaciones Orgamismos Públicos"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Valuación HIDROVEN",
+        "Ventana": "RepVal01",
+        "Reporte": "CVHIDROVEN.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarValuacion": "SI",
+        "MostrarTodo": "SI",
+        "MostrarFecha": "SI",
+        "MostrarFactura": "NO",
+        "PantallaFirmantes": "Pan04.2.5",
+        "MostrarFirmantes": "3",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarCapitulos": "NO",
+        "MostrarCodigoPartidas": "NO",
+        "MostrarCodigoProyecto": "NO",
+        "MostrarSinMovimiento": "NO",
+        "MostrarSeparacion": "SI",
+        "MostrarUnaLinea": "SI",
+        "MostrarVistaPrevia": "SI",
+        "MostrarExcel": "NO",
+        "MostrarLogo": "NO",
+        "titulo1": "% DE AVANCE FISICO:",
+        "titulo2": "% DE AVANCE FINANCIERO:",
+        "titulo3": "% DE TIEMPO TRANSCURRIDO"
+      }
+    },
+    {
+      "id": "Pan04.2.6",
+      "titulo": "Valuación FEDE",
+      "ruta_menu": [
+        "Valuaciones",
+        "Valuaciones Orgamismos Públicos"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Valuación FEDE",
+        "Ventana": "RepVal01",
+        "Reporte": "CVFEDE.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarValuacion": "SI",
+        "MostrarTodo": "SI",
+        "MostrarFecha": "SI",
+        "MostrarFactura": "NO",
+        "MostrarFirmantes": "3",
+        "PantallaFirmantes": "Pan04.2.6",
+        "MostrarFirmantesCargo1": "CONTRATISTA:",
+        "MostrarFirmantesCargo2": "ING. INSPECTOR:",
+        "MostrarFirmantesCargo3": "COORD. ESTADAL:",
+        "MostrarCapitulos": "NO",
+        "MostrarCodigoPartidas": "NO",
+        "MostrarCodigoProyecto": "NO",
+        "MostrarSinMovimiento": "NO",
+        "MostrarSeparacion": "SI",
+        "MostrarUnaLinea": "SI",
+        "MostrarVistaPrevia": "SI",
+        "MostrarExcel": "NO",
+        "MostrarLogo": "NO"
+      }
+    },
+    {
+      "id": "Pan04.2.7",
+      "titulo": "Valuación SINFRA CARABOBO",
+      "ruta_menu": [
+        "Valuaciones",
+        "Valuaciones Orgamismos Públicos"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Valuación SINFRA CARABOBO",
+        "Ventana": "RepVal01",
+        "Reporte": "CVALCARABOBO.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarValuacion": "SI",
+        "MostrarTodo": "SI",
+        "MostrarFecha": "SI",
+        "MostrarFactura": "NO",
+        "PantallaFirmantes": "Pan04.2.7",
+        "MostrarFirmantes": "3",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarCapitulos": "NO",
+        "MostrarCodigoPartidas": "NO",
+        "MostrarCodigoProyecto": "NO",
+        "MostrarSinMovimiento": "NO",
+        "MostrarSeparacion": "SI",
+        "MostrarUnaLinea": "SI",
+        "MostrarVistaPrevia": "SI",
+        "MostrarExcel": "NO",
+        "MostrarLogo": "NO"
+      }
+    },
+    {
+      "id": "Pan05.01",
+      "titulo": "Análisis de Reconsideración",
+      "ruta_menu": [
+        "Reconsideraciones"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Análisis de Reconsideración",
+        "Ventana": "REPANAREC01",
+        "Reporte": ""
+      },
+      "parametros_declarados": {
+        "MostrarValuacion": "SI",
+        "MostrarTodo": "SI",
+        "MostrarFecha": "SI"
+      }
+    },
+    {
+      "id": "Pan05.02",
+      "titulo": "Valuación estándar de Reconsideración",
+      "ruta_menu": [
+        "Reconsideraciones"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Valuación estándar de Reconsideración",
+        "Ventana": "REPVALREC01",
+        "Reporte": "CVAL002.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarValuacion": "SI",
+        "MostrarTodo": "SI",
+        "MostrarFecha": "SI",
+        "MostrarFactura": "SI",
+        "PantallaFirmantes": "Pan05.02",
+        "MostrarFirmantes": "6",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarFirmantesCargo4": "",
+        "MostrarFirmantesCargo5": "",
+        "MostrarFirmantesCargo6": "",
+        "MostrarCapitulos": "SI",
+        "MostrarCodigoPartidas": "SI",
+        "MostrarCodigoProyecto": "SI",
+        "MostrarSinMovimiento": "SI",
+        "MostrarSeparacion": "SI",
+        "MostrarUnaLinea": "SI",
+        "MostrarVistaPrevia": "SI",
+        "MostrarExcel": "SI",
+        "MostrarLogo": "SI"
+      }
+    },
+    {
+      "id": "Pan06",
+      "titulo": "Cuadro de cierre de obra y demostrativo de cantidades",
+      "ruta_menu": [
+        "Cuadro de cierre de obra y demostrativo de cantidades"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Cuadro de cierre de obra y demostrativo de cantidades",
+        "Ventana": "RepCie01",
+        "Reporte": "CCIE001.RPT"
+      },
+      "parametros_declarados": {
+        "PantallaFirmantes": "Pan06.02",
+        "MostrarFirmantes": "6",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarFirmantesCargo4": "",
+        "MostrarFirmantesCargo5": "",
+        "MostrarFirmantesCargo6": ""
+      }
+    },
+    {
+      "id": "Pan06.01",
+      "titulo": "Cierre y Demostrativo de Cantidades Banco de Venezuela",
+      "ruta_menu": [
+        "Cierre y Demostrativo de Cantidades Banco de Venezuela"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Cierre y Demostrativo de Cantidades Banco de Venezuela",
+        "Ventana": "RepCie01",
+        "Reporte": "CCIE_BcoVenezuela.RPT"
+      },
+      "parametros_declarados": {
+        "PantallaFirmantes": "Pan06.02",
+        "MostrarFirmantes": "6",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarFirmantesCargo4": "",
+        "MostrarFirmantesCargo5": "",
+        "MostrarFirmantesCargo6": ""
+      }
+    },
+    {
+      "id": "Pan07.01",
+      "titulo": "Listado de Materiales",
+      "ruta_menu": [
+        "Insumos General"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Listado de Materiales",
+        "Ventana": "REPGENINS01",
+        "Reporte": "CINSMAT.RPT"
+      },
+      "parametros_declarados": {}
+    },
+    {
+      "id": "Pan07.02",
+      "titulo": "Listado de Materiales agrupados por Familia",
+      "ruta_menu": [
+        "Insumos General"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Listado de Materiales agrupados por Familia",
+        "Ventana": "REPGENINS01",
+        "Reporte": "CINSMATFAM.RPT"
+      },
+      "parametros_declarados": {}
+    },
+    {
+      "id": "Pan07.03",
+      "titulo": "Listado de Equipos",
+      "ruta_menu": [
+        "Insumos General"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Listado de Equipos",
+        "Ventana": "REPGENINS01",
+        "Reporte": "CINSEQU.RPT"
+      },
+      "parametros_declarados": {}
+    },
+    {
+      "id": "Pan07.04",
+      "titulo": "Listado de Equipos agrupados por Familia",
+      "ruta_menu": [
+        "Insumos General"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Listado de Equipos agrupados por Familia",
+        "Ventana": "REPGENINS01",
+        "Reporte": "CINSEQUFAM.RPT"
+      },
+      "parametros_declarados": {}
+    },
+    {
+      "id": "Pan07.05",
+      "titulo": "Listado de Mano de Obra",
+      "ruta_menu": [
+        "Insumos General"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Listado de Mano de Obra",
+        "Ventana": "REPGENINS01",
+        "Reporte": "CINSMAN.RPT"
+      },
+      "parametros_declarados": {}
+    },
+    {
+      "id": "Pan07.06",
+      "titulo": "Listado de Mano de Obra agrupados por Familia",
+      "ruta_menu": [
+        "Insumos General"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Listado de Mano de Obra agrupados por Familia",
+        "Ventana": "REPGENINS01",
+        "Reporte": "CINSMANFAM.RPT"
+      },
+      "parametros_declarados": {}
+    },
+    {
+      "id": "Pan08.01",
+      "titulo": "Insumos por proyecto u obra",
+      "ruta_menu": [
+        "Otros"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Insumos por proyecto u obra",
+        "Ventana": "RepIns01",
+        "Reporte": ""
+      },
+      "parametros_declarados": {}
+    },
+    {
+      "id": "Pan08.02",
+      "titulo": "Memorias descriptivas por partida",
+      "ruta_menu": [
+        "Otros"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Memorias descriptivas por partida",
+        "Ventana": "RepMem01",
+        "Reporte": "CMEM001.RPT"
+      },
+      "parametros_declarados": {
+        "PantallaFirmantes": "Pan08.02",
+        "MostrarFirmantes": "6",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarFirmantesCargo4": "",
+        "MostrarFirmantesCargo5": "",
+        "MostrarFirmantesCargo6": ""
+      }
+    },
+    {
+      "id": "Pan08.03",
+      "titulo": "Estructuras de Costos",
+      "ruta_menu": [
+        "Otros"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Estructuras de Costos",
+        "Ventana": "RepCos01",
+        "Reporte": "CCOS001.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarTodo": "SI",
+        "MostrarFecha": "SI",
+        "MostrarTitulo": "SI",
+        "PantallaFirmantes": "Pan08.03",
+        "MostrarFirmantes": "6",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarFirmantesCargo4": "",
+        "MostrarFirmantesCargo5": "",
+        "MostrarFirmantesCargo6": "",
+        "MostrarCodigos": "SI",
+        "MostrarUnaLinea": "SI",
+        "MostrarVistaPrevia": "SI",
+        "MostrarExcel": "SI",
+        "MostrarLogo": "SI",
+        "titulo1": "ESTIMACION N°",
+        "titulo2": "MODIFIACIÓN N°",
+        "titulo3": "CAMPO",
+        "titulo4": "REPRESENTANTE",
+        "titulo5": "C.I. REPRESENTANTE"
+      }
+    },
+    {
+      "id": "Pan08.04",
+      "titulo": "Estructuras de Costos (UNITARIOS)",
+      "ruta_menu": [
+        "Otros"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Estructuras de Costos (UNITARIOS)",
+        "Ventana": "RepCos01",
+        "Reporte": "CCOS002.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarTodo": "SI",
+        "MostrarFecha": "SI",
+        "MostrarTitulo": "SI",
+        "PantallaFirmantes": "Pan08.04",
+        "MostrarFirmantes": "6",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarFirmantesCargo4": "",
+        "MostrarFirmantesCargo5": "",
+        "MostrarFirmantesCargo6": "",
+        "MostrarCodigos": "SI",
+        "MostrarUnaLinea": "SI",
+        "MostrarVistaPrevia": "SI",
+        "MostrarExcel": "NO",
+        "MostrarLogo": "SI",
+        "titulo1": "ESTIMACION N°",
+        "titulo2": "MODIFIACIÓN N°",
+        "titulo3": "CAMPO",
+        "titulo4": "REPRESENTANTE",
+        "titulo5": "C.I. REPRESENTANTE"
+      }
+    },
+    {
+      "id": "Pan08.041",
+      "titulo": "Listado de Partidas por Obra (Excel)",
+      "ruta_menu": [
+        "Otros"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Listado de Partidas por Obra (Excel)",
+        "Ventana": "EXCEL_LPO",
+        "Reporte": "EXCEL_LPO"
+      },
+      "parametros_declarados": {}
+    },
+    {
+      "id": "Pan08.05",
+      "titulo": "Valor Agregado Nacional",
+      "ruta_menu": [
+        "Otros"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Valor Agregado Nacional",
+        "Ventana": "RepVan01",
+        "Reporte": "CVAN001.RPT"
+      },
+      "parametros_declarados": {
+        "MostrarTodo": "SI",
+        "MostrarFecha": "SI",
+        "MostrarIncluyeADM": "SI",
+        "MostrarMontos": "SI",
+        "MostrarUnaLinea": "NO",
+        "MostrarVistaPrevia": "SI",
+        "MostrarExcel": "NO",
+        "MostrarLogo": "SI"
+      }
+    },
+    {
+      "id": "Pan08.06",
+      "titulo": "Comparación de Presupuestos",
+      "ruta_menu": [
+        "Otros"
+      ],
+      "atributos": {
+        "tipo": "REPORTE",
+        "Titulo": "Comparación de Presupuestos",
+        "Ventana": "RepPreCom01",
+        "Reporte": "CPRECOMP.RPT"
+      },
+      "parametros_declarados": {
+        "PantallaFirmantes": "Pan08.06",
+        "MostrarFirmantes": "6",
+        "MostrarFirmantesCargo1": "",
+        "MostrarFirmantesCargo2": "",
+        "MostrarFirmantesCargo3": "",
+        "MostrarFirmantesCargo4": "",
+        "MostrarFirmantesCargo5": "",
+        "MostrarFirmantesCargo6": "",
+        "MostrarLogo": "SI"
+      }
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+.dark .app-shell, .dark .auth-experience { background: var(--background); }
+.dark .app-header { background: #152237f5; color: var(--foreground); border-color: var(--border); }
+.dark .header-search { background: var(--card); border-color: var(--input); }
+.dark .header-search button { color: #08254c; }
+.dark .app-header .brand-logo { color: var(--foreground); }
+.dark :is(.app-header, .app-footer, .auth-experience-header) .brand-logo img { filter: brightness(0) invert(1); }
+.dark .header-account [aria-label='Seleccionar planta'] { border-color: var(--border); }
+.dark .header-account button[data-variant=ghost]:hover { background: var(--accent); }
+.dark .header-nav > nav > a, .dark .header-nav > nav > button { color: var(--foreground); }
+.dark .header-nav > nav > a:hover, .dark .header-nav > nav > button:hover,
+.dark .nav-more-panel [data-slot=dropdown-menu-item][data-highlighted],
+.dark .nav-more-panel [aria-current=page] { background: var(--accent); }
+.dark .nav-more-panel [data-slot=dropdown-menu-item] { color: var(--foreground); }
+.dark .mobile-navigation { background: var(--card); }
+.dark .portal-magic-surface:not(.portal-feature),
+.dark .home-intro, .dark .catalog-map-panel,
+.dark .home-page > section:not(.portal-bento):not(.home-hero):not(.plant-gallery-section) { background: var(--card); border-color: var(--border); }
+.dark .portal-magic-surface.discovery-stages { background: #2b2a24; border-color: #655631; }
+.dark :is(.portal-discovery h3, .portal-discovery a, .banner-title, .page-banner,
+  .home-intro h2, .catalog-map-panel > summary, .plant-gallery-caption strong),
+.dark .directory-filters::before { color: var(--foreground); }
+.dark :is(.portal-discovery p, .portal-section-description, .banner-description,
+  .directory-filters label, .cycle-node-group, .process-cycle-legend, .discovery-icon, .search-category) { color: var(--muted-foreground); }
+.dark .directory-filters, .dark .network-toolbar { border-color: var(--border); }
+.dark .plant-gallery-caption { background: var(--card); border-color: var(--border); }
+.dark .app-footer { background: #101d30; border-color: var(--border); }
+.dark .app-footer .brand-logo { color: var(--muted-foreground); }
+.dark .process-cycle { --cycle-line: #415772; --cycle-accent: #ffd21c; }
+.dark .process-cycle-toolbar, .dark .process-cycle-node { background: var(--card); border-color: var(--border); color: var(--foreground); }
+.dark :is(.process-cycle-toolbar > p, .process-cycle-counter, .network-toolbar p, .network-node-copy strong) { color: var(--foreground); }
+.dark .process-cycle-controls button { background: var(--secondary); }
+.dark .process-cycle-node[data-highlighted=true], .dark .process-cycle-node:hover { background: #393321; border-color: #c9a542; }
+.dark .cycle-node-dot { border-color: var(--card); }
+.dark .network-map { background: radial-gradient(ellipse at center, #203551, var(--card) 70%); }
+.dark .network-node { background: var(--card); border-color: var(--border); }
+.dark .network-node-icon { background: color-mix(in srgb, var(--network-color) 16%, var(--card)); border-color: var(--border); }
+.dark .network-node[data-active=true] { background: color-mix(in srgb, var(--network-color) 15%, var(--card)); border-color: var(--network-color); }
+.dark .network-eyebrow { color: #e0bf66; }
+.dark .auth-workspace { background: radial-gradient(ellipse at 100% 0, #584b241a, transparent 60%), var(--background); }
+.dark .auth-mode-tabs, .dark .auth-demo > p { background: var(--muted); border-color: var(--border); }
+.dark .auth-mode-tabs > a[aria-current=page] { background: var(--accent); color: var(--foreground); }
+.dark .auth-page [data-slot=card-title] h1, .dark .auth-page [data-slot=card-content] > p a { color: var(--foreground); }
+.dark .auth-page label, .dark .auth-page [data-slot=card-description], .dark .auth-mode-tabs > a,
+.dark .auth-back, .dark .auth-workspace-footer { color: var(--muted-foreground); }
+.dark .auth-page input { background: var(--card); border-color: var(--input); }
+.dark .auth-password-toggle:hover, .dark .auth-back:hover { background: var(--accent); color: var(--foreground); }
+.dark .auth-demo { border-color: var(--border); }
+@media (max-width: 850px) {
+  .dark .auth-experience-header .brand-logo { color: var(--foreground); }
+  .dark .auth-experience-header .brand-logo span span { color: var(--muted-foreground); }
+}

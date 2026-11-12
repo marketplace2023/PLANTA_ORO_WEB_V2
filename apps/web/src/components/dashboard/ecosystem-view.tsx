@@ -41,9 +41,9 @@ function Content({ d }: { d: EcosystemDashboard }) {
           </Link>
           <KpiCard title="Etapas maestras" value={d.masters.stages} icon={Cog} />
           <KpiCard title="Redes maestras" value={d.masters.networks} icon={Cable} />
-          <Link to="/providers" className="block rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+          <Link to="/marketplace?view=sellers" className="block rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
             <KpiCard
-              title="Proveedores"
+              title="Vendedores del marketplace"
               value={d.organizations.providers.total}
               icon={Building2}
               tone={d.organizations.providers.pending > 0 ? 'warning' : 'default'}

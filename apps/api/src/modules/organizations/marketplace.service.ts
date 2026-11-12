@@ -5,7 +5,7 @@ import { validationError } from '../../common/errors'
 import { escapeLike, pageOf } from '../../common/pagination'
 import type { AppRequest, AuthUser } from '../../common/types'
 import { DB, type Database } from '../../database/database.module'
-import { assetFamilies, assetModels, assetTypes, listings, listingStages, providers, stageMaster } from '../../database/schema'
+import { assetFamilies, assetModels, assetTypes, productVariants, listings, listingStages, providers, stageMaster } from '../../database/schema'
 import { AuditService } from '../audit/audit.service'
 import { inspectImage } from '../documents/image-upload'
 import { StorageService } from '../documents/storage.service'
@@ -27,6 +27,10 @@ export class MarketplaceService {
     private readonly storage: StorageService,
   ) {}
 
+  private availability() {
+    return sql<string>`case when ${listings.commercial}->>'saleMode' = 'DIRECT' then case when exists (select 1 from ${productVariants} v where v.listing_id = ${listings.id} and v.active = true and v.stock > v.reserved) then 'IN_STOCK' else 'OUT_OF_STOCK' end else ${listings.availability} end`
+  }
+
   private select() {
     return this.db
       .select({
@@ -35,7 +39,7 @@ export class MarketplaceService {
         description: listings.description,
         price: listings.price,
         currency: listings.currency,
-        availability: listings.availability,
+        availability: this.availability(),
         stockText: listings.stockText,
         imageUrl: listings.imageUrl,
         status: listings.status,
@@ -127,12 +131,13 @@ export class MarketplaceService {
     const conditions: Array<SQL | undefined> = [
       eq(listings.status, 'ACTIVE'),
       eq(providers.status, 'ACTIVE'),
+      q.sellerType ? eq(providers.verified,q.sellerType === 'VERIFIED_STORE') : undefined,
       q.family ? eq(assetFamilies.code, q.family) : undefined,
       q.type ? eq(assetTypes.code, q.type) : undefined,
       q.manufacturerId ? referenceMatches(q.manufacturerId) : undefined,
       q.providerId ? eq(listings.providerId, q.providerId) : undefined,
       q.currency ? eq(listings.currency, q.currency) : undefined,
-      q.availability ? eq(listings.availability, q.availability) : undefined,
+      q.availability ? sql`${this.availability()} = ${q.availability}` : undefined,
       q.featured === '1' ? eq(listings.isFeatured, true) : undefined,
       // Un filtro de precio excluye las ofertas "a cotizar" (no tienen precio que comparar).
       priced ? sql`${listings.price} is not null` : undefined,
@@ -142,7 +147,7 @@ export class MarketplaceService {
     ]
     if (q.search) {
       const like = `%${escapeLike(q.search)}%`
-      conditions.push(or(ilike(listings.title, like), ilike(listings.description, like), ilike(providers.organizationName, like)))
+      conditions.push(or(ilike(listings.title, like), ilike(listings.description, like), ilike(providers.organizationName, like), sql`${listings.commercial}->>'brand' ilike ${like}`, sql`${listings.commercial}->>'model' ilike ${like}`, sql`exists (select 1 from ${productVariants} v where v.listing_id = ${listings.id} and v.sku ilike ${like})`))
     }
     const order =
       q.sort === 'price_asc'
@@ -171,7 +176,7 @@ export class MarketplaceService {
 
   async listForProvider(providerId: string, q: ListProviderListingsQuery, user: AuthUser | undefined) {
     await this.providersSvc.loadVisible(providerId, user)
-    await this.access.assertManage('provider', providerId, user)
+    await this.access.assertProviderPermission(providerId, user, 'PRODUCTS')
     const conditions: Array<SQL | undefined> = [eq(listings.providerId, providerId), q.status === 'ALL' ? undefined : eq(listings.status, q.status)]
     if (q.search) conditions.push(ilike(listings.title, `%${escapeLike(q.search)}%`))
     return this.page(and(...conditions), [desc(listings.updatedAt)], q.page, q.pageSize)
@@ -213,7 +218,7 @@ export class MarketplaceService {
 
   async create(providerId: string, dto: CreateListingDto, user: AuthUser, req: AppRequest) {
     await this.providersSvc.loadVisible(providerId, user)
-    await this.access.assertManage('provider', providerId, user)
+    await this.access.assertProviderPermission(providerId, user, 'PRODUCTS')
     await this.assertProviderActive(providerId)
 
     const familyId = await this.resolveFamily(dto.assetModelId, dto.assetFamilyCode)
@@ -252,6 +257,7 @@ export class MarketplaceService {
   async update(providerId: string, id: string, dto: UpdateListingDto, user: AuthUser, req: AppRequest) {
     await this.providersSvc.loadVisible(providerId, user)
     const role = await this.access.assertManage('provider', providerId, user)
+    await this.access.assertProviderPermission(providerId,user,'PRODUCTS')
     if (dto.isFeatured !== undefined && role !== 'ADMIN') throw new ForbiddenException('Solo el administrador del ecosistema puede destacar productos')
     const [before] = await this.db.select().from(listings).where(and(eq(listings.id, id), eq(listings.providerId, providerId)))
     if (!before) throw new NotFoundException('Producto no encontrado')
@@ -260,12 +266,6 @@ export class MarketplaceService {
     const familyId = dto.assetModelId !== undefined || dto.assetFamilyCode !== undefined ? await this.resolveFamily(dto.assetModelId ?? (dto.assetModelId === null ? null : before.assetModelId), dto.assetFamilyCode) : undefined
     const stageIds = dto.stageCodes ? await this.resolveStageIds(this.db, dto.stageCodes) : undefined
 
-    const nextStatus = dto.status ?? before.status
-    if (nextStatus === 'ACTIVE' && before.status !== 'ACTIVE') {
-      const stageCount = stageIds ? new Set(stageIds).size : (await this.db.select({ n: sql<number>`count(*)::int` }).from(listingStages).where(eq(listingStages.listingId, id)))[0].n
-      // Sin etapa no aparecería en el filtro principal del mercado: se exige para publicar.
-      if (stageCount === 0) throw validationError('stageCodes', 'Indica al menos una etapa para publicar el producto')
-    }
 
     const { stageCodes: _s, assetFamilyCode: _f, price, ...rest } = dto
     // Una URL externa (o quitarla) reemplaza la foto subida: se descarta para no dejar un archivo huérfano.
@@ -303,6 +303,7 @@ export class MarketplaceService {
   private async loadManaged(providerId: string, id: string, user: AuthUser) {
     await this.providersSvc.loadVisible(providerId, user)
     const role = await this.access.assertManage('provider', providerId, user)
+    await this.access.assertProviderPermission(providerId,user,'PRODUCTS')
     const [row] = await this.db.select({ id: listings.id, imageKey: listings.imageKey }).from(listings).where(and(eq(listings.id, id), eq(listings.providerId, providerId)))
     if (!row) throw new NotFoundException('Producto no encontrado')
     if (role !== 'ADMIN') await this.assertProviderActive(providerId)
@@ -311,27 +312,38 @@ export class MarketplaceService {
 
   /** Sube (o reemplaza) la foto del producto. La clave es nueva en cada subida: la anterior se borra solo cuando la nueva ya quedó registrada. */
   async setImage(providerId: string, id: string, file: Express.Multer.File | undefined, user: AuthUser, req: AppRequest) {
-    const before = await this.loadManaged(providerId, id, user)
+    await this.loadManaged(providerId, id, user)
     const image = inspectImage(file)
     const key = `marketplace/listings/${id}/${randomUUID()}.${image.extension}`
     await this.storage.put(key, image.data)
     const now = new Date()
+    let previousKey: string | null = null
     try {
-      await this.db.update(listings).set({ imageKey: key, imageMime: image.mimeType, imageUrl: `/marketplace/listings/${id}/image?v=${now.getTime()}`, updatedAt: now }).where(eq(listings.id, id))
+      await this.db.transaction(async tx => {
+        const [current] = await tx.select({ imageKey: listings.imageKey }).from(listings).where(and(eq(listings.id,id),eq(listings.providerId,providerId))).for('update')
+        if (!current) throw new NotFoundException('Producto no encontrado')
+        previousKey = current.imageKey
+        await tx.update(listings).set({ imageKey: key, imageMime: image.mimeType, imageUrl: `/marketplace/listings/${id}/image?v=${now.getTime()}`, updatedAt: now }).where(eq(listings.id, id))
+      })
     } catch (e) {
       await this.storage.delete(key).catch(() => undefined)
       throw e
     }
-    if (before.imageKey) await this.storage.delete(before.imageKey).catch(() => undefined)
-    await this.audit.record(req, { module: 'marketplace', entityType: 'listing', entityId: id, action: 'image.updated', oldData: { hadImage: !!before.imageKey }, newData: { mimeType: image.mimeType, sizeBytes: image.data.length } })
+    if (previousKey) await this.storage.delete(previousKey).catch(() => undefined)
+    await this.audit.record(req, { module: 'marketplace', entityType: 'listing', entityId: id, action: 'image.updated', oldData: { hadImage: !!previousKey }, newData: { mimeType: image.mimeType, sizeBytes: image.data.length } })
     return this.getManaged(providerId, id)
   }
 
   async removeImage(providerId: string, id: string, user: AuthUser, req: AppRequest) {
-    const before = await this.loadManaged(providerId, id, user)
-    await this.db.update(listings).set({ imageKey: null, imageMime: null, imageUrl: null, updatedAt: new Date() }).where(eq(listings.id, id))
-    if (before.imageKey) await this.storage.delete(before.imageKey).catch(() => undefined)
-    await this.audit.record(req, { module: 'marketplace', entityType: 'listing', entityId: id, action: 'image.removed', oldData: { hadImage: !!before.imageKey } })
+    await this.loadManaged(providerId, id, user)
+    const previousKey = await this.db.transaction(async tx => {
+      const [current] = await tx.select({ imageKey: listings.imageKey }).from(listings).where(and(eq(listings.id,id),eq(listings.providerId,providerId))).for('update')
+      if (!current) throw new NotFoundException('Producto no encontrado')
+      await tx.update(listings).set({ imageKey: null, imageMime: null, imageUrl: null, updatedAt: new Date() }).where(eq(listings.id,id))
+      return current.imageKey
+    })
+    if (previousKey) await this.storage.delete(previousKey).catch(() => undefined)
+    await this.audit.record(req, { module: 'marketplace', entityType: 'listing', entityId: id, action: 'image.removed', oldData: { hadImage: !!previousKey } })
   }
 
   /** Foto pública del producto (el identificador no es adivinable y la foto no es información sensible). */

@@ -30,12 +30,12 @@ export function PlantSelector() {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="h-10 gap-2 border border-white/20 px-3 text-white hover:bg-fur-navy-800 hover:text-white aria-expanded:bg-fur-navy-800"
+          className="h-10 gap-2 border border-fur-navy-900/15 px-3 text-fur-navy-950 hover:bg-white/40 hover:text-fur-navy-950 aria-expanded:bg-white/40"
           aria-label="Seleccionar planta"
         >
           {currentPlant ? <Factory /> : <Globe />}
           <span className="flex flex-col items-start leading-tight">
-            <span className="text-[10px] font-semibold tracking-wider text-fur-gold-400 uppercase">
+            <span className="text-[10px] font-semibold tracking-wider text-fur-navy-700 uppercase">
               {currentPlant ? 'Planta' : 'Contexto'}
             </span>
             <span className="max-w-40 truncate text-sm">

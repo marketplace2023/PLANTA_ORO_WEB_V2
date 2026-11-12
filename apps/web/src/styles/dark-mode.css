@@ -1,0 +1,81 @@
+/* Shared by all six FUR portals. Keep gold actions and technical images intact. */
+html.dark {
+  --fur-gray-50: #0d1727;
+  --fur-gray-100: #1b2a40;
+  --fur-gray-200: #2c3e55;
+  --fur-gray-300: #415772;
+  --fur-gray-500: #9aacbf;
+  --fur-gray-600: #b6c5d6;
+  --fur-gray-800: #d2deea;
+  --fur-gray-900: #edf3fa;
+  --background: #0d1727;
+  --foreground: #edf3fa;
+  --card: #152237;
+  --card-foreground: #edf3fa;
+  --popover: #1a293f;
+  --popover-foreground: #edf3fa;
+  --secondary: #203148;
+  --secondary-foreground: #e4edf8;
+  --muted: #1b2a40;
+  --muted-foreground: #b6c5d6;
+  --accent: #263951;
+  --accent-foreground: #edf3fa;
+  --border: #2c3e55;
+  --input: #415772;
+  --ring: #79b6ff;
+  --surface-page: var(--background);
+  --surface-card: var(--card);
+  --text-primary: var(--foreground);
+  --text-secondary: var(--muted-foreground);
+  --chart-1: #a8cfff;
+  --chart-3: #6aabff;
+  --network-proc: #ffac63;
+  --network-pte: #f5ce5c;
+  --network-iot: #6fc7f7;
+  --network-gpon: #b296f1;
+  --network-cc: #f48a8a;
+  --network-lab: #61ccc3;
+  --network-mnt: #b2c0d2;
+  --network-rq: #70d89a;
+  --network-of: #f28aba;
+  --network-cam: #8ab9ff;
+  --fur-shadow-sm: 0 1px 3px #0003;
+  --fur-shadow-md: 0 4px 16px #0004;
+  --fur-shadow-lg: 0 12px 36px #0006;
+  color-scheme: dark;
+}
+
+.theme-toggle {
+  position: fixed;
+  z-index: 45;
+  right: max(18px, env(safe-area-inset-right));
+  bottom: max(18px, env(safe-area-inset-bottom));
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 3px 14px #061a3626;
+  cursor: pointer;
+}
+.theme-toggle:hover { background: var(--accent); }
+.theme-toggle:focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
+
+/* Existing utilities use navy for text as well as brand backgrounds. */
+.dark :is(.text-fur-navy-950, .text-fur-navy-900, .text-fur-navy-800, .text-fur-navy-700) { color: var(--foreground); }
+.dark :is(.bg-fur-gold-400, .bg-fur-gold-500, .bg-fur-gold-600),
+.dark :is(.bg-fur-gold-400, .bg-fur-gold-500, .bg-fur-gold-600) :is(.text-fur-navy-950, .text-fur-navy-900) { color: #08254c; }
+.dark .bg-white { background-color: var(--card); }
+.dark :is(.bg-white\/95, .bg-white\/90, .bg-white\/80) { background-color: var(--card); }
+.dark [data-slot=card] { --tw-ring-color: var(--border); }
+.dark [data-slot=table-header] { background: var(--muted); color: var(--foreground); }
+.dark [data-slot=tabs-list] { background: var(--card); border-color: var(--border); }
+.dark [data-slot=tabs-trigger][data-state=active] { background: var(--accent); color: var(--foreground); }
+.dark [data-slot=button][data-variant=outline],
+.dark [data-slot=button][data-variant=secondary] { color: var(--foreground); border-color: var(--input); }
+.dark input::placeholder, .dark textarea::placeholder { color: var(--fur-gray-500); }
+.dark .skip-link { background: var(--card); color: var(--foreground); }

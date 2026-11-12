@@ -295,8 +295,8 @@ describe('Proveedores, marketplace y servicios profesionales (e2e)', () => {
       await get(`/api/v1/marketplace/listings/${l.id}`, admin).expect(200)
       expect(names(await get('/api/v1/marketplace/listings?search=Borrador%20E2E').expect(200))).toEqual([])
 
-      const res = await send('patch', `/api/v1/providers/${provA}/listings/${l.id}`, owner, { status: 'ACTIVE' }).expect(400)
-      expect(JSON.stringify(res.body)).toMatch(/etapa/)
+      const res = await send('patch', `/api/v1/providers/${provA}/listings/${l.id}`, owner, { status: 'ACTIVE' }).expect(200)
+      expect(res.body.stages).toEqual([])
       const published = await send('patch', `/api/v1/providers/${provA}/listings/${l.id}`, owner, { status: 'ACTIVE', stageCodes: ['D06'] }).expect(200)
       expect(published.body.status).toBe('ACTIVE')
       expect(names(await get('/api/v1/marketplace/listings?search=Borrador%20E2E').expect(200))).toEqual(['Borrador E2E'])
@@ -344,6 +344,17 @@ describe('Proveedores, marketplace y servicios profesionales (e2e)', () => {
       }
     })
     const q = async (qs: string) => names(await get(`/api/v1/marketplace/listings?search=FLT&${qs}`).expect(200))
+
+    it('unifies verified stores and individual sellers without granting verification', async () => {
+      await send('patch', `/api/v1/providers/${provA}`, admin, { verified: true }).expect(200)
+      await send('patch', `/api/v1/providers/${provB}`, admin, { verified: false }).expect(200)
+      expect((await q('sellerType=VERIFIED_STORE')).sort()).toEqual(['Filtro Barato FLT', 'Filtro Caro FLT'])
+      expect(await q('sellerType=INDIVIDUAL')).toEqual(['Filtro A Cotizar FLT'])
+      const individuals = await get('/api/v1/providers?verified=0&search=E2E%20Beta').expect(200)
+      expect(individuals.body.items.map((p: {id:string})=>p.id)).toEqual([provB])
+      expect((await get('/api/v1/providers?verified=1&search=E2E%20Beta').expect(200)).body.items).toHaveLength(0)
+      await send('patch', `/api/v1/providers/${provB}`, owner2, {verified:true}).expect(403)
+    })
 
     it('por etapa, familia, tipo, fabricante, proveedor y disponibilidad', async () => {
       expect(await q('stage=D07')).toEqual(['Filtro Caro FLT'])

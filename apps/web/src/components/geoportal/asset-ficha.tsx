@@ -97,6 +97,7 @@ export function AssetFicha({
         </div>
       </div>
 
+      <div className="asset-ficha-columns">
       <dl className="px-3 py-1" aria-label="Datos del activo">
         <Row label="Código de activo">
           <span className="fur-code">{asset.tag}</span>
@@ -159,6 +160,7 @@ export function AssetFicha({
         </Row>
       </dl>
 
+      <div className="asset-ficha-technical">
       {variables.isLoading && (
         <div className="space-y-1.5 border-t border-border px-3 py-2" aria-label="Cargando variables">
           <Skeleton className="h-5" />
@@ -217,6 +219,8 @@ export function AssetFicha({
         </section>
       )}
 
+      </div>
+      </div>
       <div className="border-t border-border p-3">
         <Link to={`/plants/${plantSlug}/assets/${asset.id}`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-fur-navy-900 underline-offset-2 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none">
           <ExternalLink className="size-4" aria-hidden /> Abrir la ficha completa (FUR)

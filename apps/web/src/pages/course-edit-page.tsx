@@ -1,13 +1,14 @@
 import { ArrowDown, ArrowUp, Eye, LockKeyhole, Pencil, Plus, SearchX, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { EmptyState } from '@/components/base/empty-state'
 import { ErrorState } from '@/components/base/error-state'
 import { PageHeader } from '@/components/layout/page-header'
 import { CourseFormDialog } from '@/components/lms/course-form-dialog'
+import { CourseAuthoring } from '@/components/lms/course-authoring'
 import { LessonFormDialog } from '@/components/lms/lesson-form-dialog'
-import { StageTags } from '@/components/organizations/org-bits'
+import { VideoPreviewDialog } from '@/components/lms/video-preview-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -30,6 +31,7 @@ const errorText = (err: unknown) => (err instanceof ApiError ? (err.fieldErrors[
 /** Editor del curso: datos generales, estado, lecciones (alta, orden, edición) y alumnado. */
 export function CourseEditPage() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const { user, status } = useAuth()
   const { params, setParam } = useUrlFilters()
   const tab = (TABS.find(([k]) => k === params.get('tab'))?.[0] ?? 'lessons') as (typeof TABS)[number][0]
@@ -40,6 +42,7 @@ export function CourseEditPage() {
   const roster = useRoster(id, !!course?.canManage && tab === 'students')
   const [editing, setEditing] = useState(false)
   const [lesson, setLesson] = useState<Lesson | 'new' | null>(null)
+  const [videoPreview, setVideoPreview] = useState<Lesson | null>(null)
 
   if (status !== 'loading' && !user) {
     return <EmptyState icon={LockKeyhole} title="Inicia sesión" description="Necesitas una sesión para editar cursos." action={<Button asChild><Link to="/login">Iniciar sesión</Link></Button>} />
@@ -52,6 +55,8 @@ export function CourseEditPage() {
   if (!course.canManage) {
     return <EmptyState icon={LockKeyhole} title="Sin acceso a la edición" description="Solo los miembros de la organización propietaria y el administrador del ecosistema editan este curso." action={<Button asChild variant="secondary"><Link to={`/courses/${course.id}`}>Ver curso</Link></Button>} />
   }
+
+  if (params.get('editor') === '1') return <><div className="mb-4 flex justify-end"><Button asChild variant="ghost" size="sm"><Link to={`/courses/${course.id}/edit?tab=students`}>Ver alumnado</Link></Button></div><CourseAuthoring key={course.id} course={course} initialStep={params.get('step') ?? undefined} onStepChange={step => setParam({step}, true)} onClose={() => navigate('/courses')} /></>
 
   async function run(action: () => Promise<unknown>, ok: string) {
     try {
@@ -97,7 +102,6 @@ export function CourseEditPage() {
       />
       <div className="mb-4 space-y-2">
         {course.description && <p className="text-sm">{course.description}</p>}
-        <StageTags stages={course.stages} max={20} />
         <p className="text-xs text-fur-gray-600">
           {course.certificate ? 'Emite certificado.' : 'No emite certificado.'} Instructor: {course.instructorName ?? '—'}.
         </p>
@@ -131,7 +135,7 @@ export function CourseEditPage() {
                   <span className="fur-code w-6 text-fur-gray-600">{i + 1}</span>
                   <div className="min-w-0 flex-1">
                     <p className="font-medium">{l.title}</p>
-                    <p className="text-xs text-fur-gray-600">{formatDuration(l.durationMinutes)}{l.videoUrl ? ' · con video' : ''}</p>
+                    <p className="text-xs text-fur-gray-600">{formatDuration(l.durationMinutes)}{l.video ? ` · ${l.video.status === 'READY' ? 'Video listo' : l.video.status === 'FAILED' ? 'Error de video' : 'Preparando video'}` : l.videoUrl ? ' · con video externo' : ''}</p>
                   </div>
                   <Button size="icon" variant="ghost" aria-label={`Subir ${l.title}`} disabled={i === 0 || updateLesson.isPending} onClick={() => void run(() => updateLesson.mutateAsync({ id: l.id, position: i - 1 }), 'Lección movida')}>
                     <ArrowUp />
@@ -139,6 +143,7 @@ export function CourseEditPage() {
                   <Button size="icon" variant="ghost" aria-label={`Bajar ${l.title}`} disabled={i === course.lessons.length - 1 || updateLesson.isPending} onClick={() => void run(() => updateLesson.mutateAsync({ id: l.id, position: i + 1 }), 'Lección movida')}>
                     <ArrowDown />
                   </Button>
+                  {(l.video || l.videoUrl) && <Button size="sm" variant="outline" aria-label={`Vista previa del video de ${l.title}`} onClick={() => setVideoPreview(l)}><Eye /> Video</Button>}
                   <Button size="sm" variant="ghost" aria-label={`Editar ${l.title}`} onClick={() => setLesson(l)}>
                     <Pencil /> Editar
                   </Button>
@@ -194,6 +199,7 @@ export function CourseEditPage() {
 
       {editing && <CourseFormDialog course={course} onClose={() => setEditing(false)} />}
       {lesson && <LessonFormDialog courseId={course.id} lesson={lesson === 'new' ? undefined : lesson} onClose={() => setLesson(null)} />}
+      <VideoPreviewDialog courseId={course.id} lesson={videoPreview ? course.lessons.find((item) => item.id === videoPreview.id) ?? videoPreview : null} onClose={() => setVideoPreview(null)} />
     </>
   )
 }

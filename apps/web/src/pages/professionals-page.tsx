@@ -60,7 +60,7 @@ export function ProfessionalsPage() {
 
   const data = services.data
   return (
-    <>
+    <div className="directory-page professionals-page">
       <PageHeader
         title="Servicios Profesionales"
         description="Contratistas y especialistas para mantenimiento, instrumentación y automatización, por etapa del proceso."
@@ -86,7 +86,7 @@ export function ProfessionalsPage() {
         }
       />
 
-      <div className="mb-4 space-y-3 rounded-lg border border-border bg-card p-4">
+      <div className="directory-filters mb-4 space-y-3 rounded-lg border border-border bg-card p-4">
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-56 flex-1 space-y-1">
             <Label htmlFor="sv-search" className="text-xs text-fur-gray-600">
@@ -183,6 +183,6 @@ export function ProfessionalsPage() {
 
       {openId && <ContractorSheet id={openId} onClose={() => setParam({ contractor: undefined }, true)} />}
       {registering && <RegisterOrgDialog kind="contractor" onClose={() => setRegistering(false)} onDone={(id) => navigate(`/contractors/${id}/manage`)} />}
-    </>
+    </div>
   )
 }

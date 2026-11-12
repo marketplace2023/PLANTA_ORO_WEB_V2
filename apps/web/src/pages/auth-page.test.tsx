@@ -36,6 +36,21 @@ describe('AuthPage', () => {
   })
 
   describe('login', () => {
+    it('muestra y oculta la contraseña sin cambiar su valor ni enviar el formulario', async () => {
+      const mock = mockApi({})
+      renderAuth('login')
+      await fill('Contraseña', 'ejemplo-2026')
+      const password = screen.getByLabelText('Contraseña')
+      expect(password).toHaveAttribute('type', 'password')
+      await userEvent.click(screen.getByRole('button', { name: 'Mostrar contraseña' }))
+      expect(password).toHaveAttribute('type', 'text')
+      expect(password).toHaveValue('ejemplo-2026')
+      await userEvent.click(screen.getByRole('button', { name: 'Ocultar contraseña' }))
+      expect(password).toHaveAttribute('type', 'password')
+      expect(password).toHaveValue('ejemplo-2026')
+      expect(mock.calls).toHaveLength(0)
+    })
+
     it('valida el formulario en el cliente sin llamar al servidor', async () => {
       const mock = mockApi({})
       renderAuth('login')

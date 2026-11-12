@@ -1,6 +1,6 @@
 {
-  "id": "906e5009-d266-4243-ab41-6767c2d192b3",
-  "prevId": "ded53ab8-8e0f-4166-9ffc-7bf196405ded",
+  "id": "2e13f08b-d8e5-46ea-bd3a-9ae9f0bd50ff",
+  "prevId": "fde7bc65-17e2-494c-a899-4898d8cae592",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1689,13 +1689,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "tag_code": {
-          "name": "tag_code",
-          "type": "varchar(12)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "''"
-        },
         "category_code": {
           "name": "category_code",
           "type": "varchar(20)",
@@ -1738,13 +1731,6 @@
             "code"
           ]
         },
-        "asset_families_tag_code_unique": {
-          "name": "asset_families_tag_code_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "tag_code"
-          ]
-        },
         "asset_families_category_code_unique": {
           "name": "asset_families_category_code_unique",
           "nullsNotDistinct": false,
@@ -1754,12 +1740,7 @@
         }
       },
       "policies": {},
-      "checkConstraints": {
-        "asset_families_tag_code_format": {
-          "name": "asset_families_tag_code_format",
-          "value": "\"catalog\".\"asset_families\".\"tag_code\" ~ '^[A-Z][A-Z0-9]{2,11}$'"
-        }
-      },
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "catalog.asset_model_networks": {
@@ -2608,68 +2589,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "asset.catalog_references": {
-      "name": "catalog_references",
-      "schema": "asset",
-      "columns": {
-        "asset_id": {
-          "name": "asset_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "asset_model_id": {
-          "name": "asset_model_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "catalog_references_asset_id_assets_id_fk": {
-          "name": "catalog_references_asset_id_assets_id_fk",
-          "tableFrom": "catalog_references",
-          "tableTo": "assets",
-          "schemaTo": "asset",
-          "columnsFrom": [
-            "asset_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "catalog_references_asset_model_id_asset_models_id_fk": {
-          "name": "catalog_references_asset_model_id_asset_models_id_fk",
-          "tableFrom": "catalog_references",
-          "tableTo": "asset_models",
-          "schemaTo": "catalog",
-          "columnsFrom": [
-            "asset_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "catalog_references_asset_id_asset_model_id_pk": {
-          "name": "catalog_references_asset_id_asset_model_id_pk",
-          "columns": [
-            "asset_id",
-            "asset_model_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "asset.asset_networks": {
       "name": "asset_networks",
       "schema": "asset",
@@ -2846,116 +2765,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "asset.tag_sequences": {
-      "name": "tag_sequences",
-      "schema": "asset",
-      "columns": {
-        "plant_id": {
-          "name": "plant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "network_master_id": {
-          "name": "network_master_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "stage_master_id": {
-          "name": "stage_master_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "family_id": {
-          "name": "family_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "last_value": {
-          "name": "last_value",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "tag_sequences_plant_id_plants_id_fk": {
-          "name": "tag_sequences_plant_id_plants_id_fk",
-          "tableFrom": "tag_sequences",
-          "tableTo": "plants",
-          "schemaTo": "core",
-          "columnsFrom": [
-            "plant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "tag_sequences_network_master_id_network_master_id_fk": {
-          "name": "tag_sequences_network_master_id_network_master_id_fk",
-          "tableFrom": "tag_sequences",
-          "tableTo": "network_master",
-          "schemaTo": "plant",
-          "columnsFrom": [
-            "network_master_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "tag_sequences_stage_master_id_stage_master_id_fk": {
-          "name": "tag_sequences_stage_master_id_stage_master_id_fk",
-          "tableFrom": "tag_sequences",
-          "tableTo": "stage_master",
-          "schemaTo": "process",
-          "columnsFrom": [
-            "stage_master_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "tag_sequences_family_id_asset_families_id_fk": {
-          "name": "tag_sequences_family_id_asset_families_id_fk",
-          "tableFrom": "tag_sequences",
-          "tableTo": "asset_families",
-          "schemaTo": "catalog",
-          "columnsFrom": [
-            "family_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "tag_sequences_plant_id_network_master_id_stage_master_id_family_id_pk": {
-          "name": "tag_sequences_plant_id_network_master_id_stage_master_id_family_id_pk",
-          "columns": [
-            "plant_id",
-            "network_master_id",
-            "stage_master_id",
-            "family_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "asset.assets": {
       "name": "assets",
       "schema": "asset",
@@ -2982,27 +2791,7 @@
           "name": "asset_model_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
-        },
-        "family_id": {
-          "name": "family_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "specifications": {
-          "name": "specifications",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
-        },
-        "technical_data": {
-          "name": "technical_data",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
+          "notNull": true
         },
         "fur_code": {
           "name": "fur_code",
@@ -3188,20 +2977,6 @@
           "schemaTo": "catalog",
           "columnsFrom": [
             "asset_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "assets_family_id_asset_families_id_fk": {
-          "name": "assets_family_id_asset_families_id_fk",
-          "tableFrom": "assets",
-          "tableTo": "asset_families",
-          "schemaTo": "catalog",
-          "columnsFrom": [
-            "family_id"
           ],
           "columnsTo": [
             "id"
@@ -7096,6 +6871,87 @@
       },
       "isRLSEnabled": false
     },
+    "lms.course_sections": {
+      "name": "course_sections",
+      "schema": "lms",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "course_id": {
+          "name": "course_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {
+        "idx_course_sections_course": {
+          "name": "idx_course_sections_course",
+          "columns": [
+            {
+              "expression": "course_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "position",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "course_sections_course_id_courses_id_fk": {
+          "name": "course_sections_course_id_courses_id_fk",
+          "tableFrom": "course_sections",
+          "tableTo": "courses",
+          "schemaTo": "lms",
+          "columnsFrom": [
+            "course_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "lms.course_stages": {
       "name": "course_stages",
       "schema": "lms",
@@ -7176,6 +7032,83 @@
         },
         "description": {
           "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subtitle": {
+          "name": "subtitle",
+          "type": "varchar(240)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "category": {
+          "name": "category",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'General'"
+        },
+        "language": {
+          "name": "language",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'es'"
+        },
+        "learning_objectives": {
+          "name": "learning_objectives",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "requirements": {
+          "name": "requirements",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "target_audience": {
+          "name": "target_audience",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "cover_url": {
+          "name": "cover_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cover_key": {
+          "name": "cover_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cover_mime": {
+          "name": "cover_mime",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cover_updated_at": {
+          "name": "cover_updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "promo_video_url": {
+          "name": "promo_video_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "instructor_bio": {
+          "name": "instructor_bio",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -7490,6 +7423,107 @@
       },
       "isRLSEnabled": false
     },
+    "lms.lesson_playback": {
+      "name": "lesson_playback",
+      "schema": "lms",
+      "columns": {
+        "enrollment_id": {
+          "name": "enrollment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lesson_id": {
+          "name": "lesson_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position_seconds": {
+          "name": "position_seconds",
+          "type": "numeric(12, 3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "duration_seconds": {
+          "name": "duration_seconds",
+          "type": "numeric(12, 3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "watched_seconds": {
+          "name": "watched_seconds",
+          "type": "numeric(12, 3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "lesson_playback_enrollment_id_enrollments_id_fk": {
+          "name": "lesson_playback_enrollment_id_enrollments_id_fk",
+          "tableFrom": "lesson_playback",
+          "tableTo": "enrollments",
+          "schemaTo": "lms",
+          "columnsFrom": [
+            "enrollment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "lesson_playback_lesson_id_lessons_id_fk": {
+          "name": "lesson_playback_lesson_id_lessons_id_fk",
+          "tableFrom": "lesson_playback",
+          "tableTo": "lessons",
+          "schemaTo": "lms",
+          "columnsFrom": [
+            "lesson_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "lesson_playback_enrollment_id_lesson_id_pk": {
+          "name": "lesson_playback_enrollment_id_lesson_id_pk",
+          "columns": [
+            "enrollment_id",
+            "lesson_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "lesson_playback_nonnegative": {
+          "name": "lesson_playback_nonnegative",
+          "value": "\"lms\".\"lesson_playback\".\"position_seconds\" >= 0 and \"lms\".\"lesson_playback\".\"duration_seconds\" >= 0 and \"lms\".\"lesson_playback\".\"watched_seconds\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "lms.lesson_progress": {
       "name": "lesson_progress",
       "schema": "lms",
@@ -7559,6 +7593,137 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "lms.lesson_videos": {
+      "name": "lesson_videos",
+      "schema": "lms",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "lesson_id": {
+          "name": "lesson_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "playback_key": {
+          "name": "playback_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "original_name": {
+          "name": "original_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING'"
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "duration_seconds": {
+          "name": "duration_seconds",
+          "type": "numeric(12, 3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "size_bytes": {
+          "name": "size_bytes",
+          "type": "numeric(18, 0)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lease_token": {
+          "name": "lease_token",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lease_at": {
+          "name": "lease_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_lesson_videos_status": {
+          "name": "idx_lesson_videos_status",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "lesson_videos_lesson_id_lessons_id_fk": {
+          "name": "lesson_videos_lesson_id_lessons_id_fk",
+          "tableFrom": "lesson_videos",
+          "tableTo": "lessons",
+          "schemaTo": "lms",
+          "columnsFrom": [
+            "lesson_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "lesson_videos_lesson_id_unique": {
+          "name": "lesson_videos_lesson_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "lesson_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "lesson_videos_status": {
+          "name": "lesson_videos_status",
+          "value": "\"lms\".\"lesson_videos\".\"status\" in ('PENDING','PROCESSING','READY','FAILED')"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "lms.lessons": {
       "name": "lessons",
       "schema": "lms",
@@ -7574,6 +7739,12 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
+        },
+        "section_id": {
+          "name": "section_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
         },
         "position": {
           "name": "position",
@@ -7644,6 +7815,20 @@
             "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "lessons_section_id_course_sections_id_fk": {
+          "name": "lessons_section_id_course_sections_id_fk",
+          "tableFrom": "lessons",
+          "tableTo": "course_sections",
+          "schemaTo": "lms",
+          "columnsFrom": [
+            "section_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },

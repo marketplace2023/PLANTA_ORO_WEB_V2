@@ -177,8 +177,12 @@ export class TestDb {
     await this.db
       .delete(schema.auditEvents)
       .where(sql`${schema.auditEvents.newData}->>'email' like ${'%' + EMAIL_DOMAIN}`)
+    if (userIds.length) await this.db.delete(schema.shopOrders).where(inArray(schema.shopOrders.buyerId,userIds))
+    if (userIds.length) await this.db.delete(schema.professionalOrders).where(inArray(schema.professionalOrders.buyerId,userIds))
     // Cursos del ecosistema creados por las pruebas (los de organizaciones caen con ellas).
     await this.db.delete(schema.courses).where(like(schema.courses.title, 'E2E %'))
+    const testProviders = await this.db.select({id:schema.providers.id}).from(schema.providers).where(like(schema.providers.organizationName,'E2E %'))
+    if (testProviders.length) await this.db.delete(schema.productVariants).where(inArray(schema.productVariants.providerId,testProviders.map(p=>p.id)))
     // Organizaciones externas de prueba (sus productos, servicios y miembros caen en cascada).
     await this.db.delete(schema.providers).where(like(schema.providers.organizationName, 'E2E %'))
     await this.db.delete(schema.contractors).where(like(schema.contractors.organizationName, 'E2E %'))

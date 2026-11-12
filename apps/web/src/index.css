@@ -1,9 +1,25 @@
 @import "tailwindcss";
+@import "./styles/professional.css";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/inter";
 @import "@fontsource-variable/jetbrains-mono";
 @import "./styles/tokens.css";
+@import "./styles/course-authoring.css";
+@import "./styles/rebranding.css";
+@import "./styles/process-cycle.css";
+@import "./styles/network-constellation.css";
+@import "./styles/portal-studio.css";
+@import "./styles/hero-maps.css";
+@import "./styles/auth-experience.css";
+
+@import "./styles/dark-mode.css";
+@import "./styles/asset-requests.css";
+@import "./styles/dark-portal.css";
+@import "./styles/module-categories.css";
+@import "./styles/assets-workspace.css";
+@import "./styles/course-detail.css";
+@import "./styles/course-catalog.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -107,7 +123,7 @@
   --container-fur: 1440px;
 }
 
-/* Tema claro FUR (el design.md no define modo oscuro). */
+/* Default FUR theme; dark mode overrides live in styles/dark-mode.css. */
 :root {
   --background: var(--fur-gray-50);
   --foreground: var(--fur-gray-900);
@@ -179,3 +195,5 @@
   font-size: 0.8125rem;
   font-weight: 600;
 }
+
+.shop-select { display:block;width:100%;min-height:42px;padding:8px 12px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--foreground);font-size:14px; }

@@ -1,19 +1,19 @@
 import { Search } from 'lucide-react'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { ErrorState } from '@/components/base/error-state'
 import { PageHeader } from '@/components/layout/page-header'
 import { Input } from '@/components/ui/input'
-import { useAssets, useAssetsSummary, useReorderAssets, useSetAssetMapPosition } from '@/features/assets/use-assets'
+import { useAssetFur, useAssets, useAssetsSummary, useReorderAssets, useSetAssetMapPosition } from '@/features/assets/use-assets'
 import { usePlant } from '@/features/plant/plant-context'
 import { useUpdateStage } from '@/features/plant/use-plant-admin'
 import { usePlantNetworks, usePlantStages, type MapPosition, type PlantDetail } from '@/features/plant/use-plant-data'
 import { usePlantProcess } from '@/features/process/use-process'
 import { ApiError } from '@/lib/api'
 import { useDebouncedValue } from '@/lib/use-debounced-value'
-import { useElementHeight } from '@/lib/use-element-height'
 import { AssetFicha } from './asset-ficha'
+import { AssetContext } from './asset-context'
 import { GeoKpis } from './geo-kpis'
 import { NetworkList, StageList } from './geo-lists'
 import { GeoMap } from './geo-map'
@@ -52,7 +52,9 @@ export function AssetsGeoportal({ plant, actions, mode = 'assets' }: { plant: Pl
 
   // Sin etapa en la URL: la primera que tenga activos (o la primera de la planta).
   const firstWithAssets = stages.find((s) => (summary.data?.byStage[s.code] ?? 0) > 0) ?? stages[0]
-  const selected = stages.find((s) => s.code === params.get('stage')) ?? firstWithAssets
+  const linkedAsset = useAssetFur(plant.slug, params.get('asset') ?? undefined)
+  const selected = stages.find((s) => s.code === params.get('stage'))
+    ?? stages.find((s) => s.code === linkedAsset.data?.asset.stage?.code) ?? firstWithAssets
   const network = processView ? PROCESS_NETWORK : (params.get('network') ?? undefined)
   const networkName = networks.find((n) => n.code === network)?.name ?? network
   const search = params.get('search') ?? undefined
@@ -79,12 +81,11 @@ export function AssetsGeoportal({ plant, actions, mode = 'assets' }: { plant: Pl
 
   const assets = useAssets(plant.slug, { stage: selected?.code, network, search, sort: 'order' }, STAGE_ASSETS, !!selected)
   const items = assets.data?.items ?? []
-  // El activo de la URL si sigue en la lista; si no, el primero.
-  const selectedAsset = items.find((a) => a.id === params.get('asset')) ?? items[0]
+  // Un enlace directo también abre activos fuera de la página visible, sin saltarse filtros activos.
+  const linked = linkedAsset.data?.asset
+  const selectedAsset = items.find((a) => a.id === params.get('asset'))
+    ?? (!network && !search && linked?.stage?.code === selected?.code ? linked : undefined) ?? items[0]
   const [expandedFor, setExpandedFor] = useState<string | undefined>()
-  // La ficha técnica toma la altura de la columna central (mapa, etapa y activos) y se desplaza por dentro.
-  const centerRef = useRef<HTMLDivElement>(null)
-  const centerHeight = useElementHeight(centerRef)
 
   const placeStage = (stage: { id: string; code: string }, position: MapPosition | null) =>
     updateStage.mutate(
@@ -107,10 +108,11 @@ export function AssetsGeoportal({ plant, actions, mode = 'assets' }: { plant: Pl
     .join(' · ')
 
   return (
-    <>
+    <div className="assets-workspace" data-mode={mode}>
       <PageHeader
         title={processView ? 'Procesos' : 'Geoportal de Activos Físicos'}
         description={subtitle}
+        shortcutVariant="icons"
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative">
@@ -137,8 +139,8 @@ export function AssetsGeoportal({ plant, actions, mode = 'assets' }: { plant: Pl
         loading={summary.isLoading || stagesQuery.isLoading || networksQuery.isLoading}
       />
 
-      <div className="grid items-start gap-4 xl:grid-cols-[17rem_minmax(0,1fr)_21rem]">
-        <div className="space-y-3">
+      <div className="assets-workspace-grid">
+        <div className="assets-workspace-filters">
           <StageList stages={stages} counts={summary.data?.byStage} selected={selected?.code} loading={stagesQuery.isLoading} onSelect={(code) => setParam({ stage: code, asset: undefined })} />
           <NetworkList
             networks={networks}
@@ -150,30 +152,18 @@ export function AssetsGeoportal({ plant, actions, mode = 'assets' }: { plant: Pl
           />
         </div>
 
-        <div className="min-w-0" ref={centerRef}>
-          <GeoMap
-            plantName={plant.name}
-            plantCode={plant.code}
-            stages={stages}
-            selectedStage={selected}
-            assets={items}
-            selectedAsset={selectedAsset}
-            onSelectStage={(code) => setParam({ stage: code, asset: undefined })}
-            onSelectAsset={(id) => setParam({ asset: id })}
-            canPlaceStages={permissions.includes('plant.configure')}
-            canPlaceAssets={permissions.includes('asset.update')}
-            onPlaceStage={placeStage}
-            onPlaceAsset={placeAsset}
-          />
+        <div className="assets-workspace-results">
           <div className="mt-3">
             {assets.isError ? (
               <ErrorState onRetry={() => void assets.refetch()} />
             ) : (
               <StageDetail
                 stage={selected}
+                presentation="rows"
+                plantSlug={plant.slug}
                 networkName={networkName}
                 selectedAssetId={selectedAsset?.id}
-                onSelectAsset={(id) => setParam({ asset: id })}
+                onSelectAsset={(id) => setParam({ asset: id, stage: selected?.code })}
                 assets={items}
                 total={assets.data?.total ?? 0}
                 loading={assets.isLoading || (!selected && stagesQuery.isLoading)}
@@ -185,11 +175,22 @@ export function AssetsGeoportal({ plant, actions, mode = 'assets' }: { plant: Pl
               />
             )}
           </div>
-          {processView && <StageFlow overview={processOverview.data} stageCode={selected?.code} />}
         </div>
 
-        <AssetFicha plantSlug={plant.slug} plantName={plant.name} asset={selectedAsset} networkName={networkName} networkCode={network} maxHeight={centerHeight} />
+        <div className="assets-workspace-inspector">
+          <GeoMap
+            variant="layout" plantName={plant.name} plantCode={plant.code} stages={stages} selectedStage={selected}
+            assets={items} selectedAsset={selectedAsset}
+            onSelectStage={(code) => setParam({ stage: code, asset: undefined })}
+            onSelectAsset={(id) => setParam({ asset: id })}
+            canPlaceStages={permissions.includes('plant.configure')} canPlaceAssets={permissions.includes('asset.update')}
+            onPlaceStage={placeStage} onPlaceAsset={placeAsset}
+          />
+          {processView && <StageFlow overview={processOverview.data} stageCode={selected?.code} />}
+          <AssetContext slug={plant.slug} asset={selectedAsset} />
+          <AssetFicha plantSlug={plant.slug} plantName={plant.name} asset={selectedAsset} networkName={networkName} networkCode={network} />
+        </div>
       </div>
-    </>
+    </div>
   )
 }

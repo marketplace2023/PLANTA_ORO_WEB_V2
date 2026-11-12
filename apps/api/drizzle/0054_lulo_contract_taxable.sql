@@ -1,0 +1,1 @@
+ALTER TABLE "budget"."lulo_contract_items" ADD COLUMN "taxable" boolean DEFAULT true NOT NULL;

@@ -1,6 +1,6 @@
 {
-  "id": "ded53ab8-8e0f-4166-9ffc-7bf196405ded",
-  "prevId": "3e3692d3-b125-4ba1-b1c1-aff4c37ddef0",
+  "id": "fde7bc65-17e2-494c-a899-4898d8cae592",
+  "prevId": "fc5b08d3-86a4-4540-9430-e663c235fac3",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -39,16 +39,16 @@
         "code_sequences_plant_id_plants_id_fk": {
           "name": "code_sequences_plant_id_plants_id_fk",
           "tableFrom": "code_sequences",
+          "tableTo": "plants",
+          "schemaTo": "core",
           "columnsFrom": [
             "plant_id"
           ],
-          "tableTo": "plants",
-          "schemaTo": "core",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -122,10 +122,10 @@
       "uniqueConstraints": {
         "ecosystems_code_unique": {
           "name": "ecosystems_code_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "code"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -211,16 +211,16 @@
         "plant_settings_plant_id_plants_id_fk": {
           "name": "plant_settings_plant_id_plants_id_fk",
           "tableFrom": "plant_settings",
+          "tableTo": "plants",
+          "schemaTo": "core",
           "columnsFrom": [
             "plant_id"
           ],
-          "tableTo": "plants",
-          "schemaTo": "core",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -328,26 +328,26 @@
         "plants_ecosystem_id_ecosystems_id_fk": {
           "name": "plants_ecosystem_id_ecosystems_id_fk",
           "tableFrom": "plants",
+          "tableTo": "ecosystems",
+          "schemaTo": "core",
           "columnsFrom": [
             "ecosystem_id"
           ],
-          "tableTo": "ecosystems",
-          "schemaTo": "core",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "plants_slug_unique": {
           "name": "plants_slug_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "slug"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -395,10 +395,10 @@
       "uniqueConstraints": {
         "permissions_code_unique": {
           "name": "permissions_code_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "code"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -490,10 +490,10 @@
             }
           ],
           "isUnique": true,
-          "with": {},
-          "method": "btree",
           "where": "\"iam\".\"plant_access_requests\".\"status\" = 'PENDING'",
-          "concurrently": false
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         },
         "plant_access_requests_status_idx": {
           "name": "plant_access_requests_status_idx",
@@ -506,53 +506,53 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "plant_access_requests_user_id_users_id_fk": {
           "name": "plant_access_requests_user_id_users_id_fk",
           "tableFrom": "plant_access_requests",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "plant_access_requests_plant_id_plants_id_fk": {
           "name": "plant_access_requests_plant_id_plants_id_fk",
           "tableFrom": "plant_access_requests",
+          "tableTo": "plants",
+          "schemaTo": "core",
           "columnsFrom": [
             "plant_id"
           ],
-          "tableTo": "plants",
-          "schemaTo": "core",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "plant_access_requests_decided_by_users_id_fk": {
           "name": "plant_access_requests_decided_by_users_id_fk",
           "tableFrom": "plant_access_requests",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "decided_by"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -626,26 +626,26 @@
         "refresh_tokens_user_id_users_id_fk": {
           "name": "refresh_tokens_user_id_users_id_fk",
           "tableFrom": "refresh_tokens",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "refresh_tokens_token_hash_unique": {
           "name": "refresh_tokens_token_hash_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "token_hash"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -674,30 +674,30 @@
         "role_permissions_role_id_roles_id_fk": {
           "name": "role_permissions_role_id_roles_id_fk",
           "tableFrom": "role_permissions",
+          "tableTo": "roles",
+          "schemaTo": "iam",
           "columnsFrom": [
             "role_id"
           ],
-          "tableTo": "roles",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "role_permissions_permission_id_permissions_id_fk": {
           "name": "role_permissions_permission_id_permissions_id_fk",
           "tableFrom": "role_permissions",
+          "tableTo": "permissions",
+          "schemaTo": "iam",
           "columnsFrom": [
             "permission_id"
           ],
-          "tableTo": "permissions",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -762,10 +762,10 @@
       "uniqueConstraints": {
         "roles_code_unique": {
           "name": "roles_code_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "code"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -812,44 +812,44 @@
         "user_plant_overrides_user_id_users_id_fk": {
           "name": "user_plant_overrides_user_id_users_id_fk",
           "tableFrom": "user_plant_overrides",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "user_plant_overrides_plant_id_plants_id_fk": {
           "name": "user_plant_overrides_plant_id_plants_id_fk",
           "tableFrom": "user_plant_overrides",
+          "tableTo": "plants",
+          "schemaTo": "core",
           "columnsFrom": [
             "plant_id"
           ],
-          "tableTo": "plants",
-          "schemaTo": "core",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "user_plant_overrides_permission_id_permissions_id_fk": {
           "name": "user_plant_overrides_permission_id_permissions_id_fk",
           "tableFrom": "user_plant_overrides",
+          "tableTo": "permissions",
+          "schemaTo": "iam",
           "columnsFrom": [
             "permission_id"
           ],
-          "tableTo": "permissions",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -918,56 +918,56 @@
         "user_plant_roles_user_id_users_id_fk": {
           "name": "user_plant_roles_user_id_users_id_fk",
           "tableFrom": "user_plant_roles",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "user_plant_roles_plant_id_plants_id_fk": {
           "name": "user_plant_roles_plant_id_plants_id_fk",
           "tableFrom": "user_plant_roles",
+          "tableTo": "plants",
+          "schemaTo": "core",
           "columnsFrom": [
             "plant_id"
           ],
-          "tableTo": "plants",
-          "schemaTo": "core",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "user_plant_roles_role_id_roles_id_fk": {
           "name": "user_plant_roles_role_id_roles_id_fk",
           "tableFrom": "user_plant_roles",
+          "tableTo": "roles",
+          "schemaTo": "iam",
           "columnsFrom": [
             "role_id"
           ],
-          "tableTo": "roles",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "user_plant_roles_user_id_plant_id_role_id_unique": {
           "name": "user_plant_roles_user_id_plant_id_role_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "user_id",
             "plant_id",
             "role_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -1055,17 +1055,17 @@
       "uniqueConstraints": {
         "users_email_unique": {
           "name": "users_email_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "email"
-          ],
-          "nullsNotDistinct": false
+          ]
         },
         "users_username_unique": {
           "name": "users_username_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "username"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -1144,10 +1144,10 @@
       "uniqueConstraints": {
         "network_master_code_unique": {
           "name": "network_master_code_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "code"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -1203,41 +1203,41 @@
         "plant_networks_plant_id_plants_id_fk": {
           "name": "plant_networks_plant_id_plants_id_fk",
           "tableFrom": "plant_networks",
+          "tableTo": "plants",
+          "schemaTo": "core",
           "columnsFrom": [
             "plant_id"
           ],
-          "tableTo": "plants",
-          "schemaTo": "core",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "plant_networks_network_master_id_network_master_id_fk": {
           "name": "plant_networks_network_master_id_network_master_id_fk",
           "tableFrom": "plant_networks",
+          "tableTo": "network_master",
+          "schemaTo": "plant",
           "columnsFrom": [
             "network_master_id"
           ],
-          "tableTo": "network_master",
-          "schemaTo": "plant",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "plant_networks_plant_id_network_master_id_unique": {
           "name": "plant_networks_plant_id_network_master_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "plant_id",
             "network_master_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -1305,41 +1305,41 @@
         "plant_stages_plant_id_plants_id_fk": {
           "name": "plant_stages_plant_id_plants_id_fk",
           "tableFrom": "plant_stages",
+          "tableTo": "plants",
+          "schemaTo": "core",
           "columnsFrom": [
             "plant_id"
           ],
-          "tableTo": "plants",
-          "schemaTo": "core",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "plant_stages_stage_master_id_stage_master_id_fk": {
           "name": "plant_stages_stage_master_id_stage_master_id_fk",
           "tableFrom": "plant_stages",
+          "tableTo": "stage_master",
+          "schemaTo": "process",
           "columnsFrom": [
             "stage_master_id"
           ],
-          "tableTo": "stage_master",
-          "schemaTo": "process",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "plant_stages_plant_id_stage_master_id_unique": {
           "name": "plant_stages_plant_id_stage_master_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "plant_id",
             "stage_master_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -1408,65 +1408,65 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "stage_connections_plant_id_plants_id_fk": {
           "name": "stage_connections_plant_id_plants_id_fk",
           "tableFrom": "stage_connections",
+          "tableTo": "plants",
+          "schemaTo": "core",
           "columnsFrom": [
             "plant_id"
           ],
-          "tableTo": "plants",
-          "schemaTo": "core",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "stage_connections_source_stage_id_plant_stages_id_fk": {
           "name": "stage_connections_source_stage_id_plant_stages_id_fk",
           "tableFrom": "stage_connections",
+          "tableTo": "plant_stages",
+          "schemaTo": "process",
           "columnsFrom": [
             "source_stage_id"
           ],
-          "tableTo": "plant_stages",
-          "schemaTo": "process",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "stage_connections_target_stage_id_plant_stages_id_fk": {
           "name": "stage_connections_target_stage_id_plant_stages_id_fk",
           "tableFrom": "stage_connections",
+          "tableTo": "plant_stages",
+          "schemaTo": "process",
           "columnsFrom": [
             "target_stage_id"
           ],
-          "tableTo": "plant_stages",
-          "schemaTo": "process",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "stage_connections_unique": {
           "name": "stage_connections_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "source_stage_id",
             "target_stage_id",
             "flow_type"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -1549,10 +1549,10 @@
       "uniqueConstraints": {
         "stage_master_code_unique": {
           "name": "stage_master_code_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "code"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -1661,9 +1661,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {},
@@ -1688,13 +1688,6 @@
           "type": "varchar(40)",
           "primaryKey": false,
           "notNull": true
-        },
-        "tag_code": {
-          "name": "tag_code",
-          "type": "varchar(12)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "''"
         },
         "category_code": {
           "name": "category_code",
@@ -1733,33 +1726,21 @@
       "uniqueConstraints": {
         "asset_families_code_unique": {
           "name": "asset_families_code_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "code"
-          ],
-          "nullsNotDistinct": false
-        },
-        "asset_families_tag_code_unique": {
-          "name": "asset_families_tag_code_unique",
-          "columns": [
-            "tag_code"
-          ],
-          "nullsNotDistinct": false
+          ]
         },
         "asset_families_category_code_unique": {
           "name": "asset_families_category_code_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "category_code"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
-      "checkConstraints": {
-        "asset_families_tag_code_format": {
-          "name": "asset_families_tag_code_format",
-          "value": "\"catalog\".\"asset_families\".\"tag_code\" ~ '^[A-Z][A-Z0-9]{2,11}$'"
-        }
-      },
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "catalog.asset_model_networks": {
@@ -1784,30 +1765,30 @@
         "asset_model_networks_asset_model_id_asset_models_id_fk": {
           "name": "asset_model_networks_asset_model_id_asset_models_id_fk",
           "tableFrom": "asset_model_networks",
+          "tableTo": "asset_models",
+          "schemaTo": "catalog",
           "columnsFrom": [
             "asset_model_id"
           ],
-          "tableTo": "asset_models",
-          "schemaTo": "catalog",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "asset_model_networks_network_master_id_network_master_id_fk": {
           "name": "asset_model_networks_network_master_id_network_master_id_fk",
           "tableFrom": "asset_model_networks",
+          "tableTo": "network_master",
+          "schemaTo": "plant",
           "columnsFrom": [
             "network_master_id"
           ],
-          "tableTo": "network_master",
-          "schemaTo": "plant",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -1871,16 +1852,16 @@
         "asset_model_stage_keys_asset_model_id_asset_models_id_fk": {
           "name": "asset_model_stage_keys_asset_model_id_asset_models_id_fk",
           "tableFrom": "asset_model_stage_keys",
+          "tableTo": "asset_models",
+          "schemaTo": "catalog",
           "columnsFrom": [
             "asset_model_id"
           ],
-          "tableTo": "asset_models",
-          "schemaTo": "catalog",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -1895,14 +1876,14 @@
       "uniqueConstraints": {
         "asset_model_stage_keys_identity_unique": {
           "name": "asset_model_stage_keys_identity_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "asset_type_id",
             "manufacturer_id",
             "model_name",
             "stage_master_id",
             "identity_scope"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -1931,30 +1912,30 @@
         "asset_model_stages_asset_model_id_asset_models_id_fk": {
           "name": "asset_model_stages_asset_model_id_asset_models_id_fk",
           "tableFrom": "asset_model_stages",
+          "tableTo": "asset_models",
+          "schemaTo": "catalog",
           "columnsFrom": [
             "asset_model_id"
           ],
-          "tableTo": "asset_models",
-          "schemaTo": "catalog",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "asset_model_stages_stage_master_id_stage_master_id_fk": {
           "name": "asset_model_stages_stage_master_id_stage_master_id_fk",
           "tableFrom": "asset_model_stages",
+          "tableTo": "stage_master",
+          "schemaTo": "process",
           "columnsFrom": [
             "stage_master_id"
           ],
-          "tableTo": "stage_master",
-          "schemaTo": "process",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -2057,26 +2038,26 @@
         "asset_models_asset_type_id_asset_types_id_fk": {
           "name": "asset_models_asset_type_id_asset_types_id_fk",
           "tableFrom": "asset_models",
+          "tableTo": "asset_types",
+          "schemaTo": "catalog",
           "columnsFrom": [
             "asset_type_id"
           ],
-          "tableTo": "asset_types",
-          "schemaTo": "catalog",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "asset_models_catalog_tag_unique": {
           "name": "asset_models_catalog_tag_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "catalog_tag"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -2105,30 +2086,30 @@
         "asset_type_stages_asset_type_id_asset_types_id_fk": {
           "name": "asset_type_stages_asset_type_id_asset_types_id_fk",
           "tableFrom": "asset_type_stages",
+          "tableTo": "asset_types",
+          "schemaTo": "catalog",
           "columnsFrom": [
             "asset_type_id"
           ],
-          "tableTo": "asset_types",
-          "schemaTo": "catalog",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "asset_type_stages_stage_master_id_stage_master_id_fk": {
           "name": "asset_type_stages_stage_master_id_stage_master_id_fk",
           "tableFrom": "asset_type_stages",
+          "tableTo": "stage_master",
+          "schemaTo": "process",
           "columnsFrom": [
             "stage_master_id"
           ],
-          "tableTo": "stage_master",
-          "schemaTo": "process",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -2192,26 +2173,26 @@
         "asset_types_family_id_asset_families_id_fk": {
           "name": "asset_types_family_id_asset_families_id_fk",
           "tableFrom": "asset_types",
+          "tableTo": "asset_families",
+          "schemaTo": "catalog",
           "columnsFrom": [
             "family_id"
           ],
-          "tableTo": "asset_families",
-          "schemaTo": "catalog",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "asset_types_code_unique": {
           "name": "asset_types_code_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "code"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -2253,10 +2234,10 @@
       "uniqueConstraints": {
         "manufacturers_name_unique": {
           "name": "manufacturers_name_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "name"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -2298,30 +2279,30 @@
         "model_variable_values_asset_model_id_asset_models_id_fk": {
           "name": "model_variable_values_asset_model_id_asset_models_id_fk",
           "tableFrom": "model_variable_values",
+          "tableTo": "asset_models",
+          "schemaTo": "catalog",
           "columnsFrom": [
             "asset_model_id"
           ],
-          "tableTo": "asset_models",
-          "schemaTo": "catalog",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "model_variable_values_variable_id_variable_definitions_id_fk": {
           "name": "model_variable_values_variable_id_variable_definitions_id_fk",
           "tableFrom": "model_variable_values",
+          "tableTo": "variable_definitions",
+          "schemaTo": "catalog",
           "columnsFrom": [
             "variable_id"
           ],
-          "tableTo": "variable_definitions",
-          "schemaTo": "catalog",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -2412,10 +2393,10 @@
       "uniqueConstraints": {
         "variable_definitions_code_unique": {
           "name": "variable_definitions_code_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "code"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -2444,30 +2425,30 @@
         "variable_networks_variable_id_variable_definitions_id_fk": {
           "name": "variable_networks_variable_id_variable_definitions_id_fk",
           "tableFrom": "variable_networks",
+          "tableTo": "variable_definitions",
+          "schemaTo": "catalog",
           "columnsFrom": [
             "variable_id"
           ],
-          "tableTo": "variable_definitions",
-          "schemaTo": "catalog",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "variable_networks_network_master_id_network_master_id_fk": {
           "name": "variable_networks_network_master_id_network_master_id_fk",
           "tableFrom": "variable_networks",
+          "tableTo": "network_master",
+          "schemaTo": "plant",
           "columnsFrom": [
             "network_master_id"
           ],
-          "tableTo": "network_master",
-          "schemaTo": "plant",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -2506,30 +2487,30 @@
         "variable_stages_variable_id_variable_definitions_id_fk": {
           "name": "variable_stages_variable_id_variable_definitions_id_fk",
           "tableFrom": "variable_stages",
+          "tableTo": "variable_definitions",
+          "schemaTo": "catalog",
           "columnsFrom": [
             "variable_id"
           ],
-          "tableTo": "variable_definitions",
-          "schemaTo": "catalog",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "variable_stages_stage_master_id_stage_master_id_fk": {
           "name": "variable_stages_stage_master_id_stage_master_id_fk",
           "tableFrom": "variable_stages",
+          "tableTo": "stage_master",
+          "schemaTo": "process",
           "columnsFrom": [
             "stage_master_id"
           ],
-          "tableTo": "stage_master",
-          "schemaTo": "process",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -2568,30 +2549,30 @@
         "variable_types_variable_id_variable_definitions_id_fk": {
           "name": "variable_types_variable_id_variable_definitions_id_fk",
           "tableFrom": "variable_types",
+          "tableTo": "variable_definitions",
+          "schemaTo": "catalog",
           "columnsFrom": [
             "variable_id"
           ],
-          "tableTo": "variable_definitions",
-          "schemaTo": "catalog",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "variable_types_asset_type_id_asset_types_id_fk": {
           "name": "variable_types_asset_type_id_asset_types_id_fk",
           "tableFrom": "variable_types",
+          "tableTo": "asset_types",
+          "schemaTo": "catalog",
           "columnsFrom": [
             "asset_type_id"
           ],
-          "tableTo": "asset_types",
-          "schemaTo": "catalog",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -2637,30 +2618,30 @@
         "asset_networks_asset_id_assets_id_fk": {
           "name": "asset_networks_asset_id_assets_id_fk",
           "tableFrom": "asset_networks",
+          "tableTo": "assets",
+          "schemaTo": "asset",
           "columnsFrom": [
             "asset_id"
           ],
-          "tableTo": "assets",
-          "schemaTo": "asset",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "asset_networks_plant_network_id_plant_networks_id_fk": {
           "name": "asset_networks_plant_network_id_plant_networks_id_fk",
           "tableFrom": "asset_networks",
+          "tableTo": "plant_networks",
+          "schemaTo": "plant",
           "columnsFrom": [
             "plant_network_id"
           ],
-          "tableTo": "plant_networks",
-          "schemaTo": "plant",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -2743,152 +2724,42 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "asset_status_history_asset_id_assets_id_fk": {
           "name": "asset_status_history_asset_id_assets_id_fk",
           "tableFrom": "asset_status_history",
+          "tableTo": "assets",
+          "schemaTo": "asset",
           "columnsFrom": [
             "asset_id"
           ],
-          "tableTo": "assets",
-          "schemaTo": "asset",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "asset_status_history_changed_by_users_id_fk": {
           "name": "asset_status_history_changed_by_users_id_fk",
           "tableFrom": "asset_status_history",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "changed_by"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "asset.tag_sequences": {
-      "name": "tag_sequences",
-      "schema": "asset",
-      "columns": {
-        "plant_id": {
-          "name": "plant_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "network_master_id": {
-          "name": "network_master_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "stage_master_id": {
-          "name": "stage_master_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "family_id": {
-          "name": "family_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "last_value": {
-          "name": "last_value",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "tag_sequences_plant_id_plants_id_fk": {
-          "name": "tag_sequences_plant_id_plants_id_fk",
-          "tableFrom": "tag_sequences",
-          "columnsFrom": [
-            "plant_id"
-          ],
-          "tableTo": "plants",
-          "schemaTo": "core",
-          "columnsTo": [
-            "id"
-          ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
-        },
-        "tag_sequences_network_master_id_network_master_id_fk": {
-          "name": "tag_sequences_network_master_id_network_master_id_fk",
-          "tableFrom": "tag_sequences",
-          "columnsFrom": [
-            "network_master_id"
-          ],
-          "tableTo": "network_master",
-          "schemaTo": "plant",
-          "columnsTo": [
-            "id"
-          ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
-        },
-        "tag_sequences_stage_master_id_stage_master_id_fk": {
-          "name": "tag_sequences_stage_master_id_stage_master_id_fk",
-          "tableFrom": "tag_sequences",
-          "columnsFrom": [
-            "stage_master_id"
-          ],
-          "tableTo": "stage_master",
-          "schemaTo": "process",
-          "columnsTo": [
-            "id"
-          ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
-        },
-        "tag_sequences_family_id_asset_families_id_fk": {
-          "name": "tag_sequences_family_id_asset_families_id_fk",
-          "tableFrom": "tag_sequences",
-          "columnsFrom": [
-            "family_id"
-          ],
-          "tableTo": "asset_families",
-          "schemaTo": "catalog",
-          "columnsTo": [
-            "id"
-          ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "tag_sequences_plant_id_network_master_id_stage_master_id_family_id_pk": {
-          "name": "tag_sequences_plant_id_network_master_id_stage_master_id_family_id_pk",
-          "columns": [
-            "plant_id",
-            "network_master_id",
-            "stage_master_id",
-            "family_id"
-          ]
-        }
-      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -2921,20 +2792,6 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
-        },
-        "specifications": {
-          "name": "specifications",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
-        },
-        "technical_data": {
-          "name": "technical_data",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
         },
         "fur_code": {
           "name": "fur_code",
@@ -3058,9 +2915,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "idx_assets_plant_status": {
           "name": "idx_assets_plant_status",
@@ -3079,86 +2936,86 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "assets_plant_id_plants_id_fk": {
           "name": "assets_plant_id_plants_id_fk",
           "tableFrom": "assets",
+          "tableTo": "plants",
+          "schemaTo": "core",
           "columnsFrom": [
             "plant_id"
           ],
-          "tableTo": "plants",
-          "schemaTo": "core",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "assets_plant_stage_id_plant_stages_id_fk": {
           "name": "assets_plant_stage_id_plant_stages_id_fk",
           "tableFrom": "assets",
+          "tableTo": "plant_stages",
+          "schemaTo": "process",
           "columnsFrom": [
             "plant_stage_id"
           ],
-          "tableTo": "plant_stages",
-          "schemaTo": "process",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "assets_asset_model_id_asset_models_id_fk": {
           "name": "assets_asset_model_id_asset_models_id_fk",
           "tableFrom": "assets",
+          "tableTo": "asset_models",
+          "schemaTo": "catalog",
           "columnsFrom": [
             "asset_model_id"
           ],
-          "tableTo": "asset_models",
-          "schemaTo": "catalog",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "assets_manufacturer_id_manufacturers_id_fk": {
           "name": "assets_manufacturer_id_manufacturers_id_fk",
           "tableFrom": "assets",
+          "tableTo": "manufacturers",
+          "schemaTo": "catalog",
           "columnsFrom": [
             "manufacturer_id"
           ],
-          "tableTo": "manufacturers",
-          "schemaTo": "catalog",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "assets_plant_tag_unique": {
           "name": "assets_plant_tag_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "plant_id",
             "tag"
-          ],
-          "nullsNotDistinct": false
+          ]
         },
         "assets_plant_fur_unique": {
           "name": "assets_plant_fur_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "plant_id",
             "fur_code"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -3201,39 +3058,39 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "asset_documents_document_id_documents_id_fk": {
           "name": "asset_documents_document_id_documents_id_fk",
           "tableFrom": "asset_documents",
+          "tableTo": "documents",
+          "schemaTo": "document",
           "columnsFrom": [
             "document_id"
           ],
-          "tableTo": "documents",
-          "schemaTo": "document",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "asset_documents_asset_id_assets_id_fk": {
           "name": "asset_documents_asset_id_assets_id_fk",
           "tableFrom": "asset_documents",
+          "tableTo": "assets",
+          "schemaTo": "asset",
           "columnsFrom": [
             "asset_id"
           ],
-          "tableTo": "assets",
-          "schemaTo": "asset",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -3327,41 +3184,41 @@
         "document_versions_document_id_documents_id_fk": {
           "name": "document_versions_document_id_documents_id_fk",
           "tableFrom": "document_versions",
+          "tableTo": "documents",
+          "schemaTo": "document",
           "columnsFrom": [
             "document_id"
           ],
-          "tableTo": "documents",
-          "schemaTo": "document",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "document_versions_uploaded_by_users_id_fk": {
           "name": "document_versions_uploaded_by_users_id_fk",
           "tableFrom": "document_versions",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "uploaded_by"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "document_versions_document_id_version_unique": {
           "name": "document_versions_document_id_version_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "document_id",
             "version"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -3457,9 +3314,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "idx_documents_plant_type": {
           "name": "idx_documents_plant_type",
@@ -3478,39 +3335,39 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "documents_plant_id_plants_id_fk": {
           "name": "documents_plant_id_plants_id_fk",
           "tableFrom": "documents",
+          "tableTo": "plants",
+          "schemaTo": "core",
           "columnsFrom": [
             "plant_id"
           ],
-          "tableTo": "plants",
-          "schemaTo": "core",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "documents_created_by_users_id_fk": {
           "name": "documents_created_by_users_id_fk",
           "tableFrom": "documents",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "created_by"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -3541,30 +3398,30 @@
         "stage_documents_document_id_documents_id_fk": {
           "name": "stage_documents_document_id_documents_id_fk",
           "tableFrom": "stage_documents",
+          "tableTo": "documents",
+          "schemaTo": "document",
           "columnsFrom": [
             "document_id"
           ],
-          "tableTo": "documents",
-          "schemaTo": "document",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "stage_documents_plant_stage_id_plant_stages_id_fk": {
           "name": "stage_documents_plant_stage_id_plant_stages_id_fk",
           "tableFrom": "stage_documents",
+          "tableTo": "plant_stages",
+          "schemaTo": "process",
           "columnsFrom": [
             "plant_stage_id"
           ],
-          "tableTo": "plant_stages",
-          "schemaTo": "process",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -3699,9 +3556,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "idx_plans_asset": {
           "name": "idx_plans_asset",
@@ -3714,53 +3571,53 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "plans_plant_id_plants_id_fk": {
           "name": "plans_plant_id_plants_id_fk",
           "tableFrom": "plans",
+          "tableTo": "plants",
+          "schemaTo": "core",
           "columnsFrom": [
             "plant_id"
           ],
-          "tableTo": "plants",
-          "schemaTo": "core",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "plans_asset_id_assets_id_fk": {
           "name": "plans_asset_id_assets_id_fk",
           "tableFrom": "plans",
+          "tableTo": "assets",
+          "schemaTo": "asset",
           "columnsFrom": [
             "asset_id"
           ],
-          "tableTo": "assets",
-          "schemaTo": "asset",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "plans_created_by_users_id_fk": {
           "name": "plans_created_by_users_id_fk",
           "tableFrom": "plans",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "created_by"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -3841,53 +3698,53 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "work_order_costs_work_order_id_work_orders_id_fk": {
           "name": "work_order_costs_work_order_id_work_orders_id_fk",
           "tableFrom": "work_order_costs",
+          "tableTo": "work_orders",
+          "schemaTo": "maintenance",
           "columnsFrom": [
             "work_order_id"
           ],
-          "tableTo": "work_orders",
-          "schemaTo": "maintenance",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "work_order_costs_resource_id_resources_id_fk": {
           "name": "work_order_costs_resource_id_resources_id_fk",
           "tableFrom": "work_order_costs",
+          "tableTo": "resources",
+          "schemaTo": "budget",
           "columnsFrom": [
             "resource_id"
           ],
-          "tableTo": "resources",
-          "schemaTo": "budget",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "work_order_costs_created_by_users_id_fk": {
           "name": "work_order_costs_created_by_users_id_fk",
           "tableFrom": "work_order_costs",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "created_by"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -3971,39 +3828,39 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "work_order_history_work_order_id_work_orders_id_fk": {
           "name": "work_order_history_work_order_id_work_orders_id_fk",
           "tableFrom": "work_order_history",
+          "tableTo": "work_orders",
+          "schemaTo": "maintenance",
           "columnsFrom": [
             "work_order_id"
           ],
-          "tableTo": "work_orders",
-          "schemaTo": "maintenance",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "work_order_history_changed_by_users_id_fk": {
           "name": "work_order_history_changed_by_users_id_fk",
           "tableFrom": "work_order_history",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "changed_by"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -4078,9 +3935,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "idx_work_order_parts_item": {
           "name": "idx_work_order_parts_item",
@@ -4093,67 +3950,67 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "work_order_parts_work_order_id_work_orders_id_fk": {
           "name": "work_order_parts_work_order_id_work_orders_id_fk",
           "tableFrom": "work_order_parts",
+          "tableTo": "work_orders",
+          "schemaTo": "maintenance",
           "columnsFrom": [
             "work_order_id"
           ],
-          "tableTo": "work_orders",
-          "schemaTo": "maintenance",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "work_order_parts_item_id_items_id_fk": {
           "name": "work_order_parts_item_id_items_id_fk",
           "tableFrom": "work_order_parts",
+          "tableTo": "items",
+          "schemaTo": "inventory",
           "columnsFrom": [
             "item_id"
           ],
-          "tableTo": "items",
-          "schemaTo": "inventory",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "work_order_parts_location_id_locations_id_fk": {
           "name": "work_order_parts_location_id_locations_id_fk",
           "tableFrom": "work_order_parts",
+          "tableTo": "locations",
+          "schemaTo": "inventory",
           "columnsFrom": [
             "location_id"
           ],
-          "tableTo": "locations",
-          "schemaTo": "inventory",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "work_order_parts_created_by_users_id_fk": {
           "name": "work_order_parts_created_by_users_id_fk",
           "tableFrom": "work_order_parts",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "created_by"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -4316,9 +4173,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "idx_work_orders_asset": {
           "name": "idx_work_orders_asset",
@@ -4331,9 +4188,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "idx_work_orders_plant_assignee": {
           "name": "idx_work_orders_plant_assignee",
@@ -4352,106 +4209,106 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "work_orders_plant_id_plants_id_fk": {
           "name": "work_orders_plant_id_plants_id_fk",
           "tableFrom": "work_orders",
+          "tableTo": "plants",
+          "schemaTo": "core",
           "columnsFrom": [
             "plant_id"
           ],
-          "tableTo": "plants",
-          "schemaTo": "core",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "work_orders_asset_id_assets_id_fk": {
           "name": "work_orders_asset_id_assets_id_fk",
           "tableFrom": "work_orders",
+          "tableTo": "assets",
+          "schemaTo": "asset",
           "columnsFrom": [
             "asset_id"
           ],
-          "tableTo": "assets",
-          "schemaTo": "asset",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "work_orders_plan_id_plans_id_fk": {
           "name": "work_orders_plan_id_plans_id_fk",
           "tableFrom": "work_orders",
+          "tableTo": "plans",
+          "schemaTo": "maintenance",
           "columnsFrom": [
             "plan_id"
           ],
-          "tableTo": "plans",
-          "schemaTo": "maintenance",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "work_orders_requested_by_users_id_fk": {
           "name": "work_orders_requested_by_users_id_fk",
           "tableFrom": "work_orders",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "requested_by"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "work_orders_assigned_to_users_id_fk": {
           "name": "work_orders_assigned_to_users_id_fk",
           "tableFrom": "work_orders",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "assigned_to"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "work_orders_closed_by_users_id_fk": {
           "name": "work_orders_closed_by_users_id_fk",
           "tableFrom": "work_orders",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "closed_by"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "work_orders_plant_code_unique": {
           "name": "work_orders_plant_code_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "plant_id",
             "code"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -4578,50 +4435,50 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "items_plant_id_plants_id_fk": {
           "name": "items_plant_id_plants_id_fk",
           "tableFrom": "items",
+          "tableTo": "plants",
+          "schemaTo": "core",
           "columnsFrom": [
             "plant_id"
           ],
-          "tableTo": "plants",
-          "schemaTo": "core",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "items_catalog_item_id_asset_models_id_fk": {
           "name": "items_catalog_item_id_asset_models_id_fk",
           "tableFrom": "items",
+          "tableTo": "asset_models",
+          "schemaTo": "catalog",
           "columnsFrom": [
             "catalog_item_id"
           ],
-          "tableTo": "asset_models",
-          "schemaTo": "catalog",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "items_plant_sku_unique": {
           "name": "items_plant_sku_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "plant_id",
             "sku"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -4688,41 +4545,41 @@
         "locations_plant_id_plants_id_fk": {
           "name": "locations_plant_id_plants_id_fk",
           "tableFrom": "locations",
+          "tableTo": "plants",
+          "schemaTo": "core",
           "columnsFrom": [
             "plant_id"
           ],
-          "tableTo": "plants",
-          "schemaTo": "core",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "locations_warehouse_id_warehouses_id_fk": {
           "name": "locations_warehouse_id_warehouses_id_fk",
           "tableFrom": "locations",
+          "tableTo": "warehouses",
+          "schemaTo": "inventory",
           "columnsFrom": [
             "warehouse_id"
           ],
-          "tableTo": "warehouses",
-          "schemaTo": "inventory",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "locations_warehouse_code_unique": {
           "name": "locations_warehouse_code_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "warehouse_id",
             "code"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -4832,9 +4689,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "idx_movements_item": {
           "name": "idx_movements_item",
@@ -4853,81 +4710,81 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "movements_plant_id_plants_id_fk": {
           "name": "movements_plant_id_plants_id_fk",
           "tableFrom": "movements",
+          "tableTo": "plants",
+          "schemaTo": "core",
           "columnsFrom": [
             "plant_id"
           ],
-          "tableTo": "plants",
-          "schemaTo": "core",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "movements_item_id_items_id_fk": {
           "name": "movements_item_id_items_id_fk",
           "tableFrom": "movements",
+          "tableTo": "items",
+          "schemaTo": "inventory",
           "columnsFrom": [
             "item_id"
           ],
-          "tableTo": "items",
-          "schemaTo": "inventory",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "movements_from_location_id_locations_id_fk": {
           "name": "movements_from_location_id_locations_id_fk",
           "tableFrom": "movements",
+          "tableTo": "locations",
+          "schemaTo": "inventory",
           "columnsFrom": [
             "from_location_id"
           ],
-          "tableTo": "locations",
-          "schemaTo": "inventory",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "movements_to_location_id_locations_id_fk": {
           "name": "movements_to_location_id_locations_id_fk",
           "tableFrom": "movements",
+          "tableTo": "locations",
+          "schemaTo": "inventory",
           "columnsFrom": [
             "to_location_id"
           ],
-          "tableTo": "locations",
-          "schemaTo": "inventory",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "movements_performed_by_users_id_fk": {
           "name": "movements_performed_by_users_id_fk",
           "tableFrom": "movements",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "performed_by"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -4990,39 +4847,39 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "stock_item_id_items_id_fk": {
           "name": "stock_item_id_items_id_fk",
           "tableFrom": "stock",
+          "tableTo": "items",
+          "schemaTo": "inventory",
           "columnsFrom": [
             "item_id"
           ],
-          "tableTo": "items",
-          "schemaTo": "inventory",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "stock_location_id_locations_id_fk": {
           "name": "stock_location_id_locations_id_fk",
           "tableFrom": "stock",
+          "tableTo": "locations",
+          "schemaTo": "inventory",
           "columnsFrom": [
             "location_id"
           ],
-          "tableTo": "locations",
-          "schemaTo": "inventory",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -5092,27 +4949,27 @@
         "warehouses_plant_id_plants_id_fk": {
           "name": "warehouses_plant_id_plants_id_fk",
           "tableFrom": "warehouses",
+          "tableTo": "plants",
+          "schemaTo": "core",
           "columnsFrom": [
             "plant_id"
           ],
-          "tableTo": "plants",
-          "schemaTo": "core",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "warehouses_plant_code_unique": {
           "name": "warehouses_plant_code_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "plant_id",
             "code"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -5141,30 +4998,30 @@
         "provider_asset_families_provider_id_providers_id_fk": {
           "name": "provider_asset_families_provider_id_providers_id_fk",
           "tableFrom": "provider_asset_families",
+          "tableTo": "providers",
+          "schemaTo": "provider",
           "columnsFrom": [
             "provider_id"
           ],
-          "tableTo": "providers",
-          "schemaTo": "provider",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "provider_asset_families_asset_family_id_asset_families_id_fk": {
           "name": "provider_asset_families_asset_family_id_asset_families_id_fk",
           "tableFrom": "provider_asset_families",
+          "tableTo": "asset_families",
+          "schemaTo": "catalog",
           "columnsFrom": [
             "asset_family_id"
           ],
-          "tableTo": "asset_families",
-          "schemaTo": "catalog",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -5224,39 +5081,39 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "provider_members_provider_id_providers_id_fk": {
           "name": "provider_members_provider_id_providers_id_fk",
           "tableFrom": "provider_members",
+          "tableTo": "providers",
+          "schemaTo": "provider",
           "columnsFrom": [
             "provider_id"
           ],
-          "tableTo": "providers",
-          "schemaTo": "provider",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "provider_members_user_id_users_id_fk": {
           "name": "provider_members_user_id_users_id_fk",
           "tableFrom": "provider_members",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -5295,30 +5152,30 @@
         "provider_stage_capabilities_provider_id_providers_id_fk": {
           "name": "provider_stage_capabilities_provider_id_providers_id_fk",
           "tableFrom": "provider_stage_capabilities",
+          "tableTo": "providers",
+          "schemaTo": "provider",
           "columnsFrom": [
             "provider_id"
           ],
-          "tableTo": "providers",
-          "schemaTo": "provider",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "provider_stage_capabilities_stage_master_id_stage_master_id_fk": {
           "name": "provider_stage_capabilities_stage_master_id_stage_master_id_fk",
           "tableFrom": "provider_stage_capabilities",
+          "tableTo": "stage_master",
+          "schemaTo": "process",
           "columnsFrom": [
             "stage_master_id"
           ],
-          "tableTo": "stage_master",
-          "schemaTo": "process",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -5465,36 +5322,36 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "providers_created_by_users_id_fk": {
           "name": "providers_created_by_users_id_fk",
           "tableFrom": "providers",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "created_by"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "providers_country_tax_unique": {
           "name": "providers_country_tax_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "country_code",
             "tax_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -5528,30 +5385,30 @@
         "listing_stages_listing_id_listings_id_fk": {
           "name": "listing_stages_listing_id_listings_id_fk",
           "tableFrom": "listing_stages",
+          "tableTo": "listings",
+          "schemaTo": "marketplace",
           "columnsFrom": [
             "listing_id"
           ],
-          "tableTo": "listings",
-          "schemaTo": "marketplace",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "listing_stages_stage_master_id_stage_master_id_fk": {
           "name": "listing_stages_stage_master_id_stage_master_id_fk",
           "tableFrom": "listing_stages",
+          "tableTo": "stage_master",
+          "schemaTo": "process",
           "columnsFrom": [
             "stage_master_id"
           ],
-          "tableTo": "stage_master",
-          "schemaTo": "process",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -5693,9 +5550,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "idx_listings_status_family": {
           "name": "idx_listings_status_family",
@@ -5714,53 +5571,53 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "listings_provider_id_providers_id_fk": {
           "name": "listings_provider_id_providers_id_fk",
           "tableFrom": "listings",
+          "tableTo": "providers",
+          "schemaTo": "provider",
           "columnsFrom": [
             "provider_id"
           ],
-          "tableTo": "providers",
-          "schemaTo": "provider",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "listings_asset_model_id_asset_models_id_fk": {
           "name": "listings_asset_model_id_asset_models_id_fk",
           "tableFrom": "listings",
+          "tableTo": "asset_models",
+          "schemaTo": "catalog",
           "columnsFrom": [
             "asset_model_id"
           ],
-          "tableTo": "asset_models",
-          "schemaTo": "catalog",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "listings_asset_family_id_asset_families_id_fk": {
           "name": "listings_asset_family_id_asset_families_id_fk",
           "tableFrom": "listings",
+          "tableTo": "asset_families",
+          "schemaTo": "catalog",
           "columnsFrom": [
             "asset_family_id"
           ],
-          "tableTo": "asset_families",
-          "schemaTo": "catalog",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -5812,39 +5669,39 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "contractor_members_contractor_id_contractors_id_fk": {
           "name": "contractor_members_contractor_id_contractors_id_fk",
           "tableFrom": "contractor_members",
+          "tableTo": "contractors",
+          "schemaTo": "professional",
           "columnsFrom": [
             "contractor_id"
           ],
-          "tableTo": "contractors",
-          "schemaTo": "professional",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "contractor_members_user_id_users_id_fk": {
           "name": "contractor_members_user_id_users_id_fk",
           "tableFrom": "contractor_members",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -5998,36 +5855,36 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "contractors_created_by_users_id_fk": {
           "name": "contractors_created_by_users_id_fk",
           "tableFrom": "contractors",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "created_by"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "contractors_country_tax_unique": {
           "name": "contractors_country_tax_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "country_code",
             "tax_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -6061,30 +5918,30 @@
         "service_stages_service_id_services_id_fk": {
           "name": "service_stages_service_id_services_id_fk",
           "tableFrom": "service_stages",
+          "tableTo": "services",
+          "schemaTo": "professional",
           "columnsFrom": [
             "service_id"
           ],
-          "tableTo": "services",
-          "schemaTo": "professional",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "service_stages_stage_master_id_stage_master_id_fk": {
           "name": "service_stages_stage_master_id_stage_master_id_fk",
           "tableFrom": "service_stages",
+          "tableTo": "stage_master",
+          "schemaTo": "process",
           "columnsFrom": [
             "stage_master_id"
           ],
-          "tableTo": "stage_master",
-          "schemaTo": "process",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -6169,25 +6026,25 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "services_contractor_id_contractors_id_fk": {
           "name": "services_contractor_id_contractors_id_fk",
           "tableFrom": "services",
+          "tableTo": "contractors",
+          "schemaTo": "professional",
           "columnsFrom": [
             "contractor_id"
           ],
-          "tableTo": "contractors",
-          "schemaTo": "professional",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -6262,39 +6119,39 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "requisition_history_requisition_id_requisitions_id_fk": {
           "name": "requisition_history_requisition_id_requisitions_id_fk",
           "tableFrom": "requisition_history",
+          "tableTo": "requisitions",
+          "schemaTo": "procurement",
           "columnsFrom": [
             "requisition_id"
           ],
-          "tableTo": "requisitions",
-          "schemaTo": "procurement",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "requisition_history_changed_by_users_id_fk": {
           "name": "requisition_history_changed_by_users_id_fk",
           "tableFrom": "requisition_history",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "changed_by"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -6376,39 +6233,39 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "requisition_lines_requisition_id_requisitions_id_fk": {
           "name": "requisition_lines_requisition_id_requisitions_id_fk",
           "tableFrom": "requisition_lines",
+          "tableTo": "requisitions",
+          "schemaTo": "procurement",
           "columnsFrom": [
             "requisition_id"
           ],
-          "tableTo": "requisitions",
-          "schemaTo": "procurement",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "requisition_lines_item_id_items_id_fk": {
           "name": "requisition_lines_item_id_items_id_fk",
           "tableFrom": "requisition_lines",
+          "tableTo": "items",
+          "schemaTo": "inventory",
           "columnsFrom": [
             "item_id"
           ],
-          "tableTo": "items",
-          "schemaTo": "inventory",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -6549,106 +6406,106 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "requisitions_plant_id_plants_id_fk": {
           "name": "requisitions_plant_id_plants_id_fk",
           "tableFrom": "requisitions",
+          "tableTo": "plants",
+          "schemaTo": "core",
           "columnsFrom": [
             "plant_id"
           ],
-          "tableTo": "plants",
-          "schemaTo": "core",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "requisitions_requested_by_users_id_fk": {
           "name": "requisitions_requested_by_users_id_fk",
           "tableFrom": "requisitions",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "requested_by"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "requisitions_stage_id_plant_stages_id_fk": {
           "name": "requisitions_stage_id_plant_stages_id_fk",
           "tableFrom": "requisitions",
+          "tableTo": "plant_stages",
+          "schemaTo": "process",
           "columnsFrom": [
             "stage_id"
           ],
-          "tableTo": "plant_stages",
-          "schemaTo": "process",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "requisitions_asset_id_assets_id_fk": {
           "name": "requisitions_asset_id_assets_id_fk",
           "tableFrom": "requisitions",
+          "tableTo": "assets",
+          "schemaTo": "asset",
           "columnsFrom": [
             "asset_id"
           ],
-          "tableTo": "assets",
-          "schemaTo": "asset",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "requisitions_work_order_id_work_orders_id_fk": {
           "name": "requisitions_work_order_id_work_orders_id_fk",
           "tableFrom": "requisitions",
+          "tableTo": "work_orders",
+          "schemaTo": "maintenance",
           "columnsFrom": [
             "work_order_id"
           ],
-          "tableTo": "work_orders",
-          "schemaTo": "maintenance",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "requisitions_approved_by_users_id_fk": {
           "name": "requisitions_approved_by_users_id_fk",
           "tableFrom": "requisitions",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "approved_by"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "requisitions_plant_code_unique": {
           "name": "requisitions_plant_code_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "plant_id",
             "code"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -6684,39 +6541,39 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "rfq_invitations_rfq_id_rfqs_id_fk": {
           "name": "rfq_invitations_rfq_id_rfqs_id_fk",
           "tableFrom": "rfq_invitations",
+          "tableTo": "rfqs",
+          "schemaTo": "procurement",
           "columnsFrom": [
             "rfq_id"
           ],
-          "tableTo": "rfqs",
-          "schemaTo": "procurement",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "rfq_invitations_provider_id_providers_id_fk": {
           "name": "rfq_invitations_provider_id_providers_id_fk",
           "tableFrom": "rfq_invitations",
+          "tableTo": "providers",
+          "schemaTo": "provider",
           "columnsFrom": [
             "provider_id"
           ],
-          "tableTo": "providers",
-          "schemaTo": "provider",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -6807,64 +6664,64 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "rfqs_plant_id_plants_id_fk": {
           "name": "rfqs_plant_id_plants_id_fk",
           "tableFrom": "rfqs",
+          "tableTo": "plants",
+          "schemaTo": "core",
           "columnsFrom": [
             "plant_id"
           ],
-          "tableTo": "plants",
-          "schemaTo": "core",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "rfqs_requisition_id_requisitions_id_fk": {
           "name": "rfqs_requisition_id_requisitions_id_fk",
           "tableFrom": "rfqs",
+          "tableTo": "requisitions",
+          "schemaTo": "procurement",
           "columnsFrom": [
             "requisition_id"
           ],
-          "tableTo": "requisitions",
-          "schemaTo": "procurement",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "rfqs_created_by_users_id_fk": {
           "name": "rfqs_created_by_users_id_fk",
           "tableFrom": "rfqs",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "created_by"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "rfqs_plant_code_unique": {
           "name": "rfqs_plant_code_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "plant_id",
             "code"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -6950,55 +6807,55 @@
         "supplier_quotes_rfq_id_rfqs_id_fk": {
           "name": "supplier_quotes_rfq_id_rfqs_id_fk",
           "tableFrom": "supplier_quotes",
+          "tableTo": "rfqs",
+          "schemaTo": "procurement",
           "columnsFrom": [
             "rfq_id"
           ],
-          "tableTo": "rfqs",
-          "schemaTo": "procurement",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "supplier_quotes_provider_id_providers_id_fk": {
           "name": "supplier_quotes_provider_id_providers_id_fk",
           "tableFrom": "supplier_quotes",
+          "tableTo": "providers",
+          "schemaTo": "provider",
           "columnsFrom": [
             "provider_id"
           ],
-          "tableTo": "providers",
-          "schemaTo": "provider",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "supplier_quotes_submitted_by_users_id_fk": {
           "name": "supplier_quotes_submitted_by_users_id_fk",
           "tableFrom": "supplier_quotes",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "submitted_by"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "supplier_quotes_rfq_provider_unique": {
           "name": "supplier_quotes_rfq_provider_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "rfq_id",
             "provider_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -7012,6 +6869,87 @@
           "value": "\"procurement\".\"supplier_quotes\".\"delivery_days\" >= 0 and \"procurement\".\"supplier_quotes\".\"delivery_days\" <= 3650"
         }
       },
+      "isRLSEnabled": false
+    },
+    "lms.course_sections": {
+      "name": "course_sections",
+      "schema": "lms",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "course_id": {
+          "name": "course_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {
+        "idx_course_sections_course": {
+          "name": "idx_course_sections_course",
+          "columns": [
+            {
+              "expression": "course_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "position",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "course_sections_course_id_courses_id_fk": {
+          "name": "course_sections_course_id_courses_id_fk",
+          "tableFrom": "course_sections",
+          "tableTo": "courses",
+          "schemaTo": "lms",
+          "columnsFrom": [
+            "course_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "lms.course_stages": {
@@ -7036,30 +6974,30 @@
         "course_stages_course_id_courses_id_fk": {
           "name": "course_stages_course_id_courses_id_fk",
           "tableFrom": "course_stages",
+          "tableTo": "courses",
+          "schemaTo": "lms",
           "columnsFrom": [
             "course_id"
           ],
-          "tableTo": "courses",
-          "schemaTo": "lms",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "course_stages_stage_master_id_stage_master_id_fk": {
           "name": "course_stages_stage_master_id_stage_master_id_fk",
           "tableFrom": "course_stages",
+          "tableTo": "stage_master",
+          "schemaTo": "process",
           "columnsFrom": [
             "stage_master_id"
           ],
-          "tableTo": "stage_master",
-          "schemaTo": "process",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -7094,6 +7032,65 @@
         },
         "description": {
           "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subtitle": {
+          "name": "subtitle",
+          "type": "varchar(240)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "category": {
+          "name": "category",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'General'"
+        },
+        "language": {
+          "name": "language",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'es'"
+        },
+        "learning_objectives": {
+          "name": "learning_objectives",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "requirements": {
+          "name": "requirements",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "target_audience": {
+          "name": "target_audience",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "cover_url": {
+          "name": "cover_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "promo_video_url": {
+          "name": "promo_video_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "instructor_bio": {
+          "name": "instructor_bio",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -7198,53 +7195,53 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "courses_provider_id_providers_id_fk": {
           "name": "courses_provider_id_providers_id_fk",
           "tableFrom": "courses",
+          "tableTo": "providers",
+          "schemaTo": "provider",
           "columnsFrom": [
             "provider_id"
           ],
-          "tableTo": "providers",
-          "schemaTo": "provider",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "courses_contractor_id_contractors_id_fk": {
           "name": "courses_contractor_id_contractors_id_fk",
           "tableFrom": "courses",
+          "tableTo": "contractors",
+          "schemaTo": "professional",
           "columnsFrom": [
             "contractor_id"
           ],
-          "tableTo": "contractors",
-          "schemaTo": "professional",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "courses_created_by_users_id_fk": {
           "name": "courses_created_by_users_id_fk",
           "tableFrom": "courses",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "created_by"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -7332,71 +7329,71 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "enrollments_course_id_courses_id_fk": {
           "name": "enrollments_course_id_courses_id_fk",
           "tableFrom": "enrollments",
+          "tableTo": "courses",
+          "schemaTo": "lms",
           "columnsFrom": [
             "course_id"
           ],
-          "tableTo": "courses",
-          "schemaTo": "lms",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "enrollments_user_id_users_id_fk": {
           "name": "enrollments_user_id_users_id_fk",
           "tableFrom": "enrollments",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "user_id"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "enrollments_plant_id_plants_id_fk": {
           "name": "enrollments_plant_id_plants_id_fk",
           "tableFrom": "enrollments",
+          "tableTo": "plants",
+          "schemaTo": "core",
           "columnsFrom": [
             "plant_id"
           ],
-          "tableTo": "plants",
-          "schemaTo": "core",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "enrollments_certificate_code_unique": {
           "name": "enrollments_certificate_code_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "certificate_code"
-          ],
-          "nullsNotDistinct": false
+          ]
         },
         "enrollments_course_user_unique": {
           "name": "enrollments_course_user_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "course_id",
             "user_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -7404,6 +7401,107 @@
         "enrollments_progress_range": {
           "name": "enrollments_progress_range",
           "value": "\"lms\".\"enrollments\".\"progress_percent\" >= 0 and \"lms\".\"enrollments\".\"progress_percent\" <= 100"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "lms.lesson_playback": {
+      "name": "lesson_playback",
+      "schema": "lms",
+      "columns": {
+        "enrollment_id": {
+          "name": "enrollment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lesson_id": {
+          "name": "lesson_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position_seconds": {
+          "name": "position_seconds",
+          "type": "numeric(12, 3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "duration_seconds": {
+          "name": "duration_seconds",
+          "type": "numeric(12, 3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "watched_seconds": {
+          "name": "watched_seconds",
+          "type": "numeric(12, 3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "lesson_playback_enrollment_id_enrollments_id_fk": {
+          "name": "lesson_playback_enrollment_id_enrollments_id_fk",
+          "tableFrom": "lesson_playback",
+          "tableTo": "enrollments",
+          "schemaTo": "lms",
+          "columnsFrom": [
+            "enrollment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "lesson_playback_lesson_id_lessons_id_fk": {
+          "name": "lesson_playback_lesson_id_lessons_id_fk",
+          "tableFrom": "lesson_playback",
+          "tableTo": "lessons",
+          "schemaTo": "lms",
+          "columnsFrom": [
+            "lesson_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "lesson_playback_enrollment_id_lesson_id_pk": {
+          "name": "lesson_playback_enrollment_id_lesson_id_pk",
+          "columns": [
+            "enrollment_id",
+            "lesson_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "lesson_playback_nonnegative": {
+          "name": "lesson_playback_nonnegative",
+          "value": "\"lms\".\"lesson_playback\".\"position_seconds\" >= 0 and \"lms\".\"lesson_playback\".\"duration_seconds\" >= 0 and \"lms\".\"lesson_playback\".\"watched_seconds\" >= 0"
         }
       },
       "isRLSEnabled": false
@@ -7437,30 +7535,30 @@
         "lesson_progress_enrollment_id_enrollments_id_fk": {
           "name": "lesson_progress_enrollment_id_enrollments_id_fk",
           "tableFrom": "lesson_progress",
+          "tableTo": "enrollments",
+          "schemaTo": "lms",
           "columnsFrom": [
             "enrollment_id"
           ],
-          "tableTo": "enrollments",
-          "schemaTo": "lms",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "lesson_progress_lesson_id_lessons_id_fk": {
           "name": "lesson_progress_lesson_id_lessons_id_fk",
           "tableFrom": "lesson_progress",
+          "tableTo": "lessons",
+          "schemaTo": "lms",
           "columnsFrom": [
             "lesson_id"
           ],
-          "tableTo": "lessons",
-          "schemaTo": "lms",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -7475,6 +7573,137 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "lms.lesson_videos": {
+      "name": "lesson_videos",
+      "schema": "lms",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "lesson_id": {
+          "name": "lesson_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "playback_key": {
+          "name": "playback_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "original_name": {
+          "name": "original_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING'"
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "duration_seconds": {
+          "name": "duration_seconds",
+          "type": "numeric(12, 3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "size_bytes": {
+          "name": "size_bytes",
+          "type": "numeric(18, 0)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lease_token": {
+          "name": "lease_token",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lease_at": {
+          "name": "lease_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_lesson_videos_status": {
+          "name": "idx_lesson_videos_status",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "lesson_videos_lesson_id_lessons_id_fk": {
+          "name": "lesson_videos_lesson_id_lessons_id_fk",
+          "tableFrom": "lesson_videos",
+          "tableTo": "lessons",
+          "schemaTo": "lms",
+          "columnsFrom": [
+            "lesson_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "lesson_videos_lesson_id_unique": {
+          "name": "lesson_videos_lesson_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "lesson_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "lesson_videos_status": {
+          "name": "lesson_videos_status",
+          "value": "\"lms\".\"lesson_videos\".\"status\" in ('PENDING','PROCESSING','READY','FAILED')"
+        }
+      },
       "isRLSEnabled": false
     },
     "lms.lessons": {
@@ -7492,6 +7721,12 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
+        },
+        "section_id": {
+          "name": "section_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
         },
         "position": {
           "name": "position",
@@ -7544,25 +7779,39 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "lessons_course_id_courses_id_fk": {
           "name": "lessons_course_id_courses_id_fk",
           "tableFrom": "lessons",
+          "tableTo": "courses",
+          "schemaTo": "lms",
           "columnsFrom": [
             "course_id"
           ],
-          "tableTo": "courses",
-          "schemaTo": "lms",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "lessons_section_id_course_sections_id_fk": {
+          "name": "lessons_section_id_course_sections_id_fk",
+          "tableFrom": "lessons",
+          "tableTo": "course_sections",
+          "schemaTo": "lms",
+          "columnsFrom": [
+            "section_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -7637,50 +7886,50 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "apu_resources_apu_id_apus_id_fk": {
           "name": "apu_resources_apu_id_apus_id_fk",
           "tableFrom": "apu_resources",
+          "tableTo": "apus",
+          "schemaTo": "budget",
           "columnsFrom": [
             "apu_id"
           ],
-          "tableTo": "apus",
-          "schemaTo": "budget",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "apu_resources_resource_id_resources_id_fk": {
           "name": "apu_resources_resource_id_resources_id_fk",
           "tableFrom": "apu_resources",
+          "tableTo": "resources",
+          "schemaTo": "budget",
           "columnsFrom": [
             "resource_id"
           ],
-          "tableTo": "resources",
-          "schemaTo": "budget",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "apu_resources_unique": {
           "name": "apu_resources_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "apu_id",
             "resource_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -7777,27 +8026,27 @@
         "apus_plant_id_plants_id_fk": {
           "name": "apus_plant_id_plants_id_fk",
           "tableFrom": "apus",
+          "tableTo": "plants",
+          "schemaTo": "core",
           "columnsFrom": [
             "plant_id"
           ],
-          "tableTo": "plants",
-          "schemaTo": "core",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "apus_plant_code_unique": {
           "name": "apus_plant_code_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "plant_id",
             "code"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -7903,64 +8152,64 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "items_budget_id_budgets_id_fk": {
           "name": "items_budget_id_budgets_id_fk",
           "tableFrom": "items",
+          "tableTo": "budgets",
+          "schemaTo": "budget",
           "columnsFrom": [
             "budget_id"
           ],
-          "tableTo": "budgets",
-          "schemaTo": "budget",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "items_chapter_id_chapters_id_fk": {
           "name": "items_chapter_id_chapters_id_fk",
           "tableFrom": "items",
+          "tableTo": "chapters",
+          "schemaTo": "budget",
           "columnsFrom": [
             "chapter_id"
           ],
-          "tableTo": "chapters",
-          "schemaTo": "budget",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "items_apu_id_apus_id_fk": {
           "name": "items_apu_id_apus_id_fk",
           "tableFrom": "items",
+          "tableTo": "apus",
+          "schemaTo": "budget",
           "columnsFrom": [
             "apu_id"
           ],
-          "tableTo": "apus",
-          "schemaTo": "budget",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "budget_items_code_unique": {
           "name": "budget_items_code_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "budget_id",
             "code"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -8085,78 +8334,78 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "budgets_plant_id_plants_id_fk": {
           "name": "budgets_plant_id_plants_id_fk",
           "tableFrom": "budgets",
+          "tableTo": "plants",
+          "schemaTo": "core",
           "columnsFrom": [
             "plant_id"
           ],
-          "tableTo": "plants",
-          "schemaTo": "core",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "budgets_project_id_projects_id_fk": {
           "name": "budgets_project_id_projects_id_fk",
           "tableFrom": "budgets",
+          "tableTo": "projects",
+          "schemaTo": "budget",
           "columnsFrom": [
             "project_id"
           ],
-          "tableTo": "projects",
-          "schemaTo": "budget",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "budgets_approved_by_users_id_fk": {
           "name": "budgets_approved_by_users_id_fk",
           "tableFrom": "budgets",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "approved_by"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "budgets_created_by_users_id_fk": {
           "name": "budgets_created_by_users_id_fk",
           "tableFrom": "budgets",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "created_by"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "budgets_plant_code_unique": {
           "name": "budgets_plant_code_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "plant_id",
             "code"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -8209,27 +8458,27 @@
         "chapters_budget_id_budgets_id_fk": {
           "name": "chapters_budget_id_budgets_id_fk",
           "tableFrom": "chapters",
+          "tableTo": "budgets",
+          "schemaTo": "budget",
           "columnsFrom": [
             "budget_id"
           ],
-          "tableTo": "budgets",
-          "schemaTo": "budget",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "chapters_budget_code_unique": {
           "name": "chapters_budget_code_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "budget_id",
             "code"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -8271,16 +8520,16 @@
         "exchange_rates_plant_id_plants_id_fk": {
           "name": "exchange_rates_plant_id_plants_id_fk",
           "tableFrom": "exchange_rates",
+          "tableTo": "plants",
+          "schemaTo": "core",
           "columnsFrom": [
             "plant_id"
           ],
-          "tableTo": "plants",
-          "schemaTo": "core",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -8368,39 +8617,39 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "price_history_resource_id_resources_id_fk": {
           "name": "price_history_resource_id_resources_id_fk",
           "tableFrom": "price_history",
+          "tableTo": "resources",
+          "schemaTo": "budget",
           "columnsFrom": [
             "resource_id"
           ],
-          "tableTo": "resources",
-          "schemaTo": "budget",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "price_history_changed_by_users_id_fk": {
           "name": "price_history_changed_by_users_id_fk",
           "tableFrom": "price_history",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "changed_by"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -8463,27 +8712,27 @@
         "projects_plant_id_plants_id_fk": {
           "name": "projects_plant_id_plants_id_fk",
           "tableFrom": "projects",
+          "tableTo": "plants",
+          "schemaTo": "core",
           "columnsFrom": [
             "plant_id"
           ],
-          "tableTo": "plants",
-          "schemaTo": "core",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "projects_plant_code_unique": {
           "name": "projects_plant_code_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "plant_id",
             "code"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -8575,41 +8824,41 @@
         "resources_plant_id_plants_id_fk": {
           "name": "resources_plant_id_plants_id_fk",
           "tableFrom": "resources",
+          "tableTo": "plants",
+          "schemaTo": "core",
           "columnsFrom": [
             "plant_id"
           ],
-          "tableTo": "plants",
-          "schemaTo": "core",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "resources_source_item_id_items_id_fk": {
           "name": "resources_source_item_id_items_id_fk",
           "tableFrom": "resources",
+          "tableTo": "items",
+          "schemaTo": "inventory",
           "columnsFrom": [
             "source_item_id"
           ],
-          "tableTo": "items",
-          "schemaTo": "inventory",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "resources_plant_code_unique": {
           "name": "resources_plant_code_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "plant_id",
             "code"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -8669,41 +8918,41 @@
         "scenarios_budget_id_budgets_id_fk": {
           "name": "scenarios_budget_id_budgets_id_fk",
           "tableFrom": "scenarios",
+          "tableTo": "budgets",
+          "schemaTo": "budget",
           "columnsFrom": [
             "budget_id"
           ],
-          "tableTo": "budgets",
-          "schemaTo": "budget",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "scenarios_created_by_users_id_fk": {
           "name": "scenarios_created_by_users_id_fk",
           "tableFrom": "scenarios",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "created_by"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "scenarios_budget_name_unique": {
           "name": "scenarios_budget_name_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "budget_id",
             "name"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -8738,30 +8987,30 @@
         "valuation_lines_valuation_id_valuations_id_fk": {
           "name": "valuation_lines_valuation_id_valuations_id_fk",
           "tableFrom": "valuation_lines",
+          "tableTo": "valuations",
+          "schemaTo": "budget",
           "columnsFrom": [
             "valuation_id"
           ],
-          "tableTo": "valuations",
-          "schemaTo": "budget",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "valuation_lines_item_id_items_id_fk": {
           "name": "valuation_lines_item_id_items_id_fk",
           "tableFrom": "valuation_lines",
+          "tableTo": "items",
+          "schemaTo": "budget",
           "columnsFrom": [
             "item_id"
           ],
-          "tableTo": "items",
-          "schemaTo": "budget",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
@@ -8861,55 +9110,55 @@
         "valuations_budget_id_budgets_id_fk": {
           "name": "valuations_budget_id_budgets_id_fk",
           "tableFrom": "valuations",
+          "tableTo": "budgets",
+          "schemaTo": "budget",
           "columnsFrom": [
             "budget_id"
           ],
-          "tableTo": "budgets",
-          "schemaTo": "budget",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
         "valuations_approved_by_users_id_fk": {
           "name": "valuations_approved_by_users_id_fk",
           "tableFrom": "valuations",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "approved_by"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         },
         "valuations_created_by_users_id_fk": {
           "name": "valuations_created_by_users_id_fk",
           "tableFrom": "valuations",
+          "tableTo": "users",
+          "schemaTo": "iam",
           "columnsFrom": [
             "created_by"
           ],
-          "tableTo": "users",
-          "schemaTo": "iam",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "set null"
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "valuations_budget_number_unique": {
           "name": "valuations_budget_number_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "budget_id",
             "number"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -8941,10 +9190,10 @@
     "lms": "lms",
     "budget": "budget"
   },
-  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
+  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},

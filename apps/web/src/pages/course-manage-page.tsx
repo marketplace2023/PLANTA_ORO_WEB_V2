@@ -78,7 +78,7 @@ export function CourseManagePage() {
               {items.map((c) => (
                 <TableRow key={c.id}>
                   <TableCell className="font-medium">
-                    <Link to={`/courses/${c.id}/edit`} className="underline-offset-2 hover:underline">
+                    <Link to={`/courses/${c.id}/edit?editor=1`} className="underline-offset-2 hover:underline">
                       {c.title}
                     </Link>
                   </TableCell>
@@ -95,7 +95,7 @@ export function CourseManagePage() {
           </Table>
         </div>
       )}
-      {creating && <CourseFormDialog owner={owner} onClose={() => setCreating(false)} onSaved={(c) => navigate(`/courses/${c.id}/edit`)} />}
+      {creating && <CourseFormDialog owner={owner} onClose={() => setCreating(false)} onSaved={(c) => navigate(`/courses/${c.id}/edit?editor=1&step=${c.step ?? 'audience'}`)} />}
     </>
   )
 }

@@ -122,7 +122,7 @@ describe('Presupuestos: tablero y permisos', () => {
 
   it('tablero: indicadores con moneda y avance; la desviación positiva se resalta', async () => {
     setup({ 'GET /plants/revemin-ii/budgets/summary': { body: summary() } })
-    renderAt(B)
+    renderAt(`${B}?tab=dashboard`)
     expect(await screen.findByText('USD 140,000.00')).toBeInTheDocument()
     expect(screen.getByText('25 %')).toBeInTheDocument()
     expect(screen.getByText('1 en borrador · 2 aprobados · 0 cerrados')).toBeInTheDocument()
@@ -131,14 +131,25 @@ describe('Presupuestos: tablero y permisos', () => {
 
   it('tablero sin presupuestos aprobados: avance sin dato', async () => {
     setup({ 'GET /plants/revemin-ii/budgets/summary': { body: summary({ budgetCount: 0, progressPct: null, budgetsByStatus: {} }) } })
-    renderAt(B)
+    renderAt(`${B}?tab=dashboard`)
     expect(await screen.findByText('Aún no hay presupuestos aprobados')).toBeInTheDocument()
   })
 
   it('error del servidor → estado de error con reintento', async () => {
     setup({ 'GET /plants/revemin-ii/budgets/summary': { status: 500, body: { message: 'boom' } } })
-    renderAt(B)
+    renderAt(`${B}?tab=dashboard`)
     expect(await screen.findByRole('button', { name: /Reintentar/ })).toBeInTheDocument()
+  })
+
+  it('abre los maestros en planta y permite acceder a sus presupuestos guardados', async () => {
+    state.permissions = EDIT
+    setup({ 'GET /plants/revemin-ii/lulo/documents': { body: { items: [], total: 0 } }, 'GET /plants/revemin-ii/lulo/masters/catalogs': { body: [] } })
+    renderAt(B)
+    expect(await screen.findByRole('tab', { name: /Partidas maestras/ })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: /Materiales/ })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('tab', { name: 'Presupuestos LULO' }))
+    expect(await screen.findByText('El próximo presupuesto empieza aquí.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Crear mi primer presupuesto' })).toHaveAttribute('href', '/plants/revemin-ii/budgets/new')
   })
 })
 

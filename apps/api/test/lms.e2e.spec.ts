@@ -31,7 +31,7 @@ describe('Cursos (LMS) (e2e)', () => {
   const titles = (res: request.Response) => res.body.items.map((c: { title: string }) => c.title)
 
   const mkCourse = async (over: object = {}, s: Session = admin) =>
-    (await send('post', '/api/v1/courses', s, { ownerType: 'ECOSYSTEM', title: 'E2E Curso', ...over }).expect(201)).body
+    (await send('post', '/api/v1/courses', s, { ownerType: 'ECOSYSTEM', title: 'E2E Curso', description: 'Formación práctica para aplicar procedimientos de operación y mantenimiento con seguridad en el trabajo diario.', instructorName: 'Instructor E2E', learningObjectives: ['Aplicar los procedimientos del curso'], targetAudience: ['Personal operativo'], ...over }).expect(201)).body
   const addLesson = async (courseId: string, over: object = {}, s: Session = admin) =>
     (await send('post', `/api/v1/courses/${courseId}/lessons`, s, { title: 'Lección', content: 'Contenido', durationMinutes: 10, ...over }).expect(201)).body
   /** Curso publicado con N lecciones de 10 min. */
@@ -91,25 +91,23 @@ describe('Cursos (LMS) (e2e)', () => {
         { ownerType: 'ECOSYSTEM', ownerId: provId, title: 'E2E x' }, // el ecosistema no lleva organización
         { ownerType: 'ECOSYSTEM', title: '' },
         { ownerType: 'ECOSYSTEM', title: 'E2E x', level: 'EXPERT' },
-        { ownerType: 'ECOSYSTEM', title: 'E2E x', stageCodes: ['ZZZ'] },
         { ownerType: 'MARTE', title: 'E2E x' },
       ]) {
         await send('post', '/api/v1/courses', admin, body).expect(400)
       }
     })
 
-    it('publicar exige lecciones y al menos una etapa; el borrador no es público', async () => {
+    it('publicar exige contenido y no depende de una etapa; el borrador no es público', async () => {
       const c = await mkCourse({ title: 'E2E Para publicar' })
       await get(`/api/v1/courses/${c.id}`).expect(404)
       await get(`/api/v1/courses/${c.id}`, stranger).expect(404)
       await get(`/api/v1/courses/${c.id}`, admin).expect(200)
-      let res = await send('patch', `/api/v1/courses/${c.id}`, admin, { status: 'PUBLISHED' }).expect(400)
+      const res = await send('patch', `/api/v1/courses/${c.id}`, admin, { status: 'PUBLISHED' }).expect(400)
       expect(JSON.stringify(res.body)).toMatch(/lección/)
       await addLesson(c.id)
-      res = await send('patch', `/api/v1/courses/${c.id}`, admin, { status: 'PUBLISHED' }).expect(400)
-      expect(JSON.stringify(res.body)).toMatch(/etapa/)
-      const ok = await send('patch', `/api/v1/courses/${c.id}`, admin, { status: 'PUBLISHED', stageCodes: ['D06', 'D11'] }).expect(200)
-      expect(ok.body.stages.map((s: { code: string }) => s.code)).toEqual(['D06', 'D11'])
+      const ok = await send('patch', `/api/v1/courses/${c.id}`, admin, { status: 'PUBLISHED' }).expect(200)
+      expect(ok.body.stages).toEqual([])
+      expect(ok.body.publication.ready).toBe(true)
       await get(`/api/v1/courses/${c.id}`).expect(200)
     })
 
@@ -293,8 +291,8 @@ describe('Cursos (LMS) (e2e)', () => {
     let a: { id: string }
     let b: { id: string }
     beforeAll(async () => {
-      a = await published({ title: 'E2E CAT Molienda básica', description: 'Fundamentos', level: 'BASIC', certificate: true, instructorName: 'Ing. Soto', stageCodes: ['D06', 'D07'] }, 3) // 30 min
-      b = await mkCourse({ ownerType: 'PROVIDER', ownerId: provId, title: 'E2E CAT Lixiviación avanzada', level: 'ADVANCED', stageCodes: ['D11'] }, owner)
+      a = await published({ title: 'E2E CAT Molienda básica', description: 'Fundamentos de molienda y procedimientos de operación para trabajar con seguridad y cuidar los equipos de la planta.', category: 'Mantenimiento', level: 'BASIC', certificate: true, instructorName: 'Ing. Soto', stageCodes: ['D06', 'D07'] }, 3) // 30 min
+      b = await mkCourse({ ownerType: 'PROVIDER', ownerId: provId, title: 'E2E CAT Lixiviación avanzada', category: 'Operaciones', level: 'ADVANCED', stageCodes: ['D11'] }, owner)
       await addLesson(b.id, { durationMinutes: 90 }, owner)
       await send('patch', `/api/v1/courses/${b.id}`, owner, { status: 'PUBLISHED' }).expect(200)
     })
@@ -307,9 +305,9 @@ describe('Cursos (LMS) (e2e)', () => {
       expect(list.items[0].owner).toMatchObject({ type: 'PROVIDER', name: 'E2E Academia Prov' })
     })
 
-    it('filtros: etapa, nivel, propietario, duración máxima, certificado, búsqueda', async () => {
-      expect(await q('stage=D07')).toEqual(['E2E CAT Molienda básica'])
-      expect(await q('stage=D11')).toEqual(['E2E CAT Lixiviación avanzada'])
+    it('filtros: categoría, nivel, propietario, duración máxima, certificado, búsqueda', async () => {
+      expect(await q('category=Mantenimiento')).toEqual(['E2E CAT Molienda básica'])
+      expect(await q('category=Operaciones')).toEqual(['E2E CAT Lixiviación avanzada'])
       expect(await q('level=ADVANCED')).toEqual(['E2E CAT Lixiviación avanzada'])
       expect(await q('ownerType=PROVIDER')).toEqual(['E2E CAT Lixiviación avanzada'])
       expect(await q(`providerId=${provId}`)).toEqual(['E2E CAT Lixiviación avanzada'])
@@ -336,7 +334,7 @@ describe('Cursos (LMS) (e2e)', () => {
       const anon = (await get(`/api/v1/courses/${a.id}`).expect(200)).body
       expect(anon.lessons).toHaveLength(3)
       expect(anon.lessons.every((l: { content: string | null; videoUrl: string | null }) => l.content === null && l.videoUrl === null)).toBe(true)
-      expect(JSON.stringify(anon)).not.toMatch(/Contenido/)
+      expect(anon.lessons.every((l: { content: string | null }) => l.content === null)).toBe(true)
       expect((await get(`/api/v1/courses/${a.id}`, stranger).expect(200)).body.lessons[0].content).toBeNull()
       expect((await get(`/api/v1/courses/${a.id}`, admin).expect(200)).body.lessons[0].content).toBe('Contenido')
       await enroll(a.id, stu2).expect(201)

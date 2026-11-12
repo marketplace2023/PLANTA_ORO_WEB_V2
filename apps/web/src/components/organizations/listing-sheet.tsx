@@ -1,3 +1,4 @@
+import { ProductPurchase } from './product-purchase'
 import { Mail } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { ErrorState } from '@/components/base/error-state'
@@ -10,7 +11,7 @@ import { useListing, useProvider } from '@/features/organizations/use-organizati
 import { ApiError } from '@/lib/api'
 import { LISTING_STATUS_LABELS, priceText } from '@/lib/organizations'
 import { AvailabilityBadge } from './listing-card'
-import { Rating, StageTags, VerifiedBadge } from './org-bits'
+import { Rating, StageTags } from './org-bits'
 
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -53,14 +54,12 @@ export function ListingSheet({ id, onClose }: { id: string; onClose: () => void 
                 {listing.status !== 'ACTIVE' && <Badge variant="outline">{LISTING_STATUS_LABELS[listing.status]} (no visible al público)</Badge>}
               </div>
 
+              <ProductPurchase id={id} />
               <p className="text-3xl font-bold text-fur-navy-900">{priceText(listing.price, listing.currency)}</p>
               {listing.description && <p className="text-sm whitespace-pre-wrap">{listing.description}</p>}
 
               <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
                 <Fact label="Familia">{listing.family.name}</Fact>
-                <Fact label="Tipo">{listing.type?.name ?? '—'}</Fact>
-                <Fact label="Modelo del catálogo">{listing.model?.name ?? '—'}</Fact>
-                <Fact label="Fabricante">{listing.model?.manufacturer?.name ?? '—'}</Fact>
               </dl>
 
               <section aria-labelledby="stages-title">
@@ -72,24 +71,24 @@ export function ListingSheet({ id, onClose }: { id: string; onClose: () => void 
 
               <section aria-labelledby="prov-title" className="space-y-2 rounded-lg border border-border p-4">
                 <h3 id="prov-title" className="text-sm font-semibold text-fur-navy-900">
-                  Proveedor
+                  Vendedor
                 </h3>
                 <p className="flex flex-wrap items-center gap-2">
-                  <Link to={`/providers?provider=${listing.provider.id}`} className="font-medium underline-offset-2 hover:underline">
+                  <Link to={`/marketplace?seller=${listing.provider.id}`} className="font-medium underline-offset-2 hover:underline">
                     {listing.provider.name}
                   </Link>
-                  <VerifiedBadge verified={listing.provider.verified} />
+                  <Badge variant={listing.provider.verified ? 'default' : 'outline'}>{listing.provider.verified ? 'Tienda verificada' : 'Vendedor particular no verificado'}</Badge>
                   <Rating rating={listing.provider.rating} />
                 </p>
                 {user ? (
                   provider.data?.contactEmail ? (
                     <Button asChild variant="secondary" size="sm">
                       <a href={`mailto:${provider.data.contactEmail}?subject=${encodeURIComponent(`Consulta: ${listing.title}`)}`}>
-                        <Mail /> Contactar al proveedor
+                        <Mail /> Contactar al vendedor
                       </a>
                     </Button>
                   ) : (
-                    <p className="text-sm text-fur-gray-600">El proveedor no publicó un correo de contacto.</p>
+                    <p className="text-sm text-fur-gray-600">El vendedor no publicó un correo de contacto.</p>
                   )
                 ) : (
                   <p className="text-sm text-fur-gray-600">

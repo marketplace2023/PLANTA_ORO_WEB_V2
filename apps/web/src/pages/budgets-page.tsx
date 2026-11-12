@@ -9,8 +9,15 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { usePlant } from '@/features/plant/plant-context'
 import { useUrlFilters } from '@/lib/use-url-filters'
 import { usePlantOutlet } from './plant-route'
+import { LuloPlantOverview } from './lulo-pages'
+import { LuloMasterWorkspace } from '@/features/lulo/master-workspace'
+import { LuloWorksPortfolio } from '@/features/lulo/works-portfolio'
 
 const TABS = [
+  ['masters', 'Maestros y estimación'],
+  ['lulo', 'Presupuestos LULO'],
+  ['works', 'Obras y clientes'],
+  ['contracts', 'Contratos y ejecución'],
   ['dashboard', 'Dashboard'],
   ['budgets', 'Presupuestos'],
   ['apus', 'APU'],
@@ -22,7 +29,7 @@ export function BudgetsPage() {
   const plant = usePlantOutlet()
   const { permissions } = usePlant()
   const { params, filters, setParam } = useUrlFilters(['tab'])
-  const tab = (TABS.find(([k]) => k === params.get('tab'))?.[0] ?? 'dashboard') as (typeof TABS)[number][0]
+  const tab = (TABS.find(([k]) => k === params.get('tab'))?.[0] ?? 'masters') as (typeof TABS)[number][0]
 
   if (!permissions.includes('budget.read')) {
     return (
@@ -35,7 +42,7 @@ export function BudgetsPage() {
 
   return (
     <>
-      <PageHeader title="Presupuestos (LULO)" description="Presupuestos con capítulos y partidas, APU, libro de precios, escenarios y valorizaciones." />
+      <PageHeader title="Presupuestos (LULO)" description="Presupuestos con capítulos y partidas, APU, libro de precios, escenarios y valorizaciones." hideShortcuts={tab === 'lulo'} />
       <Tabs
         value={tab}
         onValueChange={(v) =>
@@ -54,6 +61,9 @@ export function BudgetsPage() {
         </div>
       </Tabs>
 
+      {tab === 'lulo' && <LuloPlantOverview />}
+      {tab === 'masters' && <LuloMasterWorkspace plant={plant} canEdit={permissions.includes('budget.edit')} />}
+      {(tab === 'works' || tab === 'contracts') && <LuloWorksPortfolio key={tab} slug={plant.slug} canEdit={permissions.includes('budget.edit')} canApprove={permissions.includes('budget.approve')} initialTab={tab} presetDocument={params.get('documentId') ?? undefined} />}
       {tab === 'dashboard' && <BudgetDashboardView slug={plant.slug} />}
       {tab === 'budgets' && <BudgetsView slug={plant.slug} filters={filters} setFilters={setParam} />}
       {tab === 'apus' && <ApusView slug={plant.slug} filters={filters} setFilters={setParam} />}

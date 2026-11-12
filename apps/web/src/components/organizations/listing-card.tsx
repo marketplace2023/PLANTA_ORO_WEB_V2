@@ -1,11 +1,11 @@
 import { imageSrc } from '@/lib/media'
-import { Building2, Package } from 'lucide-react'
+import { ArrowUpRight, Building2, Package } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import type { Listing } from '@/features/organizations/use-organizations'
 import { availabilityLabel, priceText } from '@/lib/organizations'
-import { Rating, StageTags, VerifiedBadge } from './org-bits'
+import { Rating, StageTags } from './org-bits'
 
 const AVAILABILITY_TONE: Record<string, string> = {
   IN_STOCK: 'border-fur-green-500 text-fur-green-500',
@@ -25,7 +25,7 @@ export function AvailabilityBadge({ availability, stockText }: { availability: s
 /** ProductCard (design.md §33): imagen, nombre, familia, proveedor, precio, disponibilidad, etapas y rating. */
 export function ListingCard({ listing, onOpen }: { listing: Listing; onOpen: (id: string) => void }) {
   return (
-    <Card className="flex h-full flex-col">
+    <Card className="portal-listing-card flex h-full flex-col">
       <div className="grid h-36 place-items-center overflow-hidden rounded-t-xl bg-muted">
         {listing.imageUrl ? (
           <img src={imageSrc(listing.imageUrl) ?? ''} alt="" referrerPolicy="no-referrer" loading="lazy" className="size-full object-cover" />
@@ -41,10 +41,11 @@ export function ListingCard({ listing, onOpen }: { listing: Listing; onOpen: (id
           </div>
           <h3 className="text-base leading-snug font-semibold text-fur-navy-900">{listing.title}</h3>
           <p className="flex flex-wrap items-center gap-2 text-sm text-fur-gray-600">
-            <Building2 className="size-4" aria-hidden /> {listing.provider.name} <VerifiedBadge verified={listing.provider.verified} />
+            <Building2 className="size-4" aria-hidden /> {listing.provider.name}
           </p>
         </div>
 
+        <Badge variant={listing.provider.verified ? 'default' : 'outline'}>{listing.provider.verified ? 'Tienda verificada' : 'Vendedor particular no verificado'}</Badge>
         <p className="text-xl font-bold text-fur-navy-900">{priceText(listing.price, listing.currency)}</p>
         <div className="flex flex-wrap items-center gap-2">
           <AvailabilityBadge availability={listing.availability} stockText={listing.stockText} />
@@ -53,7 +54,7 @@ export function ListingCard({ listing, onOpen }: { listing: Listing; onOpen: (id
         <StageTags stages={listing.stages} />
 
         <Button className="mt-auto" variant="secondary" onClick={() => onOpen(listing.id)} aria-label={`Ver producto ${listing.title}`}>
-          Ver producto
+          Ver producto <ArrowUpRight aria-hidden />
         </Button>
       </CardContent>
     </Card>

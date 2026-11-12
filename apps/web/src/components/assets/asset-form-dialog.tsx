@@ -177,7 +177,7 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="flex max-h-[92dvh] w-[calc(100%-1.5rem)] min-w-0 max-w-4xl flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-4xl">
+      <DialogContent showCloseButton={false} className="fur-asset-dialog flex max-h-[92dvh] w-[calc(100%-1.5rem)] min-w-0 max-w-4xl flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-4xl">
         <DialogHeader className="shrink-0 gap-0 border-b border-border px-5 py-5 sm:px-7">
           <div className="flex min-w-0 items-start gap-3">
             <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-fur-gold-500/15 text-fur-navy-900"><Package className="size-5" aria-hidden /></span>

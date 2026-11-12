@@ -1,11 +1,14 @@
-import { Cable, ChevronLeft, ChevronRight, ImageOff, Maximize2, X } from 'lucide-react'
+import { PortalIntro } from '@/components/home/portal-intro'
+import { ModuleShortcuts } from '@/components/layout/module-shortcuts'
+import { ArrowUpRight, Cable, Calculator, ChevronLeft, ChevronRight, ImageOff, Maximize2, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { ErrorState } from '@/components/base/error-state'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
-import { PlantMapCards } from '@/components/home/plant-map-cards'
+import { NetworkConstellation } from '@/components/home/network-constellation'
+import { ProcessCycle } from '@/components/home/process-cycle'
 import { useNetworkCatalog, useStageCatalog, type NetworkMaster, type StageMaster } from '@/features/catalog/use-catalog'
 import { apiUrl } from '@/lib/api'
 import { stageGroupLabel } from '@/lib/stage-groups'
@@ -165,27 +168,12 @@ function NetworkCatalog() {
       </h2>
       {isError ? (
         <ErrorState onRetry={() => void refetch()} />
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {isLoading
-            ? Array.from({ length: 5 }, (_, i) => <Skeleton key={i} className="h-24" />)
-            : data?.map((n) => (
-                <button
-                  key={n.id}
-                  type="button"
-                  onClick={() => setOpen(n)}
-                  aria-label={`Ver la red ${n.code}: ${n.name}`}
-                  className="rounded-xl text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                >
-                  <Card className="h-full border-l-4 transition-shadow hover:shadow-md" style={{ borderLeftColor: n.colorToken ? `var(--${n.colorToken})` : undefined }}>
-                    <CardContent className="space-y-1">
-                      <p className="fur-code text-fur-navy-900">{n.code}</p>
-                      <p className="font-semibold">{n.name}</p>
-                    </CardContent>
-                  </Card>
-                </button>
-              ))}
+      ) : isLoading ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5" aria-label="Cargando redes" aria-busy="true">
+          {Array.from({ length: 5 }, (_, i) => <Skeleton key={i} className="h-24" />)}
         </div>
+      ) : (
+        <NetworkConstellation networks={data ?? []} onSelect={setOpen} suspended={!!open} />
       )}
       {open && data && <CatalogDetailDialog kind="network" items={data} item={open} subtitle="Red transversal" onSelect={setOpen} onClose={() => setOpen(null)} />}
     </section>
@@ -203,38 +191,25 @@ function StageCatalog() {
       </h2>
       {isError ? (
         <ErrorState onRetry={() => void refetch()} />
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {isLoading
-            ? Array.from({ length: 8 }, (_, i) => <Skeleton key={i} className="h-16" />)
-            : data?.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => setOpen(s)}
-                  aria-label={`Ver la etapa ${s.code}: ${s.name}`}
-                  className="rounded-xl text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                >
-                  <Card size="sm" className="h-full transition-shadow hover:shadow-md">
-                    <CardContent className="flex items-center gap-3">
-                      <span className="fur-code rounded-md bg-fur-navy-900 px-2 py-1 text-fur-gold-400">{s.code}</span>
-                      <span className="text-sm font-medium">{s.name}</span>
-                    </CardContent>
-                  </Card>
-                </button>
-              ))}
+      ) : isLoading ? (
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4" aria-label="Cargando etapas" aria-busy="true">
+          {Array.from({ length: 8 }, (_, i) => <Skeleton key={i} className="h-28" />)}
         </div>
+      ) : (
+        <ProcessCycle stages={data ?? []} onSelect={setOpen} suspended={!!open} />
       )}
-      {open && data && <CatalogDetailDialog kind="stage" items={data} item={open} subtitle={stageGroupLabel(open.stageGroup)} onSelect={setOpen} onClose={() => setOpen(null)} />}
+      {open && data && <CatalogDetailDialog kind="stage" items={[...data].sort((a, b) => a.sequenceDefault - b.sequenceDefault)} item={open} subtitle={stageGroupLabel(open.stageGroup)} onSelect={setOpen} onClose={() => setOpen(null)} />}
     </section>
   )
 }
 
 export function HomePage() {
   return (
-    <div className="space-y-8">
+    <div className="home-page space-y-6">
       <h1 className="sr-only">Página principal</h1>
-      <PlantMapCards />
+      <PortalIntro />
+      <ModuleShortcuts variant="featured" />
+      <section className="flex flex-wrap items-center justify-between gap-5 rounded-2xl border border-border border-t-4 border-t-fur-gold-500 bg-card p-6 sm:p-8" aria-labelledby="home-lulo-title"><div><p className="mb-2 text-xs font-semibold tracking-widest text-muted-foreground">PRESUPUESTOS LULO</p><h2 id="home-lulo-title" className="text-2xl font-semibold text-foreground">Proyecta el trabajo. Conoce su costo.</h2><p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">Prepara una estimación con capítulos y análisis de precios unitarios. Puedes empezar sin registrarte y llevarla después a tu planta.</p></div><Button asChild><Link to="/budgets"><Calculator /> Crear una estimación <ArrowUpRight /></Link></Button></section>
       <StageCatalog />
       <NetworkCatalog />
     </div>

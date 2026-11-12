@@ -43,7 +43,7 @@ export function ProviderCard({ provider, onOpen }: { provider: Provider; onOpen:
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <VerifiedBadge verified={provider.verified} />
+          <Badge variant={provider.verified ? 'default' : 'outline'}>{provider.verified ? 'Tienda verificada' : 'Vendedor particular no verificado'}</Badge>
           <Rating rating={provider.rating} />
         </div>
         {provider.families.length > 0 && <p className="text-sm text-fur-gray-600">{provider.families.map((f) => f.name).join(' · ')}</p>}

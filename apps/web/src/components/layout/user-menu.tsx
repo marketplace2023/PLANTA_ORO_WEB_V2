@@ -18,7 +18,7 @@ export function UserMenu() {
   const { roleCodes, currentPlant } = usePlant()
   const navigate = useNavigate()
 
-  if (status === 'loading') return <span className="size-9 animate-pulse rounded-full bg-fur-navy-800" aria-hidden />
+  if (status === 'loading') return <span className="size-9 animate-pulse rounded-full bg-fur-navy-800 text-white" aria-hidden />
 
   if (!user) {
     return (
@@ -42,19 +42,20 @@ export function UserMenu() {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="ml-2 h-11 gap-2 px-2 text-white hover:bg-fur-navy-800 hover:text-white aria-expanded:bg-fur-navy-800"
+          className="ml-2 h-11 gap-2 px-2 text-fur-navy-950 hover:bg-white/40 hover:text-fur-navy-950 aria-expanded:bg-white/40"
           aria-label="Menú de usuario"
         >
-          <span className="grid size-9 place-items-center rounded-full bg-fur-navy-800">
+          <span className="grid size-9 place-items-center rounded-full bg-fur-navy-800 text-white">
             <UserRound className="size-5" />
           </span>
           <span className="hidden flex-col items-start leading-tight xl:flex">
             <span className="text-sm font-semibold">{user.firstName} {user.lastName}</span>
-            <span className="max-w-44 truncate text-xs font-normal text-white/70">{roleLabel}</span>
+            <span className="max-w-44 truncate text-xs font-normal text-fur-navy-700">{roleLabel}</span>
           </span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
+        <DropdownMenuItem asChild><Link to="/service-orders"><BookOpen /> Mis contrataciones de servicios</Link></DropdownMenuItem>
         <DropdownMenuLabel className="space-y-0.5">
           <span className="block text-sm font-semibold text-foreground">{user.firstName} {user.lastName}</span>
           <span className="block text-xs font-normal text-muted-foreground">{user.email}</span>

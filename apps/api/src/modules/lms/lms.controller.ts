@@ -4,6 +4,7 @@ import { ZodValidationPipe } from '../../common/zod-validation.pipe'
 import { CurrentUser, OpenAccess, Public } from '../iam/decorators'
 import { CoursesService } from './courses.service'
 import { LearningService } from './learning.service'
+import { sectionSchema, updateSectionSchema, type SectionDto, type UpdateSectionDto } from './lms.schemas'
 import {
   type CreateCourseDto,
   createCourseSchema,
@@ -69,6 +70,21 @@ export class CoursesController {
   }
 
   // ----- Lecciones -----
+
+  @Post(':id/sections')
+  addSection(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(sectionSchema)) dto: SectionDto, @CurrentUser() user: AuthUser, @Req() req: AppRequest) {
+    return this.courses.addSection(id, dto, user, req)
+  }
+
+  @Patch(':id/sections/:sectionId')
+  updateSection(@Param('id', ParseUUIDPipe) id: string, @Param('sectionId', ParseUUIDPipe) sectionId: string, @Body(new ZodValidationPipe(updateSectionSchema)) dto: UpdateSectionDto, @CurrentUser() user: AuthUser, @Req() req: AppRequest) {
+    return this.courses.updateSection(id, sectionId, dto, user, req)
+  }
+
+  @Delete(':id/sections/:sectionId')
+  deleteSection(@Param('id', ParseUUIDPipe) id: string, @Param('sectionId', ParseUUIDPipe) sectionId: string, @CurrentUser() user: AuthUser, @Req() req: AppRequest) {
+    return this.courses.deleteSection(id, sectionId, user, req)
+  }
 
   @Post(':id/lessons')
   addLesson(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(lessonSchema)) dto: LessonDto, @CurrentUser() user: AuthUser, @Req() req: AppRequest) {

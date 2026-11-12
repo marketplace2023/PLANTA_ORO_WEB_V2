@@ -86,7 +86,7 @@ export class ProvidersService {
     const conditions: Array<SQL | undefined> = [
       status === 'ALL' ? undefined : eq(providers.status, status),
       q.country ? eq(providers.countryCode, q.country) : undefined,
-      q.verified === '1' ? eq(providers.verified, true) : undefined,
+      q.verified !== undefined ? eq(providers.verified, q.verified === '1') : undefined,
       q.ratingMin !== undefined ? gte(providers.rating, String(q.ratingMin)) : undefined,
       q.certification ? sql`exists (select 1 from unnest(${providers.certifications}) c where lower(c) = lower(${q.certification}))` : undefined,
       q.stage
@@ -235,6 +235,7 @@ export class ProvidersService {
   async update(id: string, dto: UpdateProviderDto, user: AuthUser, req: AppRequest) {
     const before = await this.loadVisible(id, user)
     const role = await this.access.assertManage('provider', id, user)
+    await this.access.assertProviderPermission(id,user,'PRODUCTS')
 
     if (role !== 'ADMIN') {
       const forbidden = ADMIN_ONLY_FIELDS.filter((f) => dto[f] !== undefined)
@@ -276,6 +277,7 @@ export class ProvidersService {
   private async loadForLogo(id: string, user: AuthUser) {
     const before = await this.loadVisible(id, user)
     const role = await this.access.assertManage('provider', id, user)
+    await this.access.assertProviderPermission(id,user,'PRODUCTS')
     if (role !== 'ADMIN' && before.status === 'SUSPENDED') throw new ConflictException('La organización está suspendida; contacta al administrador')
     return before
   }

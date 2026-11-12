@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils"
 function Card({
   className,
   size = "default",
+  onPointerMove,
   ...props
 }: React.ComponentProps<"div"> & { size?: "default" | "sm" }) {
   return (
@@ -15,6 +16,13 @@ function Card({
         className
       )}
       {...props}
+      onPointerMove={(event) => {
+        onPointerMove?.(event)
+        if (event.pointerType === 'touch') return
+        const box = event.currentTarget.getBoundingClientRect()
+        event.currentTarget.style.setProperty('--light-x', `${event.clientX - box.left}px`)
+        event.currentTarget.style.setProperty('--light-y', `${event.clientY - box.top}px`)
+      }}
     />
   )
 }

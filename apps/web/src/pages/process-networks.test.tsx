@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { NetworkDashboard, NetworkSummary, ProcessOverview, ProcessStage } from '@/features/process/use-process'
-import { plantDetail } from '@/test/assets-fixtures'
+import { asset, fur, plantDetail } from '@/test/assets-fixtures'
 import { mockApi } from '@/test/fetch-mock'
 import { renderWithProviders } from '@/test/render'
 import { NetworkDashboardPage } from './network-dashboard-page'
@@ -124,6 +124,9 @@ describe('Procesos', () => {
     expect(await screen.findByRole('heading', { name: 'Procesos', level: 1 })).toBeInTheDocument()
     expect(screen.getByText('Listado de etapas del proceso')).toBeInTheDocument()
     expect(screen.getByText('Etapa destacada')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Procesos', level: 1 }).closest('.assets-workspace')).toHaveAttribute('data-mode', 'process')
+    expect(screen.getByRole('navigation', { name: 'Explorar el ecosistema' })).toHaveAttribute('data-variant', 'icons')
+    expect(screen.getByAltText('Mapa de REVEMIN II')).toHaveAttribute('src', '/Layout.png')
     const kpi = (t: string) => screen.getByText(t).closest('li') as HTMLElement
     expect(await screen.findByText('Activos en proceso')).toBeInTheDocument()
     expect(kpi('Etapas habilitadas')).toHaveTextContent('2')
@@ -135,6 +138,20 @@ describe('Procesos', () => {
     // Y el listado de activos de la etapa también se limita a esa red.
     await waitFor(() => expect(calls(m, '/plants/revemin-ii/assets').length).toBeGreaterThan(0))
     expect(calls(m, '/plants/revemin-ii/assets').at(-1)!.query.get('network')).toBe('FUR-PROC')
+  })
+
+  it('los activos de procesos usan el mismo listado y panel contextual que activos físicos', async () => {
+    setup(geoRoutes({
+      'GET /plants/revemin-ii/assets': { body: { items: [asset({ networks: [{ code: 'FUR-PROC', name: 'Procesos', colorToken: 'network-proc' }] })], total: 1, page: 1, pageSize: 100 } },
+      'GET /plants/revemin-ii/assets/a1/fur': { body: fur() },
+      'GET /catalog/models/m1/variables': { body: [] },
+    }))
+    renderAt(P)
+    const cards = await screen.findByRole('list', { name: 'Activos de la etapa' })
+    expect(cards.closest('.assets-result-list')).toBeInTheDocument()
+    expect(within(cards).getByRole('link', { name: /Ver ficha FUR/ })).toHaveAttribute('href', '/plants/revemin-ii/assets/a1')
+    expect(screen.getByRole('heading', { name: 'Sensores del activo' }).closest('.assets-workspace-inspector')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /^Ficha técnica general/ }).closest('.assets-workspace-inspector')).toBeInTheDocument()
   })
 
   it('solo la red de Procesos está disponible: las demás aparecen bloqueadas y no se pueden elegir', async () => {

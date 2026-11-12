@@ -1,5 +1,5 @@
 import { Readable } from 'node:stream'
-import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
+import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
 import { S3StorageService } from './storage.service'
 
 describe('S3StorageService', () => {
@@ -29,6 +29,16 @@ describe('S3StorageService', () => {
     for await (const c of stream) chunks.push(Buffer.from(c))
     expect(Buffer.concat(chunks).toString()).toBe('hola')
     expect(send.mock.calls[0][0]).toBeInstanceOf(GetObjectCommand)
+  })
+
+  it('requests an inclusive range without downloading the whole video', async () => {
+    send.mockResolvedValue({ Body: Readable.from(['2345']) })
+    const stream = await storage.openRange('video.mp4', 2, 5)
+    for await (const chunk of stream) expect(chunk.toString()).toBe('2345')
+    expect(send.mock.calls[0][0].input).toMatchObject({ Bucket: 'fur-archivos', Key: 'video.mp4', Range: 'bytes=2-5' })
+    send.mockResolvedValue({ ContentLength: 10 })
+    expect(await storage.size('video.mp4')).toBe(10)
+    expect(send.mock.calls[1][0]).toBeInstanceOf(HeadObjectCommand)
   })
 
   it('un objeto inexistente rechaza (el llamador lo traduce a 404)', async () => {

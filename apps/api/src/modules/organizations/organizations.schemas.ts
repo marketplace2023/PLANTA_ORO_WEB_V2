@@ -142,6 +142,7 @@ export const listContractorsQuerySchema = z.object({
 
 // ----- Marketplace -----
 export const listListingsQuerySchema = z.object({
+  sellerType: z.enum(['VERIFIED_STORE', 'INDIVIDUAL']).optional(),
   ...paginationShape,
   stage: code.optional(),
   family: code.optional(),

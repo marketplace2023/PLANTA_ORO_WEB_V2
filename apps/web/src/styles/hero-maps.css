@@ -1,0 +1,69 @@
+/* Mapas originales dentro del hero: interacción de tarjetas apiladas, sin recortar el plano. */
+.portal-bento { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.portal-feature { grid-column: 1 / -1; grid-row: auto; display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 60px; padding: 46px 50px 54px; min-height: 540px; overflow: clip; }
+.portal-feature-content { max-width: 460px; }
+.portal-feature h2 { font-size: clamp(34px, 3.5vw, 53px); }
+.portal-feature-content > p:last-of-type { max-width: 370px; }
+.portal-feature-caption { left: 50px; right: auto; bottom: 22px; }
+.portal-discovery { min-height: 188px; }
+.hero-map-carousel { position: relative; min-width: 0; width: 100%; max-width: 620px; justify-self: end; padding: 0 8px; }
+.hero-map-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 4px; }
+.hero-map-heading h3 { color: #b0c5db; font-size: 11px; font-weight: 500; letter-spacing: .025em; }
+.hero-map-heading > span { color: #ffe27b; font-family: var(--font-mono); font-size: 11px; }
+.hero-map-heading i { font-style: normal; color: #6482a3; font-size: 10px; }
+.hero-map-stack { position: relative; height: clamp(250px, 24vw, 355px); margin: 28px 14px 24px 4px; perspective: 1200px; }
+.hero-map-card { position: absolute; inset: 0; border: 1px solid #ffffff77; border-radius: 13px; background: #fff; box-shadow: 0 14px 34px #020e202e; transform-origin: 50% 70%; transition: transform .65s cubic-bezier(.22, 1, .36, 1), opacity .45s; will-change: transform; }
+.hero-map-card[data-order='0'] { z-index: 4; transform: translate(0, 0) rotate(0) scale(1); opacity: 1; animation: map-stack-arrive .65s cubic-bezier(.22, 1, .36, 1) both; }
+.hero-map-card[data-order='1'] { z-index: 3; transform: translate(10px, -6px) rotate(7deg) scale(.96); opacity: .75; }
+.hero-map-card[data-order='2'] { z-index: 2; transform: translate(-8px, 0) rotate(-7deg) scale(.96); opacity: .55; }
+.hero-map-card[data-order='3'] { z-index: 1; transform: translate(0, 7px) rotate(3deg) scale(.92); opacity: .3; }
+.hero-map-card:not([data-active=true]) { pointer-events: none; }
+.hero-map-card > button { display: block; width: 100%; height: 100%; border-radius: inherit; overflow: hidden; cursor: zoom-in; background: white; position: relative; }
+.hero-map-card > button:focus-visible { outline: 3px solid #ffda48; outline-offset: 5px; }
+.hero-map-card img { width: 100%; height: calc(100% - 34px); padding: 12px; object-fit: contain; background: #fff; user-select: none; }
+.hero-map-paper-caption { display: flex; align-items: center; justify-content: space-between; gap: 10px; height: 34px; padding: 0 14px; background: #f6f8fc; border-top: 1px solid #e5ebf4; color: #8b99ae; font-size: 8px; }
+.hero-map-paper-caption strong { font-size: 10px; font-weight: 600; color: #183251; }
+.hero-map-expand { position: absolute; top: 12px; right: 12px; display: inline-flex; align-items: center; gap: 5px; padding: 6px 8px; border-radius: 7px; color: #183251; background: #fffef2ed; border: 1px solid #e7dfbe; box-shadow: 0 2px 6px #1026440a; font-size: 9px; opacity: 0; transform: translateY(-3px); transition: opacity .2s, transform .2s; }
+.hero-map-expand svg { width: 12px; height: 12px; }
+.hero-map-card > button:hover .hero-map-expand, .hero-map-card > button:focus-visible .hero-map-expand { opacity: 1; transform: none; }
+.hero-map-detail { margin-top: 28px; min-height: 58px; }
+.hero-map-detail-text { animation: map-text-arrive .4s ease-out both; }
+.hero-map-detail h4 { color: #fff; font-weight: 600; font-size: 21px; letter-spacing: -.03em; }
+.hero-map-detail p { font-size: 11px; line-height: 1.7; color: #8fa9c4; margin-top: 5px; }
+.hero-map-controls { display: flex; align-items: center; gap: 16px; margin-top: 18px; }
+.hero-map-arrows { display: flex; gap: 8px; }
+.hero-map-arrows button, .hero-map-play { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid #b1cce42b; border-radius: 50%; background: #ffffff08; color: #c4d8eb; transition: color .2s, border-color .2s, background .2s; }
+.hero-map-arrows button:hover, .hero-map-play:hover { color: #102644; background: #ffe27b; border-color: #ffe27b; }
+.hero-map-arrows button:focus-visible, .hero-map-play:focus-visible, .hero-map-dots button:focus-visible { outline: 3px solid #ffda48; outline-offset: 3px; }
+.hero-map-arrows svg { width: 15px; height: 15px; transition: transform .2s; }
+.hero-map-arrows button:first-child:hover svg { transform: translateX(-2px); }
+.hero-map-arrows button:last-child:hover svg { transform: translateX(2px); }
+.hero-map-play { margin-left: auto; width: 30px; height: 30px; }
+.hero-map-play svg { width: 12px; height: 12px; }
+.hero-map-play[aria-pressed=true] { background: #ffe27b22; color: #ffe27b; border-color: #ffe27b66; }
+.hero-map-dots { display: flex; gap: 2px; align-items: center; }
+.hero-map-dots button { padding: 10px 4px; border-radius: 8px; }
+.hero-map-dots span { display: block; width: 5px; height: 5px; background: #63809f; border-radius: 4px; transition: width .3s, background .3s; }
+.hero-map-dots [aria-pressed=true] span { width: 22px; background: #ffe27b; }
+@keyframes map-stack-arrive { from { transform: translate(0, -28px) rotate(-5deg) scale(1.025); opacity: .4; } 65% { transform: translate(0, 3px) rotate(1deg) scale(1); opacity: 1; } to { transform: translate(0, 0) rotate(0) scale(1); opacity: 1; } }
+@keyframes map-text-arrive { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (max-width: 1100px) {
+  .portal-feature { padding: 36px 32px 50px; gap: 34px; }
+  .portal-feature h2 { font-size: 37px; }
+  .portal-feature-caption { left: 32px; }
+  .hero-map-stack { height: 255px; }
+}
+@media (max-width: 767px) {
+  .portal-feature { grid-template-columns: 1fr; gap: 36px; padding: 30px 26px 48px; }
+  .portal-feature-content { max-width: 520px; }
+  .portal-feature h2 { font-size: clamp(32px, 6vw, 42px); }
+  .hero-map-carousel { max-width: 540px; justify-self: center; padding: 0 4px; }
+  .hero-map-stack { height: clamp(225px, 52vw, 330px); margin-inline: 6px 12px; }
+  .hero-map-detail { margin-top: 20px; }
+  .portal-feature-caption { left: 26px; bottom: 17px; font-size: 8px; }
+  .hero-map-expand { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-map-card, .hero-map-expand, .hero-map-arrows svg, .hero-map-dots span { transition: none; }
+  .hero-map-card[data-order='0'], .hero-map-detail-text { animation: none; }
+}

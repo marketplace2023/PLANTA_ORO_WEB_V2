@@ -43,17 +43,17 @@ describe('HomePage', () => {
     expect(await screen.findByText('D06')).toBeInTheDocument()
     expect(screen.getByText('Molienda Primaria')).toBeInTheDocument()
     expect(screen.getByText('FUR-IOT')).toBeInTheDocument()
-    // Una tarjeta por mapa, con su imagen; ya no hay tarjeta de salud del sistema.
+    // El hero contiene el carrusel; solo el mapa seleccionado se expone al lector de pantalla.
     for (const name of ['Caratal', 'Mina Colombia', 'Revemin', 'Mina Sosa']) {
-      expect(screen.getByRole('img', { name: `Mapa de ${name}` })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: `Ver mapa de ${name}` })).toBeInTheDocument()
     }
-    // Orden de las tarjetas: Caratal, Mina Colombia, Revemin y Mina Sosa.
-    expect(screen.getAllByRole('img', { name: /^Mapa de / }).map((i) => i.getAttribute('alt'))).toEqual(['Mapa de Caratal', 'Mapa de Mina Colombia', 'Mapa de Revemin', 'Mapa de Mina Sosa'])
-    expect(screen.getByRole('img', { name: 'Mapa de Revemin' })).toHaveAttribute('src', '/MAPA%20REVEMIN.png')
+    expect(screen.getAllByRole('img', { name: /^Mapa de / })).toHaveLength(1)
+    expect(screen.getByRole('img', { name: 'Mapa de Caratal' })).toHaveAttribute('src', '/MAPA%20CARATAL.jpeg')
     expect(screen.queryByText('Salud del sistema')).not.toBeInTheDocument()
     // Sin encabezado de presentación: la página abre directo en el contenido (queda un h1 solo para lectores de pantalla).
     expect(screen.getByRole('heading', { level: 1, name: 'Página principal' })).toBeInTheDocument()
-    expect(screen.queryByText('Ecosistema Digital FUR')).not.toBeInTheDocument()
+    expect(screen.getByText('Ecosistema Digital FUR')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Explorar el catálogo/ })).toHaveAttribute('href', '/catalog')
   })
 
   it('el orden es: mapas, etapas del proceso y, debajo, redes transversales', async () => {

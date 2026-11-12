@@ -100,8 +100,8 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
  * Descarga un archivo autenticado como Blob. Los documentos internos no se pueden abrir con un enlace
  * directo porque necesitan el token en la cabecera; por eso se baja con fetch y se usa un object URL.
  */
-export async function apiBlob(path: string): Promise<Blob> {
-  return (await request(path)).blob()
+export async function apiBlob(path: string, init: RequestInit = {}): Promise<Blob> {
+  return (await request(path, init)).blob()
 }
 
 /** Cuerpo multipart para subir archivos: `fields` van como texto y el archivo en el campo `file`. */

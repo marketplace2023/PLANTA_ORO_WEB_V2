@@ -1,0 +1,200 @@
+.assets-workspace-grid { display: grid; grid-template-columns: 210px minmax(0, 1fr) minmax(340px, 1fr); grid-template-areas: 'filters results map' 'filters detail detail'; gap: 18px; align-items: start; }
+.assets-workspace-filters { grid-area: filters; display: grid; gap: 16px; min-width: 0; }
+.assets-workspace-results { grid-area: results; min-width: 0; }
+.assets-workspace-results > .mt-3 { margin-top: 0; }
+.assets-workspace-inspector { display: contents; }
+.assets-workspace-inspector > .assets-map-panel { grid-area: map; min-width: 0; }
+.assets-workspace-inspector > .asset-ficha-panel { grid-area: detail; min-width: 0; max-height: 540px; }
+.assets-workspace-inspector .asset-ficha-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+.assets-workspace-inspector .asset-ficha-columns:has(> .asset-ficha-technical:empty) { grid-template-columns: minmax(0, 1fr); }
+.assets-workspace-inspector .asset-ficha-technical { min-width: 0; border-left: 1px solid var(--border); }
+.assets-workspace-inspector .asset-ficha-technical:empty { display: none; }
+.assets-workspace-inspector .asset-ficha-columns > dl { min-width: 0; }
+.assets-workspace .page-banner { margin-bottom: 16px; }
+.assets-workspace .module-shortcuts[data-variant=icons] { padding: 10px 14px; margin-bottom: 16px; }
+.assets-workspace .module-shortcuts[data-variant=icons] .module-group-heading { padding-bottom: 5px; }
+.assets-workspace .module-shortcuts[data-variant=icons] .module-shortcut { padding-block: 6px; gap: 6px; }
+.assets-workspace .module-shortcut-icon { width: 30px; height: 30px; border-radius: 9px; }
+.assets-workspace-grid section { border-radius: 16px; }
+.assets-workspace-grid section > header { padding: 15px; background: var(--card); color: var(--foreground); }
+.assets-workspace-grid section > header h2 { font-size: 12px; font-weight: 650; }
+.assets-workspace-grid section > header h2 svg { color: var(--muted-foreground); }
+.assets-workspace > [aria-label='Indicadores de la planta'] > li { border-radius: 14px; padding: 14px 12px; gap: 10px; }
+.assets-workspace > [aria-label='Indicadores de la planta'] > li > span { width: 30px; height: 30px; border-radius: 9px; }
+.assets-workspace > [aria-label='Indicadores de la planta'] svg { width: 15px; height: 15px; }
+.assets-workspace > [aria-label='Indicadores de la planta'] p { font-size: 22px; }
+.assets-workspace > [aria-label='Indicadores de la planta'] p:last-child { font-size: 10px; }
+.assets-workspace-filters :is([aria-label=Etapas], [aria-label=Redes]) { max-height: 290px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--input) transparent; }
+.assets-workspace-filters [aria-label=Etapas] button { font-size: 11px; padding: 9px 7px; }
+.assets-workspace-filters [aria-label=Redes] button { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; align-items: center; gap: 8px; min-height: 36px; padding: 9px 7px; border: 0; font-size: 11px; }
+.assets-workspace-filters .network-filter-code { display: none; }
+.assets-workspace-filters .network-filter-name { min-width: 0; color: inherit; }
+.assets-result-list > section:first-child > div > div { gap: 14px; }
+.assets-result-list > section:first-child h3 { font-size: 16px; letter-spacing: -.03em; }
+.assets-result-list > section:first-child h3 + p { font-size: 11px; }
+.assets-result-list > section:first-child .grid { gap: 6px; grid-template-columns: repeat(2, minmax(0,1fr)); width: 100%; }
+.assets-result-list > section:first-child .grid > div { padding: 8px; border: 0; background: var(--background); }
+.assets-result-list > section:first-child .grid p:first-child { font-size: 18px; }
+.assets-result-list > section:first-child .grid p:last-child { font-size: 10px; }
+.assets-result-list [aria-label='Activos de la etapa'] { grid-template-columns: minmax(0, 1fr); gap: 12px; max-height: 460px; overflow-y: auto; padding: 3px; margin: -3px; scrollbar-width: thin; scrollbar-color: var(--input) transparent; }
+.assets-result-list [aria-label='Activos de la etapa'] > li > button:first-child { flex-direction: row; border-radius: 12px; }
+.assets-result-list [aria-label='Activos de la etapa'] > li > button:first-child > div:first-child { width: 33%; min-width: 105px; height: auto; min-height: 176px; flex-shrink: 0; border-bottom: 0; border-right: 1px solid var(--border); }
+.assets-result-list [aria-label='Activos de la etapa'] img { max-height: 230px; }
+.assets-result-list [aria-label='Activos de la etapa'] > li > button:first-child > div:nth-child(2) { padding: 14px 12px 42px; min-width: 0; }
+.assets-result-list [aria-label='Activos de la etapa'] > li > button:first-child .mt-auto { margin-top: 3px; }
+.asset-row-metadata { display: grid; gap: 5px; margin-top: 8px; color: var(--muted-foreground); font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
+.asset-row-metadata .fur-code { font-size: 9px; color: var(--muted-foreground); }
+.asset-row-criticality { color: var(--foreground); }
+.asset-row-fur { position: absolute; bottom: 13px; right: 13px; font-size: 11px; font-weight: 600; color: var(--foreground); border-bottom: 1px solid var(--fur-gold-500); padding-bottom: 2px; }
+.asset-row-fur:focus-visible { outline: 3px solid var(--ring); outline-offset: 4px; }
+.asset-map-views { display: flex; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.asset-map-views button { flex: 1; padding: 8px; border-radius: 8px; font-size: 11px; color: var(--muted-foreground); }
+.asset-map-views button[aria-pressed=true] { color: var(--foreground); background: var(--muted); font-weight: 600; }
+.asset-map-views button:focus-visible { outline: 3px solid var(--ring); }
+.assets-workspace-inspector .assets-map-panel fieldset { gap: 10px; }
+.assets-workspace-inspector .assets-map-panel fieldset label { font-size: 10px; }
+.assets-workspace-inspector .assets-map-panel [data-slot=button] { font-size: 10px; height: 28px; }
+.layout-map-note { padding: 12px; border-top: 1px solid var(--border); font-size: 10px; line-height: 1.7; color: var(--muted-foreground); }
+.geo-map-canvas[data-reference-layout=true] { width: 100%; }
+.geo-map-canvas[data-reference-layout=true] > img { width: 100%; max-height: none; }
+.layout-stage-chip { border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 8px #061a3640; }
+.layout-stage-chip span:first-child { padding: 3px 5px; font-size: 9px; }
+.layout-stage-chip span:nth-child(2) { display: none; }
+.layout-stage-chip[aria-pressed=true] { outline: 4px solid #ffda4870; }
+.layout-asset-pointer { margin-top: 4px; width: 20px; }
+.layout-asset-pointer > span:first-child { border-radius: 50% 50% 0 50%; transform: rotate(45deg); background: #ffda48; color: #08254c; }
+.layout-asset-pointer > span:first-child svg { transform: rotate(-45deg); }
+.layout-asset-pointer > span:last-child { position: absolute; top: 0; left: 0; margin-top: 28px; margin-left: -18px; width: max-content; max-width: 130px; background: #102644; color: white; border: 1px solid #ffda48; padding: 5px 7px; }
+.layout-asset-pointer-left > span:last-child { left: auto; right: 0; margin-left: 0; }
+.layout-asset-pointer > span:last-child > span:last-child { font-size: 9px; }
+/* Desktop workbench: filters, dense results and map/detail share the viewport. */
+@media (min-width: 1200px) {
+  .app-shell:has(.assets-workspace) .app-main { max-width: 1800px; padding: 12px 18px 18px; }
+  .app-shell:has(.assets-workspace) .header-top { min-height: 56px; padding-block: 6px; max-width: 1800px; }
+  .app-shell:has(.assets-workspace) .header-top .brand-logo img { width: 42px; height: 34px; }
+  .app-shell:has(.assets-workspace) .header-top .brand-logo strong { font-size: 23px; }
+  .app-shell:has(.assets-workspace) .header-top .brand-logo span span { font-size: 9px; }
+  .app-shell:has(.assets-workspace) .header-top .brand-logo small { font-size: 8px; }
+  .app-shell:has(.assets-workspace) .header-search { height: 36px; }
+  .app-shell:has(.assets-workspace) .header-nav { padding-bottom: 4px; }
+  .app-shell:has(.assets-workspace) .header-nav > nav { max-width: 1780px; }
+  .app-shell:has(.assets-workspace) .header-nav > nav > :is(a, button) { height: 28px; }
+  .assets-workspace .page-banner { gap: 12px; margin-bottom: 10px; }
+  .assets-workspace .banner-title { font-size: 25px; }
+  .assets-workspace .banner-context { margin-bottom: 4px; }
+  .assets-workspace .banner-description { margin-top: 4px; font-size: 10px; }
+  .assets-workspace .banner-actions :is(button, input) { height: 32px; font-size: 11px; }
+  .assets-workspace .module-shortcuts[data-variant=icons] { padding: 6px 10px; margin-bottom: 10px; border-radius: 10px; }
+  .assets-workspace .module-shortcuts[data-variant=icons] .module-group-heading { display: none; }
+  .assets-workspace .module-shortcuts[data-variant=icons] .module-group-links { gap: 2px; padding: 0; }
+  .assets-workspace .module-shortcuts[data-variant=icons] .module-group-links .module-shortcut { flex-direction: row; min-width: 0; flex-basis: 0; padding: 4px; gap: 4px; }
+  .assets-workspace .module-shortcut-icon { flex-shrink: 0; width: 25px; height: 25px; border-radius: 6px; }
+  .assets-workspace .module-shortcut-icon svg { width: 15px; height: 15px; }
+  .assets-workspace .module-shortcuts[data-variant=icons] .module-shortcut-label { font-size: 9px; text-align: left; }
+  .assets-workspace > [aria-label='Indicadores de la planta'] { gap: 8px; margin-bottom: 10px; }
+  .assets-workspace > [aria-label='Indicadores de la planta'] > li { padding: 8px 10px; border-radius: 10px; }
+  .assets-workspace > [aria-label='Indicadores de la planta'] p { font-size: 18px; }
+  .assets-workspace > [aria-label='Indicadores de la planta'] p:last-child { margin-top: 2px; font-size: 9px; }
+  .assets-workspace-grid { height: max(480px, calc(100dvh - 300px)); grid-template-columns: 220px minmax(0, 1.25fr) minmax(360px, 1fr); grid-template-areas: 'filters results inspector'; grid-template-rows: minmax(0, 1fr); gap: 12px; align-items: stretch; }
+  .assets-workspace-grid section { min-height: 0; border-radius: 10px; }
+  .assets-workspace-grid section > header { padding: 9px 11px; }
+  .assets-workspace-grid section > header h2 { font-size: 11px; }
+  .assets-workspace-filters { height: 100%; min-height: 0; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+  .assets-workspace-filters > section { display: flex; flex-direction: column; }
+  .assets-workspace-filters > section > header { flex-shrink: 0; }
+  .assets-workspace-filters > section > div { flex: 1; min-height: 0; overflow-y: auto; }
+  .assets-workspace-filters :is([aria-label=Etapas], [aria-label=Redes]) { max-height: none; overflow: visible; }
+  .assets-workspace-filters :is([aria-label=Etapas], [aria-label=Redes]) button { min-height: 28px; padding-block: 5px; font-size: 10px; }
+  .assets-workspace-results, .assets-workspace-results > div { min-height: 0; height: 100%; }
+  .assets-result-list { display: flex; flex-direction: column; gap: 10px; height: 100%; min-height: 0; }
+  .assets-result-list > section:first-child { flex-shrink: 0; }
+  .assets-result-list > section:first-child > header { display: none; }
+  .assets-result-list > section:first-child > div { padding: 10px; }
+  .assets-result-list > section:first-child > div > div { gap: 8px; }
+  .assets-result-list > section:first-child h3 { font-size: 13px; }
+  .assets-result-list > section:first-child .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+  .assets-result-list > section:first-child .grid > div { gap: 5px; padding: 5px; }
+  .assets-result-list > section:first-child .grid svg { width: 14px; height: 14px; }
+  .assets-result-list > section:first-child .grid p:first-child { font-size: 15px; }
+  .assets-result-list > section:first-child .grid p:last-child { font-size: 8px; }
+  .assets-result-list > section:last-child { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-top: 0; }
+  .assets-result-list > section:last-child > header { flex-shrink: 0; }
+  .assets-result-list > section:last-child > div { flex: 1; min-height: 0; overflow-y: auto; padding: 8px; }
+  .assets-result-list > section:last-child > div > p { font-size: 10px; }
+  .assets-result-list [aria-label='Activos de la etapa'] { max-height: none; overflow: visible; gap: 8px; }
+  .assets-result-list [aria-label='Activos de la etapa'] > li > button:first-child { height: auto; }
+  .assets-result-list [aria-label='Activos de la etapa'] > li > button:first-child > div:first-child { width: 120px; min-width: 100px; min-height: 132px; }
+  .assets-result-list [aria-label='Activos de la etapa'] img { height: 132px; max-height: 150px; }
+  .assets-result-list [aria-label='Activos de la etapa'] > li > button:first-child > div:nth-child(2) { padding: 9px 10px 29px; }
+  .assets-result-list [aria-label='Activos de la etapa'] > li > button:first-child p { font-size: 11px; }
+  .assets-result-list [aria-label='Activos de la etapa'] > li > button:first-child .mt-auto { font-size: 9px; padding-top: 0; }
+  .asset-row-metadata { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 10px; margin-top: 5px; font-size: 9px; }
+  .asset-row-metadata > .fur-code { grid-column: 1 / -1; font-size: 9px; }
+  .asset-row-fur { bottom: 8px; right: 10px; font-size: 10px; }
+  .assets-result-list [aria-label='Activos de la etapa'] > li > button:last-child:not(:first-child) { height: 23px; font-size: 9px; }
+  .assets-workspace-inspector { grid-area: inspector; display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; scrollbar-width: thin; padding: 2px; margin: -2px; }
+  .assets-workspace-inspector > * { flex-shrink: 0; }
+  .assets-workspace-inspector > .assets-map-panel, .assets-workspace-inspector > .asset-ficha-panel { grid-area: auto; min-height: 0; }
+  .assets-workspace-inspector > .asset-ficha-panel { max-height: 560px; }
+  .assets-map-panel { display: flex; flex-direction: column; }
+  .assets-map-panel > header { flex-shrink: 0; }
+  .assets-map-panel > div { flex: none; min-height: 0; display: flex; flex-direction: column; }
+  .assets-map-panel > div > :not(.asset-map-viewport) { flex-shrink: 0; }
+  .asset-map-views { padding: 5px 8px; }
+  .asset-map-views button { padding: 5px; font-size: 10px; }
+  .assets-map-panel .asset-map-viewport { display: block; flex: none; overflow: auto; background: var(--muted); }
+  .asset-map-viewport .geo-map-canvas[data-reference-layout=true] { width: 100%; max-width: 100%; }
+  .layout-map-note { padding: 6px 9px; font-size: 9px; line-height: 1.4; }
+  .assets-workspace-inspector .asset-ficha-columns { grid-template-columns: minmax(0, 1fr); }
+  .assets-workspace-inspector .asset-ficha-technical { border-left: 0; }
+  .asset-ficha-panel > div > div:first-child { padding: 8px; }
+  .asset-ficha-panel > div > div:first-child > div:first-child { width: 48px; height: 48px; }
+  .asset-ficha-panel .text-lg { font-size: 12px; }
+  .asset-ficha-panel dl > div { grid-template-columns: 110px minmax(0, 1fr); font-size: 11px; padding-block: 5px; }
+}
+.asset-context { display: grid; gap: 10px; min-width: 0; }
+.asset-context > section > div, .asset-context-columns > section > div { font-size: 11px; line-height: 1.6; }
+.asset-context p { color: var(--muted-foreground); }
+.asset-context-columns { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+.asset-context-columns section { min-width: 0; }
+.asset-context-columns ul { display: grid; gap: 10px; margin-bottom: 12px; }
+.asset-context-columns li { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.asset-context-columns li > svg { width: 15px; height: 15px; flex-shrink: 0; color: var(--ring); }
+.asset-context-columns li span { min-width: 0; }
+.asset-context-columns li strong { display: block; font-size: 10px; overflow-wrap: anywhere; }
+.asset-context-columns small { display: block; color: var(--muted-foreground); font-size: 9px; }
+.asset-context-columns a { display: inline-flex; align-items: center; gap: 5px; margin-top: 10px; font-weight: 600; font-size: 10px; }
+.asset-context-columns a > svg { width: 12px; height: 12px; }
+.asset-context-readings { display: flex; gap: 16px; flex-wrap: wrap; }
+.asset-context-readings dt { font-size: 10px; color: var(--muted-foreground); }
+.asset-context-readings dd { font-size: 17px; font-weight: 600; }
+.asset-context-links { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+.asset-context-links a { display: flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--border); padding: 12px; border-radius: 10px; font-size: 11px; }
+.asset-context-links a > svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--muted-foreground); }
+.asset-context-links a > span { flex: 1; }
+.asset-context-links small { display: block; font-size: 9px; margin-top: 3px; color: var(--muted-foreground); }
+.asset-context a:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; }
+.asset-context a:hover { color: var(--ring); }
+@media (max-width: 1199px) and (min-width: 768px) {
+  .assets-workspace-inspector { display: grid; grid-area: inspector; gap: 12px; min-width: 0; }
+  .assets-workspace-grid { grid-template-areas: 'filters results' 'filters inspector'; }
+  .assets-workspace-inspector > .assets-map-panel, .assets-workspace-inspector > .asset-ficha-panel { grid-area: auto; }
+}
+@media (max-width: 767px) {
+  .assets-workspace-grid { grid-template-areas: 'filters' 'results' 'inspector'; }
+  .assets-workspace-inspector { display: grid; grid-area: inspector; gap: 12px; }
+  .assets-workspace-inspector > .assets-map-panel, .assets-workspace-inspector > .asset-ficha-panel { grid-area: auto; }
+  .asset-context-columns, .asset-context-links { grid-template-columns: minmax(0,1fr); }
+}
+@media (max-width: 1199px) {
+  .assets-workspace-grid { grid-template-columns: 200px minmax(0, 1fr); grid-template-areas: 'filters results' 'filters inspector'; }
+  .assets-workspace-inspector > .assets-map-panel .geo-map-canvas[data-reference-layout=true] { max-width: 620px; }
+}
+@media (max-width: 767px) {
+  .assets-workspace-grid { grid-template-columns: minmax(0,1fr); grid-template-areas: 'filters' 'results' 'inspector'; }
+  .assets-workspace-inspector .asset-ficha-columns { grid-template-columns: minmax(0, 1fr); }
+  .assets-workspace-inspector .asset-ficha-technical { border-left: 0; }
+  .assets-workspace-inspector > .asset-ficha-panel { max-height: 70dvh; }
+  .assets-workspace-filters { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+  .assets-workspace-filters [aria-label=Etapas], .assets-workspace-filters [aria-label=Redes] { max-height: 230px; overflow-y: auto; }
+}

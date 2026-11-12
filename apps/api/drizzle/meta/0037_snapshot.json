@@ -1,5 +1,5 @@
 {
-  "id": "7f516eba-6202-4860-99f8-c7a0417913bf",
+  "id": "6e1d5955-a2df-452f-bfab-7840d1690c89",
   "prevId": "1e80a7d6-974e-4032-8462-db61bb57f118",
   "version": "7",
   "dialect": "postgresql",
@@ -2792,20 +2792,6 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
-        },
-        "specifications": {
-          "name": "specifications",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
-        },
-        "technical_data": {
-          "name": "technical_data",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
         },
         "fur_code": {
           "name": "fur_code",
@@ -7279,6 +7265,107 @@
       },
       "isRLSEnabled": false
     },
+    "lms.lesson_playback": {
+      "name": "lesson_playback",
+      "schema": "lms",
+      "columns": {
+        "enrollment_id": {
+          "name": "enrollment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lesson_id": {
+          "name": "lesson_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position_seconds": {
+          "name": "position_seconds",
+          "type": "numeric(12, 3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "duration_seconds": {
+          "name": "duration_seconds",
+          "type": "numeric(12, 3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "watched_seconds": {
+          "name": "watched_seconds",
+          "type": "numeric(12, 3)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "lesson_playback_enrollment_id_enrollments_id_fk": {
+          "name": "lesson_playback_enrollment_id_enrollments_id_fk",
+          "tableFrom": "lesson_playback",
+          "tableTo": "enrollments",
+          "schemaTo": "lms",
+          "columnsFrom": [
+            "enrollment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "lesson_playback_lesson_id_lessons_id_fk": {
+          "name": "lesson_playback_lesson_id_lessons_id_fk",
+          "tableFrom": "lesson_playback",
+          "tableTo": "lessons",
+          "schemaTo": "lms",
+          "columnsFrom": [
+            "lesson_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "lesson_playback_enrollment_id_lesson_id_pk": {
+          "name": "lesson_playback_enrollment_id_lesson_id_pk",
+          "columns": [
+            "enrollment_id",
+            "lesson_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "lesson_playback_nonnegative": {
+          "name": "lesson_playback_nonnegative",
+          "value": "\"lms\".\"lesson_playback\".\"position_seconds\" >= 0 and \"lms\".\"lesson_playback\".\"duration_seconds\" >= 0 and \"lms\".\"lesson_playback\".\"watched_seconds\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "lms.lesson_progress": {
       "name": "lesson_progress",
       "schema": "lms",
@@ -7346,6 +7433,137 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "lms.lesson_videos": {
+      "name": "lesson_videos",
+      "schema": "lms",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "lesson_id": {
+          "name": "lesson_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_key": {
+          "name": "source_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "playback_key": {
+          "name": "playback_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "original_name": {
+          "name": "original_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING'"
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "duration_seconds": {
+          "name": "duration_seconds",
+          "type": "numeric(12, 3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "size_bytes": {
+          "name": "size_bytes",
+          "type": "numeric(18, 0)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lease_token": {
+          "name": "lease_token",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lease_at": {
+          "name": "lease_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_lesson_videos_status": {
+          "name": "idx_lesson_videos_status",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "lesson_videos_lesson_id_lessons_id_fk": {
+          "name": "lesson_videos_lesson_id_lessons_id_fk",
+          "tableFrom": "lesson_videos",
+          "tableTo": "lessons",
+          "schemaTo": "lms",
+          "columnsFrom": [
+            "lesson_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "lesson_videos_lesson_id_unique": {
+          "name": "lesson_videos_lesson_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "lesson_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "lesson_videos_status": {
+          "name": "lesson_videos_status",
+          "value": "\"lms\".\"lesson_videos\".\"status\" in ('PENDING','PROCESSING','READY','FAILED')"
+        }
+      },
       "isRLSEnabled": false
     },
     "lms.lessons": {

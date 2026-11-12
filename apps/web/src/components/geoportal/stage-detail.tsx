@@ -3,6 +3,8 @@ import { rectSortingStrategy, SortableContext, sortableKeyboardCoordinates, useS
 import { CSS } from '@dnd-kit/utilities'
 import { AlertTriangle, CheckCircle2, Cog, GripVertical, Package, Wrench } from 'lucide-react'
 import type { KeyboardEventHandler, PointerEventHandler } from 'react'
+import { Link } from 'react-router-dom'
+import { criticalityLabel } from '@/lib/assets'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { AssetItem } from '@/features/assets/use-assets'
 import type { PlantStage } from '@/features/plant/use-plant-data'
@@ -30,7 +32,7 @@ function Stat({ icon: Icon, value, label, color }: { icon: typeof Cog; value: nu
 }
 
 /** Tarjeta de un activo; con `sortable` lleva un asa para arrastrarla a otra posición (siempre visible, como en las galerías de fotos). */
-function AssetCard({ asset, selected, onSelect, sortable }: { asset: AssetItem; selected: boolean; onSelect: () => void; sortable: boolean }) {
+function AssetCard({ asset, selected, onSelect, sortable, plantSlug }: { asset: AssetItem; selected: boolean; onSelect: () => void; sortable: boolean; plantSlug?: string }) {
   const meta = STATUS_META[asset.status as AssetStatus]
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: asset.id, disabled: !sortable })
 
@@ -66,8 +68,16 @@ function AssetCard({ asset, selected, onSelect, sortable }: { asset: AssetItem; 
           <p className="fur-code text-xs font-semibold text-fur-navy-900 group-hover:underline">{asset.tag}</p>
           <p className="line-clamp-2 text-sm leading-tight font-medium">{asset.name}</p>
           <p className="mt-auto pt-1 text-[11px] text-fur-gray-600">{asset.family.name}</p>
+          {plantSlug && <div className="asset-row-metadata">
+            <span className="fur-code">{asset.furCode}</span>
+            <span>{asset.stage ? `${asset.stage.code} · ${asset.stage.name}` : 'Sin etapa asignada'}</span>
+            <span>{asset.manufacturer ? `${asset.manufacturer} · ` : ''}{asset.model.name}</span>
+            {asset.location && <span>{asset.location}</span>}
+            <span className="asset-row-criticality">Criticidad: {criticalityLabel(asset.criticality)}</span>
+          </div>}
         </div>
       </button>
+      {plantSlug && <Link className="asset-row-fur" to={`/plants/${plantSlug}/assets/${asset.id}`} onPointerDown={(event) => event.stopPropagation()}>Ver ficha FUR ↗</Link>}
       {sortable && (
         <button
           type="button"
@@ -99,6 +109,8 @@ export function StageDetail({
   filtered,
   canReorder = false,
   onReorder,
+  presentation = 'grid',
+  plantSlug,
 }: {
   stage: PlantStage | undefined
   /** Nombre de la red transversal elegida, si hay una. */
@@ -116,6 +128,8 @@ export function StageDetail({
   canReorder?: boolean
   /** Recibe los ids de todas las tarjetas en el orden en que deben quedar. */
   onReorder?: (assetIds: string[]) => void
+  presentation?: 'grid' | 'rows'
+  plantSlug?: string
 }) {
   const of = (status: AssetStatus) => assets.filter((a) => a.status === status).length
   const shown = expanded ? assets : assets.slice(0, VISIBLE_ASSETS)
@@ -134,7 +148,7 @@ export function StageDetail({
   }
 
   return (
-    <>
+    <div className={presentation === 'rows' ? 'assets-result-list' : undefined}>
       <GeoPanel title="Etapa destacada" icon={Cog}>
         {!stage ? (
           <p className="text-sm text-muted-foreground">Elige una etapa del listado.</p>
@@ -180,14 +194,14 @@ export function StageDetail({
           <>
             {sortable && (
               <p className="mb-2 text-xs text-fur-gray-600">
-                Arrastra una tarjeta (o su botón «Mover») hacia la posición que quieras, por ejemplo la primera. El orden se guarda al instante.
+                {presentation === 'rows' ? 'Arrastra los activos para cambiar su orden.' : 'Arrastra una tarjeta (o su botón «Mover») hacia la posición que quieras, por ejemplo la primera. El orden se guarda al instante.'}
               </p>
             )}
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
               <SortableContext items={shown.map((a) => a.id)} strategy={rectSortingStrategy}>
                 <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4" aria-label="Activos de la etapa">
                   {shown.map((a) => (
-                    <AssetCard key={a.id} asset={a} selected={a.id === selectedAssetId} onSelect={() => onSelectAsset(a.id)} sortable={sortable} />
+                    <AssetCard key={a.id} asset={a} selected={a.id === selectedAssetId} onSelect={() => onSelectAsset(a.id)} sortable={sortable} plantSlug={presentation === 'rows' ? plantSlug : undefined} />
                   ))}
                 </ul>
               </SortableContext>
@@ -195,6 +209,6 @@ export function StageDetail({
           </>
         )}
       </GeoPanel>
-    </>
+    </div>
   )
 }

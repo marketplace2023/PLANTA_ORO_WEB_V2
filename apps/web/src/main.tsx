@@ -6,8 +6,12 @@ import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/features/auth/auth-context'
 import { PlantProvider } from '@/features/plant/plant-context'
+import { ThemeToggle } from '@/components/theme-toggle'
+import { initializeTheme } from '@/lib/theme'
 import App from './App'
 import './index.css'
+
+initializeTheme()
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
@@ -15,6 +19,7 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
+    <ThemeToggle />
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>

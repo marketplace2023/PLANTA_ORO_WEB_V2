@@ -139,7 +139,7 @@ describe('Marketplace', () => {
     expect(within(card).getByText('USD 15,360.00')).toBeInTheDocument()
     expect(within(card).getByText(/En stock · 3 juegos/)).toBeInTheDocument()
     expect(within(card).getByText('Destacado')).toBeInTheDocument()
-    expect(within(card).getByText('Verificado')).toBeInTheDocument()
+    expect(within(card).getByText('Tienda verificada')).toBeInTheDocument()
     expect(within(card).getByText('4.7 / 5')).toBeInTheDocument()
     const quoted = screen.getByText('Rotor a medida').closest('[data-slot="card"]') as HTMLElement
     expect(within(quoted).getByText('A cotizar')).toBeInTheDocument()
@@ -196,7 +196,7 @@ describe('Marketplace', () => {
     auth.status = 'authenticated'
     setup({ 'GET /marketplace/listings/l1': { body: listing() }, 'GET /providers/p1': { body: providerDetail({ canManage: false }) } })
     render(<MarketplacePage />, '/marketplace', '/marketplace?listing=l1')
-    const link = await screen.findByRole('link', { name: /Contactar al proveedor/ })
+    const link = await screen.findByRole('link', { name: /Contactar al vendedor/ })
     expect(link.getAttribute('href')).toMatch(/^mailto:ventas@andinos\.test\?subject=/)
   })
 
@@ -207,79 +207,39 @@ describe('Marketplace', () => {
   })
 })
 
-describe('Proveedores', () => {
-  it('lista con verificación, rating (o "Sin calificaciones") y conteo de productos', async () => {
-    setup()
-    render(<ProvidersPage />, '/providers', '/providers')
-    const card = (await screen.findByRole('button', { name: 'Repuestos Andinos' })).closest('[data-slot="card"]') as HTMLElement
-    expect(within(card).getByText('Verificado')).toBeInTheDocument()
-    expect(within(card).getByText('ISO 9001')).toBeInTheDocument()
-    expect(within(card).getByText('2 productos publicados')).toBeInTheDocument()
-    const other = screen.getByRole('button', { name: 'Sin calificar' }).closest('[data-slot="card"]') as HTMLElement
-    expect(within(other).getByText('Sin calificaciones')).toBeInTheDocument()
-    expect(within(other).getByText('1 producto publicado')).toBeInTheDocument()
+describe('Marketplace unificado y rutas antiguas',()=>{
+  it('offers the verified-store and individual filters to buyers',async()=>{
+    const m=setup()
+    render(<MarketplacePage />, '/marketplace','/marketplace')
+    await screen.findByText('Placa de revestimiento SAG')
+    await userEvent.click(screen.getByRole('combobox',{name:'Tipo de vendedor'}))
+    await userEvent.click(await screen.findByRole('option',{name:'Particulares no verificados'}))
+    await waitFor(()=>expect(calls(m,'/marketplace/listings').at(-1)!.query.get('sellerType')).toBe('INDIVIDUAL'))
+    expect(screen.queryByRole('button',{name:/Registrar/})).not.toBeInTheDocument()
+    expect(screen.queryByRole('link',{name:/Gestionar/})).not.toBeInTheDocument()
   })
-
-  it('filtros: etapa, país, rating y verificados llegan a la API', async () => {
-    const m = setup()
-    render(<ProvidersPage />, '/providers', '/providers?country=CL&ratingMin=4&verified=1&family=MOLINOS')
-    await screen.findByRole('button', { name: 'Repuestos Andinos' })
-    const q = calls(m, '/providers').at(-1)!.query
-    expect([q.get('country'), q.get('ratingMin'), q.get('verified'), q.get('family')]).toEqual(['CL', '4', '1', 'MOLINOS'])
+  it('browses sellers inside marketplace without registration or management controls',async()=>{
+    setup({'GET /providers/p1':{body:providerDetail({canManage:true})}})
+    render(<MarketplacePage />, '/marketplace','/marketplace?view=sellers&seller=p1')
+    const dialog=await screen.findByRole('dialog')
+    await within(dialog).findByText('Tienda verificada')
+    expect(within(dialog).queryByRole('link',{name:/Gestionar/})).not.toBeInTheDocument()
+    expect(within(dialog).queryByRole('button',{name:/Editar/})).not.toBeInTheDocument()
   })
-
-  it('anónimo: invita a iniciar sesión para registrar; con sesión abre el registro y valida', async () => {
-    setup()
-    const { unmount } = render(<ProvidersPage />, '/providers', '/providers')
-    expect(await screen.findByRole('link', { name: /Inicia sesión para registrar/ })).toBeInTheDocument()
-    unmount()
-
-    auth.user = { id: 'u1', isGlobalAdmin: false }
-    auth.status = 'authenticated'
-    const m = setup({ 'POST /providers': { status: 201, body: providerDetail({ status: 'PENDING' }) } })
-    render(<ProvidersPage />, '/providers', '/providers')
-    await userEvent.click(await screen.findByRole('button', { name: /Registrar mi empresa/ }))
-    const dialog = await screen.findByRole('dialog')
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Enviar solicitud' }))
-    expect(await within(dialog).findByText('Requerido')).toBeInTheDocument()
-    expect(calls(m, '/providers', 'POST')).toHaveLength(0)
-
-    await userEvent.type(within(dialog).getByLabelText('Razón social'), 'Mi Empresa SAC')
-    await userEvent.type(within(dialog).getByLabelText('Certificaciones'), 'ISO 9001, , OSHA, ISO 9001')
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Enviar solicitud' }))
-    await waitFor(() => expect(body(m, 'POST', '/providers')).toEqual({ organizationName: 'Mi Empresa SAC', countryCode: 'PE', certifications: ['ISO 9001', 'OSHA'] }))
+  it('redirects the former directory and retains the verification filter',async()=>{
+    const m=setup()
+    renderWithProviders(<Routes><Route path="providers" element={<ProvidersPage />}/><Route path="marketplace" element={<MarketplacePage />}/></Routes>,{route:'/providers?verified=0'})
+    await screen.findByRole('button',{name:'Sin calificar'})
+    expect(calls(m,'/providers').at(-1)!.query.get('verified')).toBe('0')
+    expect(screen.getByRole('tab',{name:'Vendedores'})).toHaveAttribute('aria-selected','true')
   })
-
-  it('errores del servidor por campo (web inválida) aparecen bajo el campo', async () => {
-    auth.user = { id: 'u1', isGlobalAdmin: false }
-    auth.status = 'authenticated'
-    setup({ 'POST /providers': { status: 400, body: { message: 'Datos inválidos', errors: [{ path: 'website', message: 'URL inválida' }] } } })
-    render(<ProvidersPage />, '/providers', '/providers')
-    await userEvent.click(await screen.findByRole('button', { name: /Registrar mi empresa/ }))
-    const dialog = await screen.findByRole('dialog')
-    await userEvent.type(within(dialog).getByLabelText('Razón social'), 'X Corp')
-    await userEvent.type(within(dialog).getByLabelText('Sitio web'), 'javascript:alert(1)')
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Enviar solicitud' }))
-    expect(await within(dialog).findByText('URL inválida')).toBeInTheDocument()
-  })
-
-  it('mis organizaciones aparecen como accesos directos a su gestión', async () => {
-    auth.user = { id: 'u1', isGlobalAdmin: false }
-    auth.status = 'authenticated'
-    setup({ 'GET /providers/mine': { body: [{ ...provider(), myRole: 'OWNER' }] } })
-    render(<ProvidersPage />, '/providers', '/providers')
-    expect(await screen.findByRole('link', { name: /Repuestos Andinos/ })).toHaveAttribute('href', '/providers/p1/manage')
-  })
-
-  it('ficha: enlaza el correo solo con sesión y ofrece gestionar a quien puede', async () => {
-    setup({ 'GET /providers/p1': { body: providerDetail({ contactEmail: null, canManage: false }) } })
-    render(<ProvidersPage />, '/providers', '/providers?provider=p1')
-    const sheet = await screen.findByRole('dialog')
-    expect(await within(sheet).findByText(/para ver el correo de contacto/)).toBeInTheDocument()
-    expect(within(sheet).queryByRole('link', { name: /Gestionar/ })).not.toBeInTheDocument()
-    const site = within(sheet).getByRole('link', { name: /Sitio web/ })
-    expect(site).toHaveAttribute('rel', expect.stringContaining('noopener'))
-    expect(site).toHaveAttribute('target', '_blank')
+  it('turns old seller-management links into a read-only profile',async()=>{
+    const m=setup({'GET /providers/p1':{body:providerDetail({canManage:true})}})
+    renderWithProviders(<Routes><Route path="providers/:id/manage" element={<ProviderManagePage />}/><Route path="marketplace" element={<MarketplacePage />}/></Routes>,{route:'/providers/p1/manage?tab=products'})
+    await screen.findByRole('dialog')
+    expect(screen.queryByRole('button',{name:/Nuevo producto/})).not.toBeInTheDocument()
+    expect(screen.queryByRole('link',{name:/Gestionar/})).not.toBeInTheDocument()
+    expect(m.calls.filter(c=>c.method!=='GET')).toHaveLength(0)
   })
 })
 
@@ -320,122 +280,6 @@ describe('Servicios profesionales', () => {
     setup({ 'GET /professional-services': { body: page([]) } })
     render(<ProfessionalsPage />, '/professionals', '/professionals')
     expect(await screen.findByText('Aún no hay servicios publicados')).toBeInTheDocument()
-  })
-})
-
-describe('Gestión de proveedor', () => {
-  const route = '/providers/p1/manage'
-  const mount = (over: Record<string, Reply> = {}) => {
-    const m = setup({
-      'GET /providers/p1': { body: providerDetail() },
-      'GET /providers/p1/dashboard': { body: { listingsActive: 3, listingsDraft: 2, listingsArchived: 1, featured: 1, onRequestPricing: 1 } },
-      'GET /providers/p1/listings': { body: page([listing({ id: 'l9', title: 'Borrador X', status: 'DRAFT', isFeatured: false })]) },
-      'GET /providers/p1/members': { body: [{ userId: 'u1', email: 'owner@x.test', firstName: 'Olga', lastName: 'Dueña', role: 'OWNER', createdAt: '2026-09-01T00:00:00.000Z' }] },
-      ...over,
-    })
-    render(<ProviderManagePage />, '/providers/:id/manage', over.__route ? (over.__route as unknown as string) : route)
-    return m
-  }
-  beforeEach(() => {
-    auth.user = { id: 'u1', isGlobalAdmin: false }
-    auth.status = 'authenticated'
-  })
-
-  it('sin sesión pide iniciar sesión', async () => {
-    auth.user = null
-    auth.status = 'anonymous'
-    mount()
-    expect(await screen.findByText('Inicia sesión')).toBeInTheDocument()
-  })
-
-  it('sin permiso de gestión no muestra el panel', async () => {
-    mount({ 'GET /providers/p1': { body: providerDetail({ canManage: false, myRole: null }) } })
-    expect(await screen.findByText('Sin acceso a la gestión')).toBeInTheDocument()
-  })
-
-  it('panel: indicadores reales y compras como no disponible', async () => {
-    mount()
-    const card = (t: string) => screen.getByText(t).closest('[data-slot="card"]') as HTMLElement
-    await waitFor(() => expect(card('Productos publicados')).toHaveTextContent('3'))
-    expect(card('Borradores')).toHaveTextContent('2')
-    expect(card('Pedidos')).toHaveTextContent('—')
-  })
-
-  it('un proveedor pendiente ve el aviso y no puede crear productos', async () => {
-    mount({ 'GET /providers/p1': { body: providerDetail({ status: 'PENDING' }) } })
-    expect(await screen.findByText(/pendiente de aprobación: todavía no apareces/)).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('tab', { name: 'Productos' }))
-    expect(await screen.findByRole('button', { name: /Nuevo producto/ })).toBeDisabled()
-  })
-
-  it('publicar un borrador envía status ACTIVE y muestra el error del servidor (falta etapa)', async () => {
-    const m = mount({ 'PATCH /providers/p1/listings/l9': { status: 400, body: { message: 'Datos inválidos', errors: [{ path: 'stageCodes', message: 'Indica al menos una etapa para publicar el producto' }] } } })
-    await userEvent.click(await screen.findByRole('tab', { name: 'Productos' }))
-    await userEvent.click(await screen.findByRole('button', { name: 'Publicar Borrador X' }))
-    await waitFor(() => expect(body(m, 'PATCH', '/providers/p1/listings/l9')).toEqual({ status: 'ACTIVE' }))
-  })
-
-  it('"Destacar" solo lo ve el administrador del ecosistema', async () => {
-    mount()
-    await userEvent.click(await screen.findByRole('tab', { name: 'Productos' }))
-    await screen.findByText('Borrador X')
-    expect(screen.queryByRole('button', { name: /Destacar/ })).not.toBeInTheDocument()
-  })
-
-  it('administrador: ve Destacar y los controles de confianza', async () => {
-    auth.user = { id: 'admin', isGlobalAdmin: true }
-    const m = mount({ 'PATCH /providers/p1': { body: providerDetail() } })
-    await userEvent.click(await screen.findByRole('tab', { name: 'Productos' }))
-    expect(await screen.findByRole('button', { name: 'Destacar Borrador X' })).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('tab', { name: 'Perfil' }))
-    await userEvent.click(await screen.findByRole('button', { name: /Administrar/ }))
-    const dialog = await screen.findByRole('dialog')
-    await userEvent.clear(within(dialog).getByLabelText('Rating (0 a 5)'))
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Guardar' }))
-    await waitFor(() => expect(body(m, 'PATCH', '/providers/p1')).toEqual({ status: 'ACTIVE', verified: true, rating: null }))
-  })
-
-  it('el perfil no ofrece controles de confianza a un miembro', async () => {
-    mount()
-    await userEvent.click(await screen.findByRole('tab', { name: 'Perfil' }))
-    expect(await screen.findByRole('button', { name: /Editar perfil/ })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Administrar/ })).not.toBeInTheDocument()
-  })
-
-  it('crear producto: valida y envía precio numérico, familia y etapas', async () => {
-    const m = mount({ 'POST /providers/p1/listings': { status: 201, body: listing() } })
-    await userEvent.click(await screen.findByRole('tab', { name: 'Productos' }))
-    await userEvent.click(await screen.findByRole('button', { name: /Nuevo producto/ }))
-    const dialog = await screen.findByRole('dialog')
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Crear producto' }))
-    expect(await within(dialog).findAllByText('Requerido')).toHaveLength(2) // título y familia
-    expect(calls(m, '/providers/p1/listings', 'POST')).toHaveLength(0)
-
-    await userEvent.type(within(dialog).getByLabelText('Título'), 'Rodamiento')
-    await userEvent.click(within(dialog).getByRole('combobox', { name: 'Familia' }))
-    await userEvent.click(await screen.findByRole('option', { name: 'Molinos' }))
-    await userEvent.type(within(dialog).getByLabelText('Precio'), '12.5')
-    await userEvent.click(within(dialog).getByRole('checkbox', { name: /D06/ }))
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Crear producto' }))
-    await waitFor(() =>
-      expect(body(m, 'POST', '/providers/p1/listings')).toEqual({ title: 'Rodamiento', assetFamilyCode: 'MOLINOS', price: 12.5, currency: 'USD', availability: 'ON_REQUEST', stageCodes: ['D06'] }),
-    )
-  })
-
-  it('miembros: solo el responsable agrega y quita; el servidor rechaza al único responsable', async () => {
-    const m = mount({ 'DELETE /providers/p1/members/u1': { status: 409, body: { message: 'No se puede quitar al único responsable de la organización' } } })
-    await userEvent.click(await screen.findByRole('tab', { name: 'Miembros' }))
-    expect(await screen.findByLabelText('Correo de la persona')).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Quitar a Olga Dueña' }))
-    await waitFor(() => expect(calls(m, '/providers/p1/members/u1', 'DELETE')).toHaveLength(1))
-  })
-
-  it('un miembro sin rol de responsable ve la lista pero no edita', async () => {
-    mount({ 'GET /providers/p1': { body: providerDetail({ myRole: 'MEMBER' }) } })
-    await userEvent.click(await screen.findByRole('tab', { name: 'Miembros' }))
-    expect(await screen.findByText('Olga Dueña')).toBeInTheDocument()
-    expect(screen.queryByLabelText('Correo de la persona')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Quitar a/ })).not.toBeInTheDocument()
   })
 })
 

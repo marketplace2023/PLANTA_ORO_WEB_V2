@@ -4,7 +4,21 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ecosistema FUR</title>
+    <meta name="theme-color" content="#ffd21c" />
+    <meta name="description" content="Ecosistema Digital FUR para la planta de beneficio de oro: activos, procesos, proveedores, formación y gestión conectados." />
+    <title>FUR | Ecosistema Digital · Planta de Beneficio de Oro</title>
+    <script>
+      (() => {
+        let saved = document.cookie.split('; ').find(item => item.startsWith('fur-color-mode='))?.split('=')[1];
+        if (saved !== 'light' && saved !== 'dark') {
+          try { saved = localStorage.getItem('fur-color-mode'); } catch { /* Storage is optional. */ }
+        }
+        const theme = saved === 'light' || saved === 'dark' ? saved : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.classList.toggle('dark', theme === 'dark');
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

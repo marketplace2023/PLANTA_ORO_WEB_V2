@@ -1,3 +1,9 @@
+/** Solo para consulta: conserva los datos originales y oculta el marcador exacto «No aplica». */
+export function visibleSpecificationEntries(data?: Record<string, unknown> | null): Array<[string, unknown]> {
+  return Object.entries(data ?? {}).filter(([, value]) =>
+    typeof value !== 'string' || value.trim().replace(/\s+/g, ' ').toLocaleLowerCase('es') !== 'no aplica')
+}
+
 /** Presentación compartida para los valores tipados del maestro y los datos anteriores. */
 export function formatSpecificationValue(value: unknown): string {
   if (value === null || value === undefined) return '—'

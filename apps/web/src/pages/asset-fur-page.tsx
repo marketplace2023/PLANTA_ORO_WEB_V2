@@ -1,4 +1,4 @@
-import { formatSpecificationValue } from '@/lib/specification-value'
+import { formatSpecificationValue, visibleSpecificationEntries } from '@/lib/specification-value'
 import { Archive, Boxes, LockKeyhole, Pencil, SearchX, Star, Upload, Wrench } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -35,7 +35,7 @@ function Fact({ label, children }: { label: React.ReactNode; children: React.Rea
 }
 
 function KeyValueTable({ data }: { data: Record<string, unknown> | undefined }) {
-  const entries = Object.entries(data ?? {})
+  const entries = visibleSpecificationEntries(data)
   if (entries.length === 0) return <p className="text-sm text-fur-gray-600">Sin datos registrados.</p>
   return (
     <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">

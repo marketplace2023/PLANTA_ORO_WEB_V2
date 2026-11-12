@@ -1,4 +1,4 @@
-import { formatSpecificationValue } from '@/lib/specification-value'
+import { formatSpecificationValue, visibleSpecificationEntries } from '@/lib/specification-value'
 import { ClipboardList, ExternalLink, Factory, Info, ListChecks, Maximize2, Package, Settings2, X, type LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
@@ -76,7 +76,7 @@ function readTechnicalData(technicalData: Record<string, unknown>, specification
         return nombre ? [{ nombre, alcance: textOrNull(m.alcance), sitioWeb: textOrNull(m.sitioWeb) }] : []
       })
     : []
-  return { identification, components, manufacturers, source: textOrNull(fuente), specs: Object.entries({ ...rest, ...specifications }) }
+  return { identification, components, manufacturers, source: textOrNull(fuente), specs: visibleSpecificationEntries({ ...rest, ...specifications }) }
 }
 
 /** Solo se enlazan direcciones http(s); cualquier otra cosa se muestra como texto. */

@@ -1,4 +1,4 @@
-import { formatSpecificationValue } from '@/lib/specification-value'
+import { formatSpecificationValue, visibleSpecificationEntries } from '@/lib/specification-value'
 import { ClipboardList, ExternalLink, Package } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -61,7 +61,7 @@ export function AssetFicha({
 
   const meta = STATUS_META[asset.status as AssetStatus]
   const detail = fur.data?.asset
-  const specs = Object.entries(detail?.specifications ?? {}).slice(0, MAX_SPECS)
+  const specs = visibleSpecificationEntries(detail?.specifications).slice(0, MAX_SPECS)
   const components = Array.isArray(detail?.technicalData?.componentes)
     ? detail.technicalData.componentes.filter((value): value is string => typeof value === 'string').slice(0, 5)
     : []

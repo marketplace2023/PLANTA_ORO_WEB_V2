@@ -344,6 +344,19 @@ describe('Catálogo global', () => {
     })
   })
   describe('ficha técnica del modelo', () => {
+    it('oculta especificaciones No aplica, incluyendo las antiguas, sin ocultar cero o No', async () => {
+      const source = { ...MODELS[0], specifications: { oculta: 'No aplica', otraOculta: ' NO  APLICA ', cero: 0, reversible: false }, technicalData: { parametroAnterior: 'no aplica' } }
+      const api = setup(page([source]))
+      renderWithProviders(<CatalogPage />, { route: '/catalog' })
+      await userEvent.click(await screen.findByRole('button', { name: 'Ver la ficha técnica de Bolas 16.5x24 ft' }))
+      const dialog = within(await screen.findByRole('dialog'))
+      expect(dialog.queryByText(/no\s+aplica/i)).not.toBeInTheDocument()
+      expect(dialog.queryByText(/oculta|parametro Anterior/i)).not.toBeInTheDocument()
+      expect(dialog.getByText('0')).toBeInTheDocument()
+      expect(dialog.getByText('No')).toBeInTheDocument()
+      expect(source.specifications.oculta).toBe('No aplica')
+      expect(api.calls.every(call => call.method === 'GET')).toBe(true)
+    })
     it('muestra las especificaciones en la segunda sección y oculta componentes si no están definidos', async () => {
       setup()
       renderWithProviders(<CatalogPage />, { route: '/catalog' })

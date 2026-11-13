@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gemelo digital 3D · Planta CIL de oro 500 t/d</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:rgba(12,18,25,.88);--bg2:rgba(255,255,255,.04);--line:rgba(255,255,255,.10);--tx:#e8eef4;--mut:#8d9cab;--gold:#f2b632;--ok:#3ccf7e;--warn:#f0a030;--bad:#ef5350;--cy:#5cc8f5}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--tx);background:#0b1016;font-size:13px}
+#view{position:fixed;inset:0}
+canvas{display:block;outline:none}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.panel{position:absolute;background:var(--bg);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.35);z-index:5}
+#top{left:12px;right:12px;top:12px;display:flex;align-items:center;gap:14px;padding:8px 12px}
+#top h1{font-size:14.5px;margin:0;font-weight:600;white-space:nowrap;line-height:1.25}
+#top h1 small{display:block;font-weight:400;color:var(--mut);font-size:11px}
+.logo{width:30px;height:30px;border-radius:7px;background:linear-gradient(135deg,#f2b632,#a8741a);display:grid;place-items:center;font-weight:700;color:#1a1204;font-size:13px;flex:none}
+.logo{width:auto;padding:0 10px;white-space:nowrap;text-decoration:none}.logo:focus-visible{outline:2px solid var(--tx);outline-offset:3px}
+.kpis{display:flex;flex:1;justify-content:flex-end;flex-wrap:wrap;gap:2px}
+.kpi{padding:2px 12px;border-left:1px solid var(--line);min-width:92px}
+.kpi b{display:block;font-family:'IBM Plex Mono';font-size:15.5px;font-weight:600;white-space:nowrap}
+.kpi span{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.kpi.gold b{color:var(--gold)} .kpi.alarm b{color:var(--ok)} .kpi.alarm.on b{color:var(--bad)}
+#left{left:12px;top:74px;bottom:66px;width:286px;display:flex;flex-direction:column;overflow:hidden}
+.tabs{display:flex;border-bottom:1px solid var(--line);flex:none}
+.tabs button{flex:1;background:none;border:0;color:var(--mut);padding:10px 4px;font:500 12px 'IBM Plex Sans',system-ui,sans-serif;cursor:pointer;border-bottom:2px solid transparent}
+.tabs button.on{color:var(--tx);border-bottom-color:var(--gold)}
+.tabc{display:none;overflow:auto;padding:10px 12px 14px;flex:1}
+.tabc.on{display:block}
+h3{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin:14px 0 6px;font-weight:600}
+h3:first-child{margin-top:2px}
+.area{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;margin:1px 0}
+.area:hover{background:var(--bg2)}
+.area i{width:9px;height:9px;border-radius:2px;flex:none}
+.area em{margin-left:auto;font-style:normal;color:var(--mut);font-size:11px}
+.row{display:flex;align-items:center;gap:8px;padding:4px 2px;cursor:pointer;user-select:none}
+.row input{accent-color:var(--gold);margin:0}
+.leg{display:inline-flex;align-items:center;gap:6px;padding:3px 7px;border:1px solid var(--line);border-radius:20px;margin:2px 3px 2px 0;cursor:pointer;font-size:11.5px}
+.leg i{width:14px;height:4px;border-radius:2px}
+.leg.off{opacity:.35}
+.btn{background:rgba(255,255,255,.07);border:1px solid var(--line);color:var(--tx);border-radius:6px;padding:6px 10px;font:500 12px 'IBM Plex Sans',system-ui,sans-serif;cursor:pointer}
+.btn:hover{background:rgba(255,255,255,.13)}
+.btn.on{background:var(--gold);color:#1a1204;border-color:var(--gold)}
+.seg{display:flex;gap:4px;flex-wrap:wrap}
+.log{font-family:'IBM Plex Mono';font-size:11px;color:#c5d0da;line-height:1.55}
+.log div{border-bottom:1px dashed rgba(255,255,255,.06);padding:2px 0}
+.log .w{color:var(--warn)} .log .b{color:var(--bad)} .log .g{color:var(--ok)}
+.bom{width:100%;border-collapse:collapse;font-size:11.5px}
+.bom td{padding:4px 3px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
+.bom tr.it{cursor:pointer}
+.bom tr.it:hover td{background:var(--bg2)}
+.bom tr.it.sel td{background:rgba(242,182,50,.14)}
+.bom td.t{font-family:'IBM Plex Mono';color:var(--gold);width:32px}
+.bom td.p{text-align:right;font-family:'IBM Plex Mono';white-space:nowrap;color:#c5d0da}
+.bom tr.sys td{font-weight:600;color:var(--tx);padding-top:12px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--line)}
+.bom tr.tot td{font-weight:600;border-top:1px solid var(--line)}
+.bom small{color:var(--mut);display:block}
+.kv{width:100%;border-collapse:collapse;font-size:12px}
+.kv td{padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.kv td:last-child{text-align:right;font-family:'IBM Plex Mono'}
+.kv td:first-child{color:var(--mut)}
+p.note{color:var(--mut);font-size:11.5px;line-height:1.5;margin:6px 0}
+#info{right:12px;top:74px;width:332px;max-height:calc(100% - 150px);overflow:auto;display:none;padding:14px}
+#info .x{position:absolute;right:8px;top:6px;background:none;border:0;color:var(--mut);font-size:20px;cursor:pointer}
+#info .tag{font-family:'IBM Plex Mono';font-size:11px;color:#1a1204;background:var(--gold);border-radius:4px;padding:1px 6px;font-weight:600}
+#info h2{font-size:16px;margin:8px 0 2px;line-height:1.25;padding-right:20px}
+#info .model{font-family:'IBM Plex Mono';color:var(--cy);font-size:12.5px}
+.st{display:inline-flex;align-items:center;gap:6px;font:600 11px 'IBM Plex Mono';padding:3px 8px;border-radius:20px;margin:10px 0 6px;letter-spacing:.04em}
+.st.run{background:rgba(60,207,126,.14);color:var(--ok)}
+.st.sb{background:rgba(92,200,245,.14);color:var(--cy)}
+.st.stop{background:rgba(239,83,80,.16);color:var(--bad)}
+.st.wait{background:rgba(240,160,48,.16);color:var(--warn)}
+.fn{line-height:1.5;color:#cfd8e0;margin:8px 0}
+.tele{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.tele div{background:var(--bg2);border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:6px 8px}
+.tele span{display:block;font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
+.tele b{font-family:'IBM Plex Mono';font-size:14px;font-weight:600}
+.bar{height:5px;background:rgba(255,255,255,.08);border-radius:3px;margin-top:4px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--cy)}
+.src{font-size:10.5px;color:var(--mut);margin-top:10px;line-height:1.45;border-top:1px solid var(--line);padding-top:8px}
+.ibtns{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+#chain{left:310px;right:12px;bottom:12px;padding:7px 10px;display:flex;gap:4px;align-items:center;overflow-x:auto}
+.chip{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:6px;background:var(--bg2);border:1px solid rgba(255,255,255,.07);cursor:pointer;white-space:nowrap;font-size:12px}
+.chip:hover{border-color:var(--gold)}
+.chip i{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 6px var(--ok)}
+.chip i.w{background:var(--warn);box-shadow:0 0 6px var(--warn)} .chip i.b{background:var(--bad);box-shadow:0 0 6px var(--bad)}
+.arw{color:var(--mut);font-size:12px}
+#labels{position:fixed;inset:0;pointer-events:none;z-index:3;overflow:hidden}
+.lbl{position:absolute;transform:translate(-50%,-100%);pointer-events:auto;cursor:pointer;background:rgba(12,18,25,.82);border:1px solid rgba(255,255,255,.14);border-radius:5px;padding:2px 7px 3px;font-size:11px;white-space:nowrap;line-height:1.25;color:#e8eef4}
+.lbl b{font-family:'IBM Plex Mono';color:var(--gold);font-size:10px;margin-right:5px}
+.lbl:after{content:'';position:absolute;left:50%;bottom:-6px;width:1px;height:6px;background:rgba(255,255,255,.4)}
+.lbl.minor{font-size:10px;opacity:.88}
+.lbl.stop{border-color:var(--bad)}
+#hint{position:absolute;right:12px;bottom:66px;font-size:11px;color:#26323d;background:rgba(255,255,255,.72);padding:5px 9px;border-radius:6px;z-index:4}
+#tip{position:fixed;pointer-events:none;z-index:9;background:rgba(12,18,25,.92);border:1px solid var(--line);border-radius:5px;padding:3px 8px;font-size:11.5px;display:none}
+#loading{position:fixed;inset:0;display:grid;place-items:center;background:#0b1016;z-index:20;color:var(--mut);font-size:13px}
+@media (max-width:900px){#left{width:240px}#chain{left:12px;bottom:12px}#left{bottom:62px}#info{width:290px}.kpi{min-width:80px;padding:2px 8px}#top h1 small{display:none}}
+@media (max-width:640px){#left{display:none}.kpis .kpi:nth-child(n+4){display:none}#info{left:12px;right:12px;width:auto;top:auto;bottom:62px;max-height:45%}#hint{display:none}}
+</style>
+</head>
+<body>
+<div id="loading">Cargando modelo 3D…</div>
+<div id="view"></div>
+<div id="labels"></div>
+<div id="tip"></div>
+
+<div id="top" class="panel">
+  <a class="logo" href="/" aria-label="Volver al inicio de FUR" title="Volver al inicio de FUR">← Volver al inicio</a>
+  <h1>Gemelo digital · Planta de oro CIL 500 t/d<small>Layout 3D según cotización Xinhai XHHW20210304 · Venezuela</small></h1>
+  <div class="kpis">
+    <div class="kpi"><b id="kClock">D1 06:00</b><span>Hora simulada</span></div>
+    <div class="kpi"><b id="kFeed">20,8 t/h</b><span>Alimentación molienda</span></div>
+    <div class="kpi"><b id="kFob">60 %</b><span>Tolva de finos</span></div>
+    <div class="kpi"><b id="kPow">— kW</b><span>Demanda eléctrica</span></div>
+    <div class="kpi gold"><b id="kAu">0 g</b><span>Au recuperado (acum.)</span></div>
+    <div class="kpi"><b id="kEq">—</b><span>Equipos en marcha</span></div>
+    <div class="kpi alarm" id="kAlmBox"><b id="kAlm">0</b><span>Alarmas</span></div>
+  </div>
+</div>
+
+<div id="left" class="panel">
+  <div class="tabs"><button class="on" data-t="t1">Planta</button><button data-t="t2">Equipos</button><button data-t="t3">Base de diseño</button></div>
+  <div class="tabc on" id="t1">
+    <h3>Áreas del proceso</h3>
+    <div id="areas"></div>
+    <h3>Vista</h3>
+    <div class="seg" style="margin-bottom:6px">
+      <button class="btn" id="bHome">Vista general</button>
+      <button class="btn" id="bTour">▶ Recorrido</button>
+    </div>
+    <label class="row"><input type="checkbox" id="cLbl" checked> Etiquetas de equipos</label>
+    <label class="row"><input type="checkbox" id="cFlow" checked> Flujos de proceso animados</label>
+    <label class="row"><input type="checkbox" id="cXray"> Edificios translúcidos</label>
+    <label class="row"><input type="checkbox" id="cAnim" checked> Animación de equipos</label>
+    <h3>Líneas de proceso</h3>
+    <div id="legend"></div>
+    <h3>Simulación</h3>
+    <div class="seg" id="speeds"></div>
+    <p class="note">Telemetría simulada con valores típicos de diseño (no es dato de campo). Detén o arranca equipos desde su ficha para ver el efecto en la planta.</p>
+    <h3>Eventos</h3>
+    <div class="log" id="log"></div>
+  </div>
+  <div class="tabc" id="t2">
+    <p class="note" style="margin-top:0">Lista de equipos principales de la cotización (Anexo 1, precio EXW en USD). Clic en una fila para ubicarla en 3D.</p>
+    <table class="bom" id="bom"></table>
+  </div>
+  <div class="tabc" id="t3" ></div>
+</div>
+
+<div id="info" class="panel"></div>
+<div id="chain" class="panel"></div>
+<div id="hint">Arrastrar: girar · Clic der./Shift: desplazar · Rueda: zoom · Clic: ficha del equipo</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+'use strict';
+const T = THREE, TAU = Math.PI*2;
+const V = (x,y,z)=>new T.Vector3(x,y,z);
+const $ = s=>document.querySelector(s);
+const fmt = (n,d=0)=>n.toLocaleString('es-VE',{minimumFractionDigits:d,maximumFractionDigits:d});
+const rnd = (a,b)=>a+Math.random()*(b-a);
+
+/* =====================================================================
+   DATOS DE LA COTIZACIÓN (Anexo 1 · Main equipment table, 500 t/d CIL)
+   ===================================================================== */
+const SYS = {
+  I:'Trituración y cribado', II:'Molienda, clasificación y lixiviación CIL',
+  III:'Desorción, electroobtención y fundición', IV:'Deshidratación de relaves', V:'Tratamiento de efluentes y agua'
+};
+const SUB = {I:171860, II:914850, III:186497, IV:316070, V:60100};
+// tag, sistema, área, nombre, modelo, cant, kW unitario, en reserva, precio total USD, tipo, función
+const DATA = [
+ ['101','I','A1','Alimentador de canal (chute feeder)','CG980×1240',1,7.5,0,4690,'feeder','Extrae el mineral ROM (≤ 500 mm) de la tolva de gruesos y alimenta la trituradora primaria.'],
+ ['102','I','A1','Trituradora de mandíbula primaria','PE400×600',1,30,0,13650,'crusher','Trituración primaria del mineral de mina. Incluye control eléctrico.'],
+ ['103','I','A1','Trituradora de mandíbula fina','PEX200×1000',1,22,0,12410,'crusher','Trituración secundaria del producto de la primaria antes de la criba.'],
+ ['104','I','A1','Trituradora de cono hidráulica monocilíndrica','PYY100',1,90,0,89350,'crusher','Trituración fina en circuito cerrado con la criba. Incluye control eléctrico y estación de aceite fino.'],
+ ['105','I','A1','Criba vibratoria circular','2YA1542 (1,5 × 4,2 m)',1,15,0,17960,'screen','Clasifica a 0–12 mm. El sobretamaño regresa al cono (circuito cerrado).'],
+ ['106','I','A1','Transportador de banda (descarga trituradoras → criba)','TD75-6550 · L ≈ 40 m',1,15,0,11250,'conv','Lleva el producto de las trituradoras de mandíbula y cono a la criba.'],
+ ['107','I','A1','Transportador de banda (sobretamaño → cono)','TD75-6550 · L ≈ 35 m',1,11,0,10070,'conv','Retorna el sobretamaño de la criba a la trituradora de cono.'],
+ ['108','I','A1','Transportador de banda (finos → tolva de finos)','TD75-6550 · L ≈ 35 m',1,7.5,0,9870,'conv','Lleva el producto −12 mm a la tolva de finos.'],
+ ['109','I','A1','Separador electromagnético de hierro','RCDB-6',1,1.6,0,2610,'mag','Retira el hierro (tramp iron) de la banda para proteger el cono.'],
+ ['201','II','A2','Alimentador vibratorio electromagnético','GZ3',2,0.2,0,1560,'feeder','Extrae los finos de la tolva hacia la banda de alimentación del molino.'],
+ ['202','II','A2','Transportador de banda (alimentación molino)','TD75-6550 · L ≈ 15 m',1,5.5,0,5930,'conv','Alimenta el molino primario con mineral fino y cal.'],
+ ['203','II','A2','Balanza de banda electrónica','PDC-650',1,0,0,4310,'scale','Pesa en continuo el tonelaje de mineral fresco al molino.'],
+ ['204','II','A2','Molino de bolas de parrilla ahorrador de energía','MQGg2430 (Ø2,4 × 3,0 m)',1,280,0,154980,'mill','Molienda primaria en húmedo. Incluye control eléctrico y trommel en la descarga.'],
+ ['205','II','A2','Alimentador de banda (retorno trommel)','PG500×2500',1,2.2,0,3450,'feeder','Recoge el rechazo del trommel para devolverlo al molino.'],
+ ['206','II','A2','Transportador de banda (retorno al molino)','TD75-5050 · L ≈ 12 m',1,3,0,4050,'conv','Devuelve el rechazo del trommel a la alimentación del molino.'],
+ ['207','II','A2','Bomba de pulpa (alimentación ciclón 1)','XPA100/100 · Q=95 m³/h, H=30 m',2,30,1,7200,'pump','Bombea la descarga del molino primario a los hidrociclones de 1ª etapa. Una operando y una de reserva.'],
+ ['208','II','A0','Gabinete variador de frecuencia','30 kW',1,0,0,3800,'vfd','Variador de la bomba 207. Instalado en la sala eléctrica (CCM).'],
+ ['209','II','A2','Hidrociclón (1ª etapa)','XCII-Φ450',2,0,1,8320,'cyclone','Clasificación de la descarga del molino primario. La descarga gruesa (underflow) va al molino secundario.'],
+ ['210','II','A2','Molino de bolas de rebose (secundario)','MQYg2430 (Ø2,4 × 3,0 m)',1,280,0,149430,'mill','Remolienda hasta −200 mallas al 80 %. Incluye control eléctrico.'],
+ ['211','II','A2','Bomba de pulpa (alimentación ciclón 2)','XPA150/125 · Q=130 m³/h, H=30 m',2,37,1,9380,'pump','Bombea la descarga del molino secundario a los hidrociclones de 2ª etapa.'],
+ ['212','II','A0','Gabinete variador de frecuencia','37 kW',1,0,0,4450,'vfd','Variador de la bomba 211. Instalado en la sala eléctrica (CCM).'],
+ ['213','II','A2','Hidrociclón (2ª etapa)','XCII-Φ450',2,0,1,8320,'cyclone','Cierra el circuito del molino secundario. El rebose (P80 ≈ 74 µm) va a la criba de basuras y al espesador.'],
+ ['214','II','A2','Silo de cal de acero','Φ1,5 × 1,5 m',1,0,0,2000,'bin','Almacén pulmón de cal para el control de pH.'],
+ ['215','II','A2','Alimentador de tornillo de cal','GX150×3000',1,2.2,0,2230,'feeder','Dosifica cal a la banda de alimentación del molino.'],
+ ['216','II','A3','Criba lineal vibratoria','DZS0918',3,0.75,0,10290,'screen','Tres unidades: criba de basuras (rebose de ciclones), criba de seguridad (salida CIL) y criba separadora carbón-pulpa (elución).'],
+ ['217','II','A3','Espesador de alta eficiencia (tanque de acero con patas)','NZSG-15 (Ø15 × 3,6 m)',1,5.5,0,175340,'thick','Espesa la pulpa antes del CIL. El rebose se recircula como agua de proceso.'],
+ ['218','II','A3','Tanque agitador de floculante','XBJ1.0×1.75',1,2.2,0,2950,'agit','Prepara la solución de floculante para el espesador.'],
+ ['219','II','A3','Bomba química (floculante)','IH50-32-125',2,2.2,1,2020,'pump','Dosifica floculante al pozo de alimentación del espesador.'],
+ ['220','II','A3','Bomba de pulpa (descarga espesador)','XPA80/80 · Q=40 m³/h, H=20 m',2,7.5,1,4260,'pump','Bombea la descarga del espesador al tanque CIL N.º 1.'],
+ ['221','II','A4','Tanque de lixiviación de doble impulsor','SJ6.5×7.0 (Ø6,5 × 7,0 m)',5,22,0,308300,'tank','Lixiviación con cianuro y adsorción en carbón activado (CIL). Tiempo de residencia 24 h.'],
+ ['222','II','A4','Soplador Roots','ZG-125 · 26,5 m³/min, 98 kPa',2,75,1,29120,'blower','Suministra aire a los tanques CIL (oxígeno para la lixiviación).'],
+ ['223','II','A4','Criba de carbón interetapa','SY500',5,0,0,2350,'cscreen','Retiene el carbón en cada tanque y deja pasar la pulpa.'],
+ ['224','II','A4','Elevador neumático de carbón (air-lift)','KT-100',5,0,0,2100,'airlift','Mueve el carbón a contracorriente de la pulpa, hacia el tanque anterior.'],
+ ['225','II','A3','Tanque agitador de reactivo (NaCN)','BJW-1500×1500',1,3,0,1930,'agit','Prepara la solución de cianuro de sodio.'],
+ ['226','II','A3','Bomba magnética (NaCN)','32CQ-15',2,1.1,1,1380,'pump','Dosifica la solución de NaCN al CIL.'],
+ ['227','II','A2','Bomba sumergible (aguas de piso)','40PV-SP',2,5.5,1,5400,'pump','Evacúa derrames y aguas de lavado de la nave de molienda.'],
+ ['301','III','A5','Sistema de desorción y electroobtención de alta eficiencia y bajo consumo','XH-1000',1,120,0,132000,'elution','Desorción a presión del carbón cargado (Zadra), electroobtención del oro y regeneración de la solución.'],
+ ['302','III','A5','Sistema de fundición y refinación','Horno mufla SX2-25-13S + reactor Ti 1000 L',1,81.2,0,54497,'smelt','Tratamiento ácido del cátodo, secado y fundición del doré (horno mufla 1300 °C). Incluye tanques de ácido de 10 t (×2), destiladores, extracción de gases y lingoteras de 1–2 kg.'],
+ ['401','IV','A6','Tanque pulmón de relaves (doble impulsor)','SJ4.5×5.0',1,7.5,0,24890,'tank2','Recibe los relaves del CIL después de la criba de seguridad.'],
+ ['402','IV','A6','Bomba de pulpa (alimentación filtros)','XPB4/3E-HH',3,55,1,33600,'pump','Alimenta los filtros prensa. Dos operando y una de reserva.'],
+ ['403','IV','A0','Gabinete variador de frecuencia','55 kW',2,0,0,11860,'vfd','Variadores de las bombas 402. Instalados en la sala eléctrica (CCM).'],
+ ['404','IV','A6','Filtro prensa','XMZ-500/2000',2,5.5,0,220440,'press','Deshidrata los relaves para disposición en seco. El filtrado se recircula como agua de proceso.'],
+ ['405','IV','A6','Transportador de banda (torta de relave)','TD75-8063 · L ≈ 2 × 18 m',2,15,0,19840,'conv','Lleva la torta de los filtros a la pila de relave seco.'],
+ ['406','IV','A6','Bomba sumergible (filtrado)','65QV-SP',2,15,1,5440,'pump','Bombea el filtrado a la piscina de agua de proceso.'],
+ ['501','V','A7','Tanque pulmón de aguas residuales (doble impulsor)','SJ4.5×5.0',2,7.5,0,49780,'tank2','Homogeneiza y trata las aguas residuales antes de recircularlas.'],
+ ['502','V','A7','Bomba de pulpa (aguas residuales)','XPA100/100 · Q=80 m³/h, H=30 m',2,15,1,6320,'pump','Bombea las aguas residuales tratadas.'],
+ ['503','V','A7','Bomba centrífuga de agua','IS65-40-200 · Q=25 m³/h, H=50 m',2,7.5,1,1980,'pump','Agua de proceso a los puntos de consumo.'],
+ ['504','V','A7','Bomba centrífuga en línea','ISG50-250A',2,7.5,1,2020,'pump','Agua de servicio y de sellos de bombas.']
+].map(r=>({tag:r[0],sys:r[1],area:r[2],name:r[3],model:r[4],qty:r[5],kw:r[6],sb:r[7],price:r[8],type:r[9],fn:r[10],objs:[]}));
+const DT = {}; DATA.forEach(d=>DT[d.tag]=d);
+
+const INFRA = {
+ ROM:{name:'Patio de mineral ROM y tolva de gruesos',area:'A1',type:'infra',fn:'Recepción del mineral de mina (≤ 500 mm). Plataforma de descarga para camiones y cargador frontal.',src:'Disposición tomada del módulo de trituración del video de referencia.'},
+ FOB:{name:'Tolva de finos (silo de acero)',area:'A2',type:'fob',fn:'Pulmón entre la trituración (2 turnos × 6 h) y la molienda (3 turnos × 8 h).',src:'El silo de acero está en los materiales de instalación (ítem ⑤). Dimensión supuesta Ø7 × 9 m ≈ 620 t (≈ 1,2 días de molienda).'},
+ REAG:{name:'Galpón de reactivos',area:'A3',type:'infra',fn:'Preparación y dosificación de NaCN y floculante.',src:'Edificio supuesto; los tanques y bombas (218, 219, 225, 226) son de la cotización.'},
+ BLW:{name:'Casa de sopladores',area:'A4',type:'infra',fn:'Aloja los sopladores Roots 222 (1 operando + 1 reserva).',src:'Edificio supuesto.'},
+ ELU:{name:'Edificio de desorción, electroobtención y fundición',area:'A5',type:'infra',fn:'Aloja el sistema XH-1000 y el cuarto de oro (fundición). Acceso restringido.',src:'Edificio supuesto (obra civil excluida de la cotización).'},
+ DRY:{name:'Pila de relave seco (dry stack)',area:'A6',type:'infra',fn:'Torta de los filtros prensa, se retira con cargador y volqueta al depósito de relaves.',src:'Ubicación supuesta.'},
+ POND:{name:'Piscina de agua de proceso',area:'A7',type:'pond',fn:'Recibe el rebose del espesador y el filtrado. Las bombas 503/504 la distribuyen a la planta.',src:'Dimensión supuesta 16 × 9 m (video de referencia: piscina junto al espesador).'},
+ OFI:{name:'Oficinas y sala de control (SCADA)',area:'A0',type:'infra',fn:'Administración y sala de control central desde donde se supervisa la planta.',src:'Edificio supuesto (video de referencia: sala de control central).'},
+ LAB:{name:'Laboratorio químico y de ensayos',area:'A0',type:'infra',fn:'Ensayo al fuego, absorción atómica y control de cianuro libre.',src:'Edificio supuesto.'},
+ TAL:{name:'Taller mecánico y almacén',area:'A0',type:'infra',fn:'Repuestos, bolas de molienda, revestimientos y reactivos secos.',src:'Edificio supuesto.'},
+ SUB:{name:'Subestación principal',area:'A0',type:'infra',fn:'Transformación a 380 V para los motores de la planta.',src:'La cotización incluye la distribución eléctrica aguas abajo del transformador; la subestación corre por cuenta del cliente.'},
+ MCC:{name:'Sala eléctrica / CCM',area:'A0',type:'infra',fn:'Arrancadores y variadores de frecuencia 208, 212 y 403.',src:'Edificio supuesto.'},
+ GAR:{name:'Garita de acceso y báscula camionera',area:'A0',type:'infra',fn:'Control de acceso y pesaje de camiones.',src:'Supuesto.'}
+};
+
+const AREAS = [
+ {k:'A1',name:'Trituración y cribado',c:'#d0533a',t:[-38,5,-34],o:[18,34,46]},
+ {k:'A2',name:'Molienda y clasificación',c:'#c93f8c',t:[18,4,10],o:[-14,26,36]},
+ {k:'A3',name:'Espesamiento y reactivos',c:'#8a62d6',t:[42,4,-10],o:[-20,30,34]},
+ {k:'A4',name:'Lixiviación CIL',c:'#3b8be0',t:[67,4,-8],o:[-34,30,36]},
+ {k:'A5',name:'Desorción, EW y fundición',c:'#e0b030',t:[88,3,-20],o:[-18,22,26]},
+ {k:'A6',name:'Relaves y filtrado',c:'#7c8a97',t:[50,4,36],o:[-30,28,34]},
+ {k:'A7',name:'Agua y efluentes',c:'#2fb3b3',t:[48,2,36],o:[-40,40,40]},
+ {k:'A0',name:'Servicios e infraestructura',c:'#6fae4f',t:[-36,2,32],o:[10,40,52]}
+];
+const AREA = {}; AREAS.forEach(a=>AREA[a.k]=a);
+
+/* =====================================================================
+   ESCENA
+   ===================================================================== */
+const view = $('#view');
+const renderer = new T.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = T.PCFSoftShadowMap;
+renderer.outputEncoding = T.sRGBEncoding;
+view.appendChild(renderer.domElement);
+const scene = new T.Scene();
+scene.background = new T.Color(0xc7d9ea);
+scene.fog = new T.Fog(0xc7d9ea, 260, 720);
+const camera = new T.PerspectiveCamera(42, innerWidth/innerHeight, 0.5, 2000);
+camera.position.set(-110,120,170);
+const controls = new T.OrbitControls(camera, renderer.domElement);
+controls.target.set(12,0,0);
+controls.enableDamping = true; controls.dampingFactor = .08;
+controls.maxPolarAngle = 1.47; controls.minDistance = 6; controls.maxDistance = 520;
+controls.screenSpacePanning = false;
+
+scene.add(new T.HemisphereLight(0xe6f1ff, 0x5a5f48, 0.72));
+const sun = new T.DirectionalLight(0xfff3df, 1.0);
+sun.position.set(110,170,90);
+sun.castShadow = true;
+sun.shadow.mapSize.set(4096,4096);
+const sc = sun.shadow.camera; sc.left=-140; sc.right=140; sc.top=110; sc.bottom=-110; sc.near=10; sc.far=500;
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
+sun.target.position.set(10,0,0); scene.add(sun.target);
+scene.add(sun);
+
+// ---------- materiales
+const M = (color,o)=>new T.MeshStandardMaterial(Object.assign({color,roughness:.72,metalness:.18},o||{}));
+const MAT = {
+ concrete:M(0xc2c5c0,{roughness:.95,metalness:0}), concrete2:M(0xb6bab6,{roughness:.95,metalness:0}),
+ asphalt:M(0x41464c,{roughness:1,metalness:0}), steel:M(0x8d969f,{metalness:.45,roughness:.5}), steelD:M(0x4b5560,{metalness:.4,roughness:.55}),
+ yellow:M(0xf0be2a,{roughness:.6}), red:M(0xc3302a,{roughness:.55,metalness:.25}), blue:M(0x2c67b8,{roughness:.5,metalness:.3}),
+ blueL:M(0x3d8fe0,{roughness:.5,metalness:.25}), tank:M(0x2b3035,{roughness:.6,metalness:.3}), white:M(0xeef1f2,{roughness:.8,metalness:.05}),
+ cream:M(0xddd5c3,{roughness:.6}), rubber:M(0x1c1e21,{roughness:.9,metalness:0}), ore:M(0x7d6b57,{roughness:1,metalness:0}),
+ oreL:M(0x9d8c76,{roughness:1,metalness:0}), tail:M(0x8b7a64,{roughness:1,metalness:0}), green:M(0x39a35b,{roughness:.6}),
+ gold:M(0xe2b13c,{metalness:.9,roughness:.25,emissive:0x3a2800}), dark:M(0x23272c), glass:M(0x8fb6d2,{metalness:.6,roughness:.2}),
+ grate:M(0x9aa1a6,{metalness:.5,roughness:.6}), orange:M(0xe0782a), alu:M(0xc9cdd1,{metalness:.7,roughness:.3}), ppr:M(0xf2f2ea,{roughness:.7}),
+ titan:M(0xa8aeb4,{metalness:.8,roughness:.3}), loader:M(0xf2b51c,{roughness:.5})
+};
+const water = M(0x3d86b8,{roughness:.15,metalness:.1,transparent:true,opacity:.86});
+const slurry = M(0x6f6556,{roughness:.35,metalness:.05,transparent:true,opacity:.92});
+
+// ---------- primitivas
+function prep(o){o.castShadow=true;o.receiveShadow=true;return o;}
+function B(g,w,h,d,m,x,y,z){const o=prep(new T.Mesh(new T.BoxGeometry(w,h,d),m));o.position.set(x,y,z);g.add(o);return o;}
+function Cy(g,rt,rb,h,m,x,y,z,seg,open){const o=prep(new T.Mesh(new T.CylinderGeometry(rt,rb,h,seg||28,1,!!open),m));o.position.set(x,y,z);g.add(o);return o;}
+function beam(g,a,b,w,h,m){const len=a.distanceTo(b);const o=prep(new T.Mesh(new T.BoxGeometry(w,h,len),m));o.position.copy(a).add(b).multiplyScalar(.5);g.add(o);g.updateMatrixWorld(true);o.lookAt(g.localToWorld(b.clone()));return o;}
+function rod(g,a,b,r,m){const len=a.distanceTo(b);const o=prep(new T.Mesh(new T.CylinderGeometry(r,r,len,10),m));o.position.copy(a).add(b).multiplyScalar(.5);o.quaternion.setFromUnitVectors(V(0,1,0),b.clone().sub(a).normalize());g.add(o);return o;}
+function hopperGeo(top,bot,h){const g=new T.CylinderGeometry(top/Math.SQRT2,bot/Math.SQRT2,h,4,1,true);g.rotateY(Math.PI/4);return g;}
+function railing(g,pts,y,closed,m){m=m||MAT.yellow;const n=closed?pts.length:pts.length-1;for(let i=0;i<n;i++){const a=pts[i],b=pts[(i+1)%pts.length];const A=V(a[0],y+1.05,a[1]),Bp=V(b[0],y+1.05,b[1]);beam(g,A,Bp,.06,.06,m);beam(g,V(a[0],y+.55,a[1]),V(b[0],y+.55,b[1]),.04,.04,m);const L=A.distanceTo(Bp),k=Math.max(1,Math.round(L/1.8));for(let j=0;j<=k;j++){if(closed&&j==k)continue;const t=j/k;B(g,.05,1.05,.05,m,a[0]+(b[0]-a[0])*t,y+.52,a[1]+(b[1]-a[1])*t);}}}
+function ringRail(g,cx,cz,r,y,m){const pts=[];for(let i=0;i<20;i++){const a=i/20*TAU;pts.push([cx+Math.cos(a)*r,cz+Math.sin(a)*r]);}railing(g,pts,y,true,m);}
+function platform(g,x,z,w,d,h,opt){opt=opt||{};B(g,w,.12,d,MAT.grate,x,h,z);const nx=Math.max(1,Math.round(w/5)),nz=Math.max(1,Math.round(d/5));for(let i=0;i<=nx;i++)for(let j=0;j<=nz;j++){if(i>0&&i<nx&&j>0&&j<nz)continue;B(g,.28,h,.28,MAT.steelD,x-w/2+w*i/nx,h/2,z-d/2+d*j/nz);}
+ const p=[[x-w/2,z-d/2],[x+w/2,z-d/2],[x+w/2,z+d/2],[x-w/2,z+d/2]];if(opt.rail!==false)railing(g,p,h,true);
+ if(opt.stair){const s=opt.stair;stair(g,V(s[0],0,s[1]),V(s[2],h,s[3]));}}
+function stair(g,a,b){const st=beam(g,a.clone().add(V(0,.1,0)),b,1.0,.14,MAT.yellow);const dir=b.clone().sub(a);const n=V(-dir.z,0,dir.x).normalize().multiplyScalar(.5);beam(g,a.clone().add(n).add(V(0,1,0)),b.clone().add(n).add(V(0,1,0)),.05,.05,MAT.yellow);beam(g,a.clone().sub(n).add(V(0,1,0)),b.clone().sub(n).add(V(0,1,0)),.05,.05,MAT.yellow);return st;}
+function tower(g,x,z,w,d,h,levels){const c=[[-1,-1],[1,-1],[1,1],[-1,1]];c.forEach(k=>B(g,.32,h,.32,MAT.steelD,x+k[0]*w/2,h/2,z+k[1]*d/2));
+ levels.forEach(L=>{B(g,w,.12,d,MAT.grate,x,L,z);});
+ const top=levels[levels.length-1];railing(g,c.map(k=>[x+k[0]*w/2,z+k[1]*d/2]),top,true);
+ for(let i=0;i<levels.length;i++){const y0=i?levels[i-1]:0,y1=levels[i];beam(g,V(x-w/2,y0,z-d/2),V(x+w/2,y1,z-d/2),.12,.12,MAT.steelD);beam(g,V(x+w/2,y0,z+d/2),V(x-w/2,y1,z+d/2),.12,.12,MAT.steelD);}}
+
+// texturas animadas
+function canvasTex(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new T.CanvasTexture(c);t.wrapS=t.wrapT=T.RepeatWrapping;t.anisotropy=4;return t;}
+const beltTexBase = canvasTex(64,128,(x,w,h)=>{x.fillStyle='#1c1e20';x.fillRect(0,0,w,h);for(let i=0;i<140;i++){x.fillStyle=['#7d6b57','#8f7d66','#5d5043','#a39079'][i%4];const r=rnd(1.5,5);x.beginPath();x.arc(rnd(10,w-10),rnd(0,h),r,0,TAU);x.fill();}});
+const beltTexEmpty = canvasTex(64,128,(x,w,h)=>{x.fillStyle='#1c1e20';x.fillRect(0,0,w,h);x.fillStyle='#2a2d30';for(let y=0;y<h;y+=16)x.fillRect(0,y,w,3);});
+
+/* =====================================================================
+   REGISTRO DE OBJETOS SELECCIONABLES
+   ===================================================================== */
+const OBJ = {}; // id -> {id, tag|null, infra|null, idx, n, group, label, anims[]}
+const LABELS = [];
+const ANIM = [];   // {id, fn(dt)}
+const PICK = [];
+function obj(id,tag,x,y,z,idx,n){const g=new T.Group();g.position.set(x,y,z);g.userData.sel=id;scene.add(g);const o={id,tag:DT[tag]?tag:null,infra:INFRA[tag]?tag:null,idx:idx||1,n:n||1,group:g};OBJ[id]=o;if(DT[tag])DT[tag].objs.push(id);PICK.push(g);return g;}
+function label(id,pos,text,minor){const el=document.createElement('div');el.className='lbl'+(minor?' minor':'');const o=OBJ[id];const tg=o&&o.tag?o.tag:'';el.innerHTML=(tg?'<b>'+tg+'</b>':'')+text;el.onclick=e=>{e.stopPropagation();select(id,true);};$('#labels').appendChild(el);LABELS.push({el,pos,minor,id});}
+
+/* =====================================================================
+   TERRENO, PATIO, VÍAS
+   ===================================================================== */
+const PAD={x0:-84,x1:104,z0:-62,z1:62};
+function outD(x,z){const dx=Math.max(PAD.x0-x,0,x-PAD.x1),dz=Math.max(PAD.z0-z,0,z-PAD.z1);return Math.hypot(dx,dz);}
+function terrainH(x,z){const d=outD(x,z);if(d<15)return -.3;const n=Math.sin(x*.021)*Math.cos(z*.017)*7+Math.sin(x*.047+z*.031)*3+Math.cos(z*.009-x*.013)*9+Math.sin(x*.11)*Math.sin(z*.13)*1.2;const k=Math.min(1,(d-15)/70);let h=-.3+k*(n+11)*.85+k*k*10;if(x<PAD.x0&&Math.abs(z-52)<11){const c=Math.max(0,(Math.abs(z-52)-5)/6);h=-.3+(h+.3)*c;}return h;}
+(function(){
+ const S=760,N=170,geo=new T.PlaneGeometry(S,S,N,N);geo.rotateX(-Math.PI/2);const p=geo.attributes.position,col=[];const c1=new T.Color(0x9a927d),c2=new T.Color(0x56733a),c3=new T.Color(0x3f5a2c),c4=new T.Color(0x8c7d63),cc=new T.Color();
+ for(let i=0;i<p.count;i++){const x=p.getX(i)+10,z=p.getZ(i);p.setX(i,x);const h=terrainH(x,z);p.setY(i,h);const d=outD(x,z);if(d<16)cc.copy(c1);else{const n=(Math.sin(x*.08)*Math.cos(z*.07)+1)/2;cc.copy(c2).lerp(c3,n);if(h>14)cc.lerp(c4,Math.min(1,(h-14)/20)*.6);if(d<26)cc.lerp(c1,(26-d)/10);}col.push(cc.r,cc.g,cc.b);}
+ geo.setAttribute('color',new T.Float32BufferAttribute(col,3));geo.computeVertexNormals();const t=new T.Mesh(geo,new T.MeshStandardMaterial({vertexColors:true,roughness:1,metalness:0}));t.receiveShadow=true;scene.add(t);
+ // árboles
+ const cone=new T.ConeGeometry(1,1,7);cone.translate(0,.5,0);const tm=[new T.MeshStandardMaterial({color:0x2f5a2a,roughness:1}),new T.MeshStandardMaterial({color:0x416b2f,roughness:1})];
+ [0,1].forEach(k=>{const n=650,im=new T.InstancedMesh(cone,tm[k],n),m4=new T.Matrix4(),q=new T.Quaternion();let i=0,guard=0;while(i<n&&guard<20000){guard++;const x=rnd(-360,380),z=rnd(-370,370);const d=outD(x,z);if(d<24)continue;if(x<PAD.x0&&Math.abs(z-52)<12)continue;const s=rnd(1.8,3.6),h=rnd(5,10);m4.compose(V(x,terrainH(x,z)-.3,z),q,V(s,h,s));im.setMatrixAt(i++,m4);}im.count=i;im.castShadow=true;scene.add(im);});
+ // patio
+ const pad=prep(new T.Mesh(new T.BoxGeometry(PAD.x1-PAD.x0,.4,PAD.z1-PAD.z0),MAT.concrete));pad.position.set((PAD.x0+PAD.x1)/2,-.2,(PAD.z0+PAD.z1)/2);scene.add(pad);
+ const road=(x0,x1,z0,z1,y)=>{const o=new T.Mesh(new T.BoxGeometry(x1-x0,.06,z1-z0),MAT.asphalt);o.position.set((x0+x1)/2,y,(z0+z1)/2);o.receiveShadow=true;scene.add(o);};
+ const o=7.5,w=3.5;road(PAD.x0-o-w,PAD.x1+o+w,PAD.z0-o-w,PAD.z0-o+w,-.27);road(PAD.x0-o-w,PAD.x1+o+w,PAD.z1+o-w,PAD.z1+o+w,-.27);road(PAD.x0-o-w,PAD.x0-o+w,PAD.z0-o,PAD.z1+o,-.27);road(PAD.x1+o-w,PAD.x1+o+w,PAD.z0-o,PAD.z1+o,-.27);
+ road(-380,PAD.x0,48.5,55.5,-.27);
+ road(PAD.x0,98,49,55,.02);road(-33,-27,-58,49,.02);road(PAD.x0,PAD.x1-3,-60,-54,.02);road(95,101,-54,49,.02);
+ // marcas viales
+ const dash=new T.MeshBasicMaterial({color:0xe9e3c9});for(let x=PAD.x0+3;x<96;x+=6){const d=new T.Mesh(new T.PlaneGeometry(2.6,.18),dash);d.rotation.x=-Math.PI/2;d.position.set(x,.06,52);scene.add(d);}
+ // cerca perimetral
+ const fm=new T.MeshStandardMaterial({color:0x9aa3a8,transparent:true,opacity:.32,side:T.DoubleSide,depthWrite:false});
+ const fence=(x0,z0,x1,z1)=>{const L=Math.hypot(x1-x0,z1-z0);const f=new T.Mesh(new T.PlaneGeometry(L,2.1),fm);f.position.set((x0+x1)/2,1.05,(z0+z1)/2);f.rotation.y=-Math.atan2(z1-z0,x1-x0);scene.add(f);const k=Math.round(L/3);for(let i=0;i<=k;i++){const t=i/k;const p=new T.Mesh(new T.BoxGeometry(.08,2.3,.08),MAT.steelD);p.position.set(x0+(x1-x0)*t,1.15,z0+(z1-z0)*t);scene.add(p);}};
+ const e=.6;fence(PAD.x0+e,PAD.z0+e,PAD.x1-e,PAD.z0+e);fence(PAD.x1-e,PAD.z0+e,PAD.x1-e,PAD.z1-e);fence(PAD.x1-e,PAD.z1-e,PAD.x0+e,PAD.z1-e);fence(PAD.x0+e,PAD.z1-e,PAD.x0+e,56);fence(PAD.x0+e,48,PAD.x0+e,PAD.z0+e);
+})();
+
+/* =====================================================================
+   EDIFICIOS
+   ===================================================================== */
+const BLD_MATS=[];
+function building(g,x,z,w,d,h,wallC,roofC,opt){opt=opt||{};const wm=new T.MeshStandardMaterial({color:wallC,roughness:.85,metalness:.05,transparent:true,opacity:1});const rm=new T.MeshStandardMaterial({color:roofC,roughness:.6,metalness:.2,transparent:true,opacity:1,side:T.DoubleSide});BLD_MATS.push(wm,rm);
+ B(g,w,h,d,wm,x,h/2,z);
+ const rh=opt.rh!=null?opt.rh:Math.min(w,d)*.16;const sx=opt.ridgeX?d:w,sz=opt.ridgeX?w:d;const sh=new T.Shape();sh.moveTo(-sx/2-.35,0);sh.lineTo(sx/2+.35,0);sh.lineTo(0,rh);sh.lineTo(-sx/2-.35,0);const rg=new T.ExtrudeGeometry(sh,{depth:sz+.6,bevelEnabled:false});rg.translate(0,0,-(sz+.6)/2);if(opt.ridgeX)rg.rotateY(Math.PI/2);const r=prep(new T.Mesh(rg,rm));r.position.set(x,h,z);g.add(r);
+ if(opt.win!==false){const wd=MAT.glass;const n=Math.max(1,Math.floor(w/3.2));for(let i=0;i<n;i++){const xx=x-w/2+(i+.5)*w/n;B(g,1.5,1.0,.06,wd,xx,h*.58,z+d/2+.03);B(g,1.5,1.0,.06,wd,xx,h*.58,z-d/2-.03);}B(g,1.4,2.2,.08,MAT.dark,x+w*.3,1.1,z+d/2+.05);}
+ return {wm,rm};}
+
+/* =====================================================================
+   CONSTRUCTORES DE EQUIPOS
+   ===================================================================== */
+// --- transportador de banda (coordenadas de mundo, grupo en origen)
+function conveyor(id,tag,a,b,width,idx,n){const g=obj(id,tag,0,0,0,idx,n);const dir=b.clone().sub(a),L=dir.length();dir.normalize();const nrm=V(-dir.z,0,dir.x).normalize();
+ beam(g,a,b,width+.35,.32,MAT.steelD);
+ const tex=beltTexBase.clone();tex.needsUpdate=true;tex.repeat.set(1,L/3);const bm=new T.MeshStandardMaterial({map:tex,roughness:.9});const top=beam(g,a.clone().add(V(0,.2,0)),b.clone().add(V(0,.2,0)),width,.05,bm);
+ const off=nrm.clone().multiplyScalar(width/2+.55);beam(g,a.clone().add(off).add(V(0,.05,0)),b.clone().add(off).add(V(0,.05,0)),.7,.05,MAT.grate);beam(g,a.clone().add(off.clone().multiplyScalar(1.6)).add(V(0,1.05,0)),b.clone().add(off.clone().multiplyScalar(1.6)).add(V(0,1.05,0)),.05,.05,MAT.yellow);
+ const k=Math.max(1,Math.floor(L/6));for(let i=0;i<=k;i++){const t=i/k;const p=a.clone().lerp(b,t);if(p.y<1.1)continue;const s=nrm.clone().multiplyScalar(width/2+.15);[1,-1].forEach(sg=>{B(g,.2,p.y,.2,MAT.steelD,p.x+s.x*sg,p.y/2,p.z+s.z*sg);});beam(g,V(p.x+s.x,p.y*.55,p.z+s.z),V(p.x-s.x,p.y*.55,p.z-s.z),.12,.12,MAT.steelD);}
+ [a,b].forEach(p=>{rod(g,p.clone().add(nrm.clone().multiplyScalar(width/2+.1)).add(V(0,.05,0)),p.clone().sub(nrm.clone().multiplyScalar(width/2+.1)).add(V(0,.05,0)),.3,MAT.steel);});
+ const o=OBJ[id];o.belt=tex;o.L=L;o.mat=bm;
+ ANIM.push({id,fn:(dt)=>{tex.offset.y-=dt*1.6/3;}});
+ return g;}
+
+function pump(id,tag,x,z,idx,n,rot){const g=obj(id,tag,x,0,z,idx,n);const s=new T.Group();g.add(s);if(rot)s.rotation.y=rot;B(s,1.7,.22,.7,MAT.steelD,0,.11,0);const v=Cy(s,.38,.38,.32,MAT.blue,-.45,.6,0);v.rotation.x=Math.PI/2;Cy(s,.12,.12,.6,MAT.blue,-.45,1.0,0);const m=Cy(s,.26,.26,.85,MAT.blueL,.35,.5,0);m.rotation.z=Math.PI/2;B(s,.25,.25,.3,MAT.steel,-.05,.5,0);
+ const fan=B(s,.04,.42,.06,MAT.steel,.8,.5,0);ANIM.push({id,fn:dt=>{fan.rotation.x+=dt*25;}});return g;}
+
+function tank(id,tag,x,z,r,h,base,idx,n,opt){opt=opt||{};const g=obj(id,tag,x,0,z,idx,n);if(base>0)Cy(g,r+.45,r+.45,base,MAT.concrete2,0,base/2,0,32);
+ Cy(g,r,r,h,MAT.tank,0,base+h/2,0,40);const top=base+h;Cy(g,r+.06,r+.06,.18,MAT.steelD,0,top-.05,0,40);
+ ringRail(g,0,0,r-.1,top);B(g,2*r,.38,.7,MAT.steelD,0,top+.2,0);B(g,2*r-.4,.06,1.3,MAT.grate,0,top+.42,0);
+ B(g,.95,.7,.95,MAT.blue,0,top+.8,0);const mot=Cy(g,.32,.32,1.0,MAT.blueL,0,top+1.65,0);const cap=Cy(g,.36,.36,.08,MAT.steel,0,top+2.2,0,8);
+ ANIM.push({id,fn:dt=>{cap.rotation.y+=dt*6;}});
+ if(opt.carbon){B(g,1.2,.8,1.0,MAT.green,r-.9,top+.85,1.1);Cy(g,.12,.12,top,MAT.steel,r-.3,top/2+.4,1.6,8);}
+ return {g,top};}
+
+function mill(id,tag,x,z,kind,side){const g=obj(id,tag,x,0,z);
+ B(g,1.3,1.5,3.4,MAT.concrete2,-2.35,.75,0);B(g,1.3,1.5,3.4,MAT.concrete2,2.35,.75,0);
+ const pv=new T.Group();pv.position.set(0,2.65,0);g.add(pv);
+ const sh=prep(new T.Mesh(new T.CylinderGeometry(1.2,1.2,3.0,40),MAT.red));sh.rotation.z=Math.PI/2;pv.add(sh);
+ const h1=new T.CylinderGeometry(.48,1.2,.6,40);h1.rotateZ(-Math.PI/2);const hm=prep(new T.Mesh(h1,MAT.red));hm.position.x=1.8;pv.add(hm);
+ const h2=new T.CylinderGeometry(.48,1.2,.6,40);h2.rotateZ(Math.PI/2);const hm2=prep(new T.Mesh(h2,MAT.red));hm2.position.x=-1.8;pv.add(hm2);
+ for(let i=0;i<8;i++){const a=i/8*TAU;const bar=prep(new T.Mesh(new T.BoxGeometry(3.0,.08,.16),MAT.steelD));bar.position.set(0,Math.cos(a)*1.21,Math.sin(a)*1.21);bar.rotation.x=a;pv.add(bar);}
+ const gear=prep(new T.Mesh(new T.TorusGeometry(1.36,.13,8,48),MAT.gold));gear.rotation.y=Math.PI/2;gear.position.x=1.05;pv.add(gear);
+ [-2.35,2.35].forEach(xx=>{const tr=prep(new T.Mesh(new T.CylinderGeometry(.48,.48,.7,24),MAT.steel));tr.rotation.z=Math.PI/2;tr.position.x=xx;pv.add(tr);});
+ if(kind==='grid'){const tm=prep(new T.Mesh(new T.CylinderGeometry(.7,.7,1.2,24,1,true),new T.MeshStandardMaterial({color:0x9aa3aa,metalness:.6,roughness:.4,wireframe:true})));tm.rotation.z=Math.PI/2;tm.position.x=3.3;pv.add(tm);}
+ else{const sp=prep(new T.Mesh(new T.CylinderGeometry(.5,.5,.8,20),MAT.steel));sp.rotation.z=Math.PI/2;sp.position.x=3.0;pv.add(sp);}
+ B(g,1.4,1.2,1.4,MAT.steelD,1.05,1.5,side*2.1);const mo=Cy(g,.62,.62,1.7,MAT.blue,1.05,1.6,side*3.6);mo.rotation.x=Math.PI/2;B(g,1.6,.6,3.6,MAT.concrete2,1.05,.3,side*2.9);
+ const fh=new T.Mesh(hopperGeo(1.4,.5,1.1),MAT.steelD);fh.position.set(-3.2,4.0,0);prep(fh);g.add(fh);rod(g,V(-3.2,3.45,0),V(-2.6,2.65,0),.25,MAT.steelD);
+ B(g,1.8,1.4,2.0,MAT.concrete2,3.9,.7,0);
+ const rpm=kind==='grid'?21.2:21.2;ANIM.push({id,fn:dt=>{pv.rotation.x+=dt*rpm*TAU/60;}});
+ return g;}
+
+function cycloneCluster(id,tag,x,y,z,n,idx){const g=obj(id,tag,x,y,z,idx||1,1);Cy(g,.35,.35,.9,MAT.steel,0,1.6,0,16);for(let i=0;i<n;i++){const a=i/n*TAU,cx=Math.cos(a)*.85,cz=Math.sin(a)*.85;Cy(g,.26,.26,.7,MAT.cream,cx,1.9,cz,18);Cy(g,.26,.07,1.4,MAT.cream,cx,.85,cz,18);Cy(g,.09,.09,.6,MAT.blue,cx,2.5,cz,10);rod(g,V(0,1.7,0),V(cx,1.9,cz),.09,MAT.steel);}Cy(g,1.25,1.25,.25,MAT.rubber,0,.05,0,24,true);return g;}
+
+function jaw(id,tag,x,y,z,w,h,d){const g=obj(id,tag,x,y,z);B(g,w,h,d,MAT.steelD,0,h/2,0);B(g,w*.7,.3,d*.75,MAT.dark,0,h+.15,0);[1,-1].forEach(s=>{const fw=Cy(g,h*.48,h*.48,.18,MAT.red,0,h*.55,s*(d/2+.15),24);fw.rotation.x=Math.PI/2;ANIM.push({id,fn:dt=>{fw.rotation.y+=dt*4.5;}});});const mo=Cy(g,.32,.32,.8,MAT.blue,-w/2-.7,.4,d/2+.1);mo.rotation.x=Math.PI/2;return g;}
+
+function screenParts(g,id,x,y,z,w,L,ang){const s=new T.Group();s.position.set(x,y,z);s.rotation.z=-ang;g.add(s);const base=y;B(s,L,.15,w,MAT.grate,0,.1,0);B(s,L,.7,.12,MAT.blue,0,.45,w/2);B(s,L,.7,.12,MAT.blue,0,.45,-w/2);B(s,L,.08,w,MAT.steel,0,.55,0);[-1,1].forEach(i=>[-1,1].forEach(k=>Cy(s,.12,.12,.4,MAT.yellow,i*L*.4,-.2,k*w*.45,8)));const mo=Cy(g,.25,.25,.6,MAT.blueL,x,y+.9,z+w/2+.5);mo.rotation.x=Math.PI/2;ANIM.push({id,fn:(dt,t)=>{s.position.y=base+Math.sin(t*60)*.025;}});return s;}
+function alias(id,tag,host,idx,n){OBJ[id]={id,tag,infra:null,idx,n,group:OBJ[host].group};DT[tag].objs.push(id);}
+
+function filterPress(id,tag,x,y,z,L,idx,n){const g=obj(id,tag,x,y,z,idx,n);B(g,1.0,2.7,3.0,MAT.blue,-L/2+.5,1.35,0);B(g,.9,2.7,3.0,MAT.blue,L/2-.45,1.35,0);[1.2,-1.2].forEach(zz=>{rod(g,V(-L/2+.5,2.45,zz),V(L/2-.5,2.45,zz),.11,MAT.steel);});
+ const np=58,x0=-L/2+1.2,x1=L/2-2.4;for(let i=0;i<np;i++){B(g,.075,2.0,2.0,i%2?MAT.cream:MAT.white,x0+(x1-x0)*i/(np-1),1.35,0);}
+ rod(g,V(L/2-.9,1.35,0),V(L/2-2.4,1.35,0),.22,MAT.steel);B(g,.25,2.0,2.0,MAT.blueL,L/2-2.3,1.35,0);
+ const tray=prep(new T.Mesh(new T.BoxGeometry(L-1.8,.1,2.6),MAT.steelD));tray.position.set(-.3,.2,0);g.add(tray);return g;}
+
+function thickener(id,tag,x,z){const g=obj(id,tag,x,0,z);const R=7.5,legH=4.2,wallH=3.6;
+ for(let i=0;i<12;i++){const a=i/12*TAU;B(g,.35,legH,.35,MAT.steelD,Math.cos(a)*6.6,legH/2,Math.sin(a)*6.6);}for(let i=0;i<12;i++){const a=i/12*TAU,b2=(i+1)/12*TAU;beam(g,V(Math.cos(a)*6.6,1.2,Math.sin(a)*6.6),V(Math.cos(b2)*6.6,legH-.3,Math.sin(b2)*6.6),.12,.12,MAT.steelD);}
+ Cy(g,R,.8,1.4,MAT.tank,0,legH-.7,0,48);Cy(g,R,R,wallH,new T.MeshStandardMaterial({color:0x3a3f45,roughness:.6,metalness:.3,side:T.DoubleSide}),0,legH+wallH/2,0,56,true);
+ const lau=prep(new T.Mesh(new T.TorusGeometry(R+.25,.22,8,64),MAT.orange));lau.rotation.x=Math.PI/2;lau.position.y=legH+wallH-.2;g.add(lau);
+ const surf=new T.Mesh(new T.CircleGeometry(R-.05,56),new T.MeshStandardMaterial({color:0x5c6f63,roughness:.2,metalness:.1,transparent:true,opacity:.82}));surf.rotation.x=-Math.PI/2;surf.position.y=legH+wallH-.35;surf.receiveShadow=true;g.add(surf);
+ const rk=new T.Group();rk.position.y=legH+.9;g.add(rk);[0,Math.PI].forEach(a=>{const arm=prep(new T.Mesh(new T.BoxGeometry(R-.6,.25,.25),MAT.steel));arm.position.set(Math.cos(a)*(R-.6)/2,0,Math.sin(a)*(R-.6)/2);arm.rotation.y=-a;rk.add(arm);});
+ const by=legH+wallH+.3;B(g,2*R+1.2,.4,1.1,MAT.steelD,0,by,0);B(g,2*R+1.2,.08,1.6,MAT.grate,0,by+.24,0);railing(g,[[-R-.6,.8],[R+.6,.8]],by+.24,false);railing(g,[[-R-.6,-.8],[R+.6,-.8]],by+.24,false);
+ Cy(g,1.2,1.2,1.5,MAT.steel,0,legH+wallH-.6,0,24,true);B(g,1.3,.9,1.3,MAT.blue,0,by+.75,0);const cap=Cy(g,.35,.35,.8,MAT.blueL,.0,by+1.6,0);
+ stair(g,V(-R-6.5,0,.0),V(-R-.6,by+.2,0));
+ ANIM.push({id,fn:dt=>{rk.rotation.y+=dt*.25;cap.rotation.y+=dt*3;}});return g;}
+
+/* =====================================================================
+   A1 · TRITURACIÓN
+   ===================================================================== */
+(function(){
+ const g=obj('ROM','ROM',0,0,0);
+ const pile=prep(new T.Mesh(new T.ConeGeometry(7,5,24),MAT.ore));pile.position.set(-76,2.5,-48);g.add(pile);
+ B(g,8,5,10,MAT.concrete2,-70,2.5,-38);B(g,8,.2,10,MAT.concrete,-70,5.05,-38);
+ const ramp=beam(g,V(-70,0,-52),V(-70,5,-43.2),6,.3,MAT.concrete2);
+ const hp=prep(new T.Mesh(hopperGeo(5,1.4,3.2),MAT.steelD));hp.material=hp.material.clone();hp.material.side=T.DoubleSide;hp.position.set(-64.6,4.0,-38);g.add(hp);
+ // cargador frontal
+ const ld=new T.Group();ld.position.set(-71,5.1,-40);ld.rotation.y=Math.PI;g.add(ld);B(ld,3.6,1.2,2.2,MAT.loader,0,1.1,0);B(ld,1.5,1.3,1.8,MAT.loader,.5,2.3,0);B(ld,1.4,1.1,1.6,MAT.glass,.5,2.35,0);B(ld,.9,.9,2.6,MAT.steelD,-2.4,.8,0);[[-1,-1],[-1,1],[1,-1],[1,1]].forEach(k=>{const w=Cy(ld,.65,.65,.5,MAT.rubber,k[0]*1.1,.65,k[1]*1.2,16);w.rotation.x=Math.PI/2;});
+ label('ROM',V(-74,9,-46),'Patio ROM y tolva de gruesos');
+})();
+(function(){const g=obj('101','101',-62.6,0,-38);B(g,2.6,.6,1.3,MAT.steelD,0,2.2,0);B(g,2.6,1.7,.2,MAT.steel,0,1.0,.6);B(g,2.6,1.7,.2,MAT.steel,0,1.0,-.6);const v=Cy(g,.25,.25,.5,MAT.blueL,.6,1.2,.95,10);v.rotation.x=Math.PI/2;label('101',V(-62.6,6.6,-38),'Alimentador',true);})();
+jaw('102','102',-60.3,0,-38,1.8,1.7,1.7);B(OBJ['102'].group,3,.5,3.2,MAT.concrete2,0,-.0,0);label('102',V(-60.3,3.6,-38),'Mandíbula PE400×600');
+jaw('103','103',-58.0,0,-38.2,1.2,1.3,1.6);label('103',V(-58,3.2,-38.2),'Mandíbula PEX200×1000',true);
+(function(){const g=obj('104','104',-49.5,0,-39.6);B(g,3.2,3.2,3.2,MAT.concrete2,0,1.6,0);Cy(g,1.25,1.4,1.3,MAT.steelD,0,3.85,0);Cy(g,1.05,1.25,1.0,MAT.yellow,0,5.0,0);Cy(g,.7,1.05,.6,MAT.steelD,0,5.8,0);const hp=prep(new T.Mesh(hopperGeo(2.2,1.1,1.0),MAT.steelD));hp.position.set(0,6.6,0);g.add(hp);const mo=Cy(g,.45,.45,1.2,MAT.blue,2.4,3.8,0);mo.rotation.z=Math.PI/2;B(g,1.6,1.1,1.0,MAT.blueL,1.5,.55,2.4);rod(g,V(0,2.9,1.1),V(0,1.6,3.6),.35,MAT.steelD);label('104',V(-49.5,8.2,-39.6),'Cono hidráulico PYY100');})();
+// criba sobre torre
+(function(){const g=obj('105','105',-21,0,-23.5);tower(g,0,0,6.5,6.5,9.2,[4.8,9.2]);stair(g,V(-7.5,0,4.2),V(-3.25,4.8,2.2));const hp=prep(new T.Mesh(hopperGeo(4,1,2.4),MAT.steelD));hp.position.set(0,6.8,0);g.add(hp);screenParts(g,'105',0,9.3,0,1.5,4.2,.33);label('105',V(-21,13.6,-23.5),'Criba vibratoria 2YA1542');})();
+conveyor('106','106',V(-57,.9,-37.4),V(-23.2,10.6,-24),.65);label('106',V(-40,8.4,-30.6),'Banda 106 · 40 m',true);
+conveyor('107','107',V(-19.2,8.4,-25.8),V(-49.5,7.0,-39.1),.65);label('107',V(-34,10.2,-33),'Banda 107 · sobretamaño',true);
+conveyor('108','108',V(-20.5,4.4,-21.2),V(-.4,16.8,-.6),.65);label('108',V(-10,13.5,-10.6),'Banda 108 → tolva de finos',true);
+(function(){const g=obj('109','109',-44,0,-32.2);B(g,1.6,.5,1.2,MAT.blueL,0,7.8,0);beam(g,V(-1.6,0,1.6),V(-1.6,8.4,1.6),.2,.2,MAT.steelD);beam(g,V(1.6,0,-1.6),V(1.6,8.4,-1.6),.2,.2,MAT.steelD);beam(g,V(-1.6,8.4,1.6),V(1.6,8.4,-1.6),.2,.2,MAT.steelD);label('109',V(-44,9.5,-32.2),'Separador de hierro',true);})();
+
+/* =====================================================================
+   A2 · TOLVA DE FINOS Y MOLIENDA
+   ===================================================================== */
+const FOB={cap:620,level:.6};
+(function(){const g=obj('FOB','FOB',0,0,0);[[-1,-1],[1,-1],[1,1],[-1,1]].forEach(k=>B(g,.45,6.2,.45,MAT.steelD,k[0]*2.6,3.1,k[1]*2.6));
+ Cy(g,3.5,.6,3,MAT.steel,0,5.5,0,36);Cy(g,3.5,3.5,9,MAT.steel,0,11.5,0,36);const roof=Cy(g,.5,3.6,1.1,MAT.steelD,0,16.55,0,36);ringRail(g,0,0,3.3,16.0);
+ for(let y=7.5;y<16;y+=1.5){const r=prep(new T.Mesh(new T.TorusGeometry(3.52,.05,4,48),MAT.steelD));r.rotation.x=Math.PI/2;r.position.y=y;g.add(r);}
+ // indicador de nivel
+  B(g,.4,1.4,.4,MAT.blueL,-.9,3.6,.4);B(g,.4,1.4,.4,MAT.blueL,.9,3.6,.4);
+ label('FOB',V(0,18.6,0),'Tolva de finos');})();
+(function(){const g=obj('201','201',0,0,1.2,1,2);B(g,.8,.5,1.4,MAT.blueL,-.9,2.6,0);B(g,.8,.5,1.4,MAT.blueL,.9,2.6,0);})();
+conveyor('202','202',V(0,1.2,2.6),V(15.4,4.7,8),.65);label('202',V(7,4.6,5),'Banda 202 + balanza 203',true);
+(function(){const g=obj('203','203',7.1,0,5.3);B(g,1.6,.25,1.4,MAT.yellow,0,2.75,0);B(g,.3,.3,.3,MAT.blue,0,3.0,.8);})();
+(function(){const g=obj('214','214',4.6,0,-2.2);[[-1,-1],[1,-1],[1,1],[-1,1]].forEach(k=>B(g,.18,4.4,.18,MAT.steelD,k[0]*.6,2.2,k[1]*.6));Cy(g,.75,.75,1.5,MAT.white,0,5.15,0,20);Cy(g,.75,.15,.8,MAT.white,0,4.0,0,20);label('214',V(4.6,6.6,-2.2),'Silo de cal',true);})();
+(function(){const g=obj('215','215',0,0,0);rod(g,V(4.6,3.6,-2.2),V(5,2.1,3.7),.15,MAT.steel);B(g,.4,.4,.5,MAT.blueL,4.6,3.4,-1.6);})();
+B(scene,24,.4,20,MAT.concrete2,21,.2,12).castShadow=false;
+mill('204','204',19.5,8,'grid',-1);label('204',V(19.5,5.6,8),'Molino de bolas de parrilla MQGg2430');
+mill('210','210',19.5,16,'over',1);label('210',V(19.5,5.6,16),'Molino de bolas de rebose MQYg2430');
+(function(){const g=obj('205','205',24.4,0,11.5);B(g,1.4,.5,.9,MAT.steelD,0,.6,0);})();
+conveyor('206','206',V(25,.9,11.6),V(15.8,4.6,9.4),.5);label('206',V(20,4.2,11.6),'Banda 206 · retorno',true);
+pump('207-1','207',26.6,6.4,1,2);pump('207-2','207',26.6,8.2,2,2);label('207-1',V(26.6,2.2,7.3),'Bombas ciclón 1',true);
+pump('211-1','211',26.6,15.4,1,2);pump('211-2','211',26.6,17.2,2,2);label('211-1',V(26.6,2.2,16.3),'Bombas ciclón 2',true);
+pump('227-1','227',14,21.8,1,2);pump('227-2','227',15.8,21.8,2,2);
+(function(){const g=new T.Group();scene.add(g);tower(g,31,12,6,8,10,[5,10]);stair(g,V(36.2,0,17.5),V(34,5,15.5));})();
+cycloneCluster('209','209',30.5,10,9.6,2);label('209',V(30.5,13.6,9.6),'Hidrociclones 1ª etapa');
+cycloneCluster('213','213',30.5,10,14.4,2);label('213',V(30.5,13.6,14.4),'Hidrociclones 2ª etapa',true);
+
+/* =====================================================================
+   A3 · ESPESADOR Y REACTIVOS
+   ===================================================================== */
+thickener('217','217',46,-6);label('217',V(46,10.6,-6),'Espesador NZSG-15 · Ø15 m');
+(function(){const g=obj('216-1','216',38,0,-3.6,1,3);platform(g,0,0,3.4,3.4,8.2,{});screenParts(g,'216-1',0,8.4,0,1.0,1.8,.12);label('216-1',V(38,11.3,-3.6),'Criba de basuras DZS0918',true);})();
+pump('220-1','220',44.6,-3.2,1,2,Math.PI/2);pump('220-2','220',47.4,-3.2,2,2,Math.PI/2);label('220-1',V(46,2.3,-2.8),'Bombas descarga espesador',true);
+(function(){const g=obj('REAG','REAG',0,0,0);building(g,36,-23,13,7,5.2,0xe9ebe7,0x3f72a8,{win:true});label('REAG',V(36,8.5,-23),'Galpón de reactivos');})();
+(function(){const t=obj('218','218',32.5,0,-23.5);Cy(t,.5,.5,1.75,MAT.white,0,.88,0,18);B(t,.4,.4,.4,MAT.blue,0,1.95,0);})();
+(function(){const t=obj('225','225',37,0,-23.5);Cy(t,.75,.75,1.5,MAT.white,0,.75,0,20);B(t,.5,.5,.5,MAT.blue,0,1.75,0);})();
+pump('219-1','219',34.4,-21.2,1,2);pump('219-2','219',34.4,-25.2,2,2);pump('226-1','226',39.6,-21.2,1,2);pump('226-2','226',39.6,-25.2,2,2);
+
+/* =====================================================================
+   A4 · CIL
+   ===================================================================== */
+const TZ=[-26,-17.5,-9,-.5,8], TB=[1.2,.9,.6,.3,0], TTOP=[];
+TZ.forEach((z,i)=>{const r=tank('221-'+(i+1),'221',66,z,3.25,7,TB[i],i+1,5,{carbon:true});TTOP.push(r.top);
+ const g=OBJ['221-'+(i+1)].group;});
+(function(){const g=new T.Group();scene.add(g);const y=9.0;B(g,1.4,.1,TZ[4]-TZ[0]+4.4,MAT.grate,64.2,y,(TZ[0]+TZ[4])/2+1.2);railing(g,[[63.5,TZ[0]-1.0],[63.5,TZ[4]+3.4]],y,false);railing(g,[[64.9,TZ[0]-1.0],[64.9,TZ[4]+3.4]],y,false);stair(g,V(64.2,0,TZ[4]+9.6),V(64.2,y,TZ[4]+3.4));for(let i=0;i<5;i++)B(g,.25,y,.25,MAT.steelD,64.2,y/2,TZ[i]+4.25);
+ for(let i=0;i<4;i++){rod(g,V(62.9,TTOP[i]-.5,TZ[i]+2.2),V(62.9,TTOP[i+1]-.3,TZ[i+1]-2.2),.28,MAT.orange);}})();
+label('221-1',V(66,12.6,-26),'CIL N.º 1 (SJ6.5×7.0)');label('221-3',V(66,12.2,-9),'CIL N.º 3',true);label('221-5',V(66,12,8),'CIL N.º 5',true);
+TZ.forEach((z,i)=>{alias('223-'+(i+1),'223','221-'+(i+1),i+1,5);alias('224-'+(i+1),'224','221-'+(i+1),i+1,5);});
+(function(){const g=obj('BLW','BLW',0,0,0);building(g,80,16,8,6,4,0xe6e8e4,0x7d8790,{});label('BLW',V(80,7.2,16),'Casa de sopladores',true);})();
+pump('222-1','222',78.5,16,1,2);pump('222-2','222',81.5,16,2,2);
+(function(){const g=obj('216-2','216',67.6,0,14.4,2,3);platform(g,0,0,3,3,7.6,{});screenParts(g,'216-2',0,7.8,0,1.0,1.8,.12);label('216-2',V(67.6,10.7,14.4),'Criba de seguridad',true);})();
+
+/* =====================================================================
+   A5 · DESORCIÓN, EW Y FUNDICIÓN
+   ===================================================================== */
+(function(){const g=obj('ELU','ELU',0,0,0);building(g,88,-20,18,14,9,0xe4e7ea,0x36658f,{rh:2.2});label('ELU',V(88,13.4,-20),'Edificio de desorción, EW y fundición');})();
+(function(){const g=obj('301','301',0,0,0);
+ Cy(g,.75,.75,.6,MAT.concrete2,82.5,.3,-24,16);Cy(g,.62,.62,6.2,MAT.steel,82.5,3.7,-24,24);Cy(g,.62,.2,.6,MAT.steel,82.5,.75,-24,24);Cy(g,.62,.62,.2,MAT.yellow,82.5,6.9,-24,24);
+ Cy(g,.55,.55,5.2,MAT.steel,84.4,3.2,-24,24);
+ B(g,2.6,1.0,1.1,MAT.blue,86.5,.85,-24.6);B(g,2.6,1.0,1.1,MAT.blue,86.5,.85,-22.8);B(g,2.6,.15,1.2,MAT.dark,86.5,1.43,-24.6);B(g,2.6,.15,1.2,MAT.dark,86.5,1.43,-22.8);
+ B(g,1.4,1.8,1.2,MAT.white,82.5,.9,-19.5);B(g,.9,1.6,.9,MAT.dark,82.5,1.2,-18.6);
+ const hx=Cy(g,.35,.35,2.4,MAT.steel,85,1.2,-19.5,16);hx.rotation.z=Math.PI/2;Cy(g,.8,.8,1.8,MAT.ppr,81,.9,-15.5,20);Cy(g,.8,.8,1.8,MAT.ppr,83,.9,-15.5,20);
+ B(g,1.2,1.6,.5,MAT.dark,80.2,.8,-22);
+ label('301',V(83.5,8.2,-24),'Desorción-EW XH-1000');})();
+(function(){const g=obj('302','302',0,0,0);
+ B(g,.2,3.2,13.4,MAT.white,90.6,1.6,-20).material=MAT.white;
+ B(g,1.2,1.4,1.2,MAT.dark,94.5,.7,-25);B(g,1.0,1.0,.1,MAT.red,94.5,.8,-24.35);
+ Cy(g,.55,.55,1.3,MAT.titan,94.5,.65,-21.5,18);Cy(g,.5,.5,.9,MAT.ppr,92.6,.45,-21.5,18);Cy(g,.6,.6,1.1,MAT.ppr,92.6,.55,-17.5,18);Cy(g,.6,.6,1.1,MAT.ppr,94.4,.55,-17.5,18);
+ B(g,2.4,.9,.9,MAT.steel,95.4,.45,-14.6);
+ const ingot=B(g,.3,.12,.16,MAT.gold,92.8,1.0,-14.6);B(g,1.2,.9,.8,MAT.steelD,92.8,.45,-14.6);
+ rod(g,V(94.5,1.5,-25),V(94.5,9.6,-25),.2,MAT.steel);
+ [[86,-31.2],[91.2,-31.2]].forEach(p=>{const t=Cy(g,1.1,1.1,4.2,MAT.alu,p[0],1.5,p[1],20);t.rotation.z=Math.PI/2;B(g,.4,.5,1.6,MAT.concrete2,p[0]-1.4,.25,p[1]);B(g,.4,.5,1.6,MAT.concrete2,p[0]+1.4,.25,p[1]);});
+ ANIM.push({id:'302',fn:dt=>{ingot.rotation.y+=dt*1.2;}});
+ label('302',V(94,6.0,-21),'Fundición · cuarto de oro',true);})();
+(function(){const g=obj('216-3','216',77.4,0,-24,3,3);platform(g,0,0,2.6,2.6,6.4,{});screenParts(g,'216-3',0,6.6,0,1.0,1.8,.12);label('216-3',V(77.4,9.6,-24),'Criba carbón-pulpa',true);})();
+
+/* =====================================================================
+   A6 · RELAVES
+   ===================================================================== */
+tank('401','401',66,22.5,2.25,5,.3,1,1);label('401',V(66,8.8,22.5),'Tanque pulmón de relaves',true);
+pump('402-1','402',61.2,25.6,1,3);pump('402-2','402',61.2,27.4,2,3);pump('402-3','402',61.2,29.2,3,3);label('402-1',V(61.2,2.4,27.4),'Bombas XPB a filtros',true);
+(function(){const g=new T.Group();scene.add(g);platform(g,46,38,16,13,6,{stair:[57,30.5,53,32.5]});
+ [[38.3,31.6],[53.7,31.6],[53.7,44.4],[38.3,44.4]].forEach(p=>B(g,.35,13,.35,MAT.steelD,p[0],6.5,p[1]));
+ const rm=new T.MeshStandardMaterial({color:0x7f8a94,metalness:.3,roughness:.6,transparent:true,opacity:1,side:T.DoubleSide});BLD_MATS.push(rm);const rf=B(g,17.4,.15,14.4,rm,46,13.1,38);rf.rotation.z=.04;})();
+filterPress('404-1','404',46,6.06,35,11,1,2);filterPress('404-2','404',46,6.06,41,11,2,2);label('404-1',V(46,10.4,35),'Filtro prensa XMZ-500/2000');label('404-2',V(46,10.4,41),'Filtro prensa N.º 2',true);
+conveyor('405-1','405',V(48,1.2,34.2),V(31.5,5.6,34.2),.8,1,2);conveyor('405-2','405',V(48,1.2,41.8),V(31.5,5.6,41.8),.8,2,2);label('405-1',V(38,6.5,38),'Bandas de torta 405',true);
+(function(){const g=obj('DRY','DRY',0,0,0);[[28.6,34.2,4.8],[28.6,42,4.6]].forEach(p=>{const c=prep(new T.Mesh(new T.ConeGeometry(p[2],p[2]*.75,22),MAT.tail));c.position.set(p[0],p[2]*.375,p[1]);g.add(c);});label('DRY',V(27,5.4,38),'Relave seco',true);})();
+pump('406-1','406',55,44.4,1,2);pump('406-2','406',57,44.4,2,2);
+
+/* =====================================================================
+   A7 · AGUA Y EFLUENTES
+   ===================================================================== */
+(function(){const g=obj('POND','POND',0,0,0);const x=14,z=34,w=16,d=9;B(g,w+1,.6,.5,MAT.concrete2,x,.3,z-d/2-.25);B(g,w+1,.6,.5,MAT.concrete2,x,.3,z+d/2+.25);B(g,.5,.6,d,MAT.concrete2,x-w/2-.25,.3,z);B(g,.5,.6,d,MAT.concrete2,x+w/2+.25,.3,z);const wt=new T.Mesh(new T.PlaneGeometry(w,d),water);wt.rotation.x=-Math.PI/2;wt.position.set(x,.15,z);g.add(wt);label('POND',V(14,2.4,34),'Piscina de agua de proceso');})();
+pump('503-1','503',8,27.3,1,2);pump('503-2','503',10.2,27.3,2,2);pump('504-1','504',12.4,27.3,1,2);pump('504-2','504',14.6,27.3,2,2);label('503-1',V(11.3,2.2,27.3),'Bombas de agua 503/504',true);
+tank('501-1','501',84,30,2.25,5,.3,1,2);tank('501-2','501',84,38,2.25,5,.3,2,2);label('501-1',V(84,8.8,34),'Tanques de aguas residuales',true);
+pump('502-1','502',89.2,33,1,2);pump('502-2','502',89.2,35,2,2);
+
+/* =====================================================================
+   A0 · SERVICIOS
+   ===================================================================== */
+(function(){const g=obj('OFI','OFI',0,0,0);building(g,-45,42,26,10,4.6,0xf1f1ee,0xb33b2e,{rh:2});label('OFI',V(-45,9,42),'Oficinas y sala de control');})();
+(function(){const g=obj('LAB','LAB',0,0,0);building(g,-16,40,14,8,4.2,0xf1f1ee,0xb33b2e,{rh:1.6});label('LAB',V(-16,8,40),'Laboratorio',true);})();
+(function(){const g=obj('TAL','TAL',0,0,0);building(g,-50,12,22,14,7,0xd9dde0,0x5d6f80,{rh:2.4});label('TAL',V(-50,11.6,12),'Taller y almacén');})();
+(function(){const g=obj('SUB','SUB',0,0,0);B(g,12,.2,8,MAT.concrete2,-12,.1,26);[[-15,26],[-9,26]].forEach(p=>{B(g,2.2,2.4,1.8,MAT.steel,p[0],1.4,p[1]);for(let i=-1;i<=1;i++)Cy(g,.12,.12,.9,MAT.cream,p[0]+i*.6,3.0,p[1],8);for(let i=-2;i<=2;i++)B(g,.1,1.6,.22,MAT.steelD,p[0]+1.2,1.3,p[1]+i*.36);});
+ const fm=new T.MeshStandardMaterial({color:0x9aa3a8,transparent:true,opacity:.35,side:T.DoubleSide,depthWrite:false});[[0,4,12,0],[0,-4,12,0],[6,0,8,Math.PI/2],[-6,0,8,Math.PI/2]].forEach(f=>{const m=new T.Mesh(new T.PlaneGeometry(f[2],2.2),fm);m.position.set(-12+f[0],1.1,26+f[1]);m.rotation.y=f[3];g.add(m);});
+ [[-18,22],[-6,22],[-18,30],[-6,30]].forEach(p=>B(g,.25,9,.25,MAT.steelD,p[0],4.5,p[1]));label('SUB',V(-12,6,26),'Subestación',true);})();
+(function(){const g=obj('MCC','MCC',0,0,0);building(g,2,24,10,6,4,0xe7e9ea,0x7d8790,{});label('MCC',V(2,7.2,24),'Sala eléctrica / CCM (VFD 208·212·403)',true);})();
+(function(){const g=obj('GAR','GAR',0,0,0);building(g,-78,45,5,4,3.2,0xf1f1ee,0xb33b2e,{rh:1});B(g,18,.25,3.6,MAT.steel,-64,.12,52);B(g,.2,1.1,.2,MAT.red,-82.2,.55,49);beam(g,V(-82.2,1.05,49),V(-82.2,1.05,55),.12,.12,MAT.red);label('GAR',V(-78,6,45),'Garita y báscula',true);})();
+(function(){const g=new T.Group();scene.add(g);const gx=-68,gz=31;const lawn=new T.Mesh(new T.BoxGeometry(18,.14,13),M(0x4f9a43,{roughness:1}));lawn.position.set(gx,.07,gz);lawn.receiveShadow=true;g.add(lawn);[[0,0,6,3.2,0xc0457c],[-4,2.5,2.4,1.4,0xe7a83a],[4.2,-2.6,2.6,1.5,0xe25b4a]].forEach(f=>{const e=new T.Mesh(new T.CylinderGeometry(1,1,.2,30),M(f[4],{roughness:1}));e.scale.set(f[2],1,f[3]);e.position.set(gx+f[0],.2,gz+f[1]);g.add(e);});
+ for(let i=0;i<10;i++){const t=prep(new T.Mesh(new T.SphereGeometry(1.1,10,8),M(0x2f6b33,{roughness:1})));t.position.set(gx-8+i*1.8,1.5,gz-6);g.add(t);B(g,.15,1,.15,MAT.dark,gx-8+i*1.8,.5,gz-6);}})();
+// volqueta
+(function(){const g=new T.Group();g.position.set(38,0,51.2);scene.add(g);B(g,7,.6,2.5,MAT.steelD,0,1.1,0);B(g,2,2,2.4,MAT.loader,2.9,2.2,0);B(g,4.6,1.8,2.5,MAT.red,-1,2.4,0);[[-2.4,1],[-2.4,-1],[2.6,1],[2.6,-1],[-1,1],[-1,-1]].forEach(k=>{const w=Cy(g,.55,.55,.4,MAT.rubber,k[0],.55,k[1]*1.2,14);w.rotation.x=Math.PI/2;});})();
+
+/* =====================================================================
+   FLUJOS DE PROCESO (tuberías animadas)
+   ===================================================================== */
+const FLOW={
+ slurry:{n:'Pulpa',c:'#e8692c'}, water:{n:'Agua de proceso',c:'#2f86d6'}, air:{n:'Aire',c:'#3cb371'},
+ reag:{n:'Reactivos (NaCN, floculante)',c:'#a35fd0'}, carbon:{n:'Carbón activado',c:'#f2c230'}, treated:{n:'Efluente tratado',c:'#27b5b0'}
+};
+const PIPES=[];const flowOn={};Object.keys(FLOW).forEach(k=>flowOn[k]=true);
+function pipe(kind,pts,r){r=r||.16;const path=new T.CurvePath();let L=0;for(let i=0;i<pts.length-1;i++){const a=V(...pts[i]),b=V(...pts[i+1]);path.add(new T.LineCurve3(a,b));L+=a.distanceTo(b);}
+ const col=FLOW[kind].c;const tex=canvasTex(64,8,(x,w,h)=>{x.fillStyle=col;x.fillRect(0,0,w,h);x.fillStyle='rgba(255,255,255,.55)';x.fillRect(0,0,18,h);});tex.repeat.set(L/2.2,1);
+ const m=new T.MeshStandardMaterial({map:tex,roughness:.45,metalness:.1,emissive:new T.Color(col),emissiveIntensity:.18});
+ const geo=new T.TubeGeometry(path,Math.max(8,Math.ceil(L*1.5)),r,8,false);const mesh=new T.Mesh(geo,m);mesh.castShadow=true;scene.add(mesh);PIPES.push({kind,mesh,tex,on:true});return mesh;}
+// pulpa
+pipe('slurry',[[27.4,1,6.4],[28.6,1,6.4],[28.6,10.9,9.6],[29.7,10.9,9.6]]);
+pipe('slurry',[[30.5,9.6,9.6],[30.5,8.2,11.6],[16.3,8.2,11.6],[16.3,4.2,16]]);
+pipe('slurry',[[27.4,1,15.4],[28.6,1,15.4],[28.6,10.9,14.4],[29.7,10.9,14.4]]);
+pipe('slurry',[[30.5,9.6,14.4],[30.5,7.4,12.8],[17.2,7.4,12.8],[17.2,4.4,15.4]]);
+pipe('slurry',[[30.5,12.4,9.6],[34.6,12.4,9.6],[34.6,1.3,13],[28,1.3,13],[28,1,15.4]]);
+pipe('slurry',[[30.5,12.6,14.4],[35.2,12.6,14.4],[35.2,10.2,-3.6],[37.2,10.2,-3.6]]);
+pipe('slurry',[[38.9,9.6,-3.6],[45.4,9.6,-3.6],[45.4,8.6,-5.4]]);
+pipe('slurry',[[46,.9,-2.2],[52.5,.9,-2.2],[52.5,10.2,-2.2],[52.5,10.2,-30.2],[66,10.2,-30.2],[66,8.6,-28.6]]);
+pipe('slurry',[[66.6,7.4,11.2],[67.6,8.7,13]]);pipe('slurry',[[67.6,8.1,15.8],[66.4,6.2,20.6]]);
+pipe('slurry',[[63.9,.9,22.5],[62.6,.9,25.6]]);
+pipe('slurry',[[60.4,1,27.4],[56.4,1,27.4],[56.4,7.8,27.4],[56.4,7.8,41],[52,7.8,41]]);pipe('slurry',[[56.4,7.8,35],[52,7.8,35]]);
+pipe('slurry',[[77.4,6.6,-25.4],[79.5,4,-25.4],[81.6,4,-24.2],[82,6.6,-24]]);
+// agua
+pipe('water',[[38.4,7.6,-6.6],[37.4,5,-6.6],[37.4,5,26],[22.6,5,26],[22.6,.6,29.4]]);
+pipe('water',[[55,.8,45.2],[55,4.6,45.2],[55,4.6,47.6],[20.2,4.6,47.6],[20.2,4.6,40],[20.2,.6,38.4]]);
+pipe('water',[[15.4,.6,27.3],[15.6,.6,27.3],[15.6,5.9,27.3],[15.6,5.9,4.4],[16.3,5.9,4.4],[16.3,4.4,7.6]]);
+// efluente
+pipe('treated',[[89.8,.9,34],[92.5,.9,34],[92.5,5.2,34],[92.5,5.2,48.3],[21.2,5.2,48.3],[21.2,.6,38.4]]);
+pipe('treated',[[16,.9,21.8],[16,3.4,21.8],[16,3.4,26],[83,3.4,26],[83,5.5,28.2]]);
+// aire
+pipe('air',[[80,2.2,13],[80,9.8,13],[70.3,9.8,13],[70.3,9.8,-26]]);
+TZ.forEach((z,i)=>pipe('air',[[70.3,9.8,z],[67.4,9.8,z],[67.4,TTOP[i]+.3,z]],.12));
+// reactivos
+pipe('reag',[[40.2,1.2,-21.2],[41,1.2,-21.2],[41,3.8,-21.2],[41,3.8,-31.4],[64.6,3.8,-31.4],[64.6,8.7,-28.8]],.12);
+pipe('reag',[[33.4,1.2,-21.4],[33.4,10.3,-21.4],[33.4,10.3,-7.2],[45.2,10.3,-7.2],[45.6,8.7,-6.4]],.12);
+// carbón
+pipe('carbon',[[67.9,9.4,-26],[67.9,10.8,-26],[76,10.8,-26],[77,7.4,-24.6]],.2);
+pipe('carbon',[[80.4,1.2,-13.6],[73.2,1.2,-13.6],[73.2,10.8,-13.6],[73.2,10.8,9],[68.4,10.8,9],[67.6,8.4,9]],.2);
+
+/* =====================================================================
+   SIMULACIÓN
+   ===================================================================== */
+const SIM={t:6*3600,speed:60,au:0,ore:0,feed:20.83,crushWait:false,elu:0.35,press:[.2,.65]};
+const ST={};  // id -> {run, man, load}
+Object.values(OBJ).forEach(o=>{const d=o.tag&&DT[o.tag];let run=true;if(d&&d.sb>0&&o.idx>d.qty-d.sb)run=false;ST[o.id]={run,man:false,load:rnd(.72,.9)};});
+const CRUSH=['101','102','103','104','105','106','107','108','109'];
+const events=[];
+function ev(msg,cls){const h=Math.floor(SIM.t/3600),m=Math.floor(SIM.t%3600/60),d=1+Math.floor(h/24);events.unshift({s:'D'+d+' '+String(h%24).padStart(2,'0')+':'+String(m).padStart(2,'0'),msg,cls});if(events.length>9)events.pop();$('#log').innerHTML=events.map(e=>'<div class="'+(e.cls||'')+'">'+e.s+' · '+e.msg+'</div>').join('');}
+function running(id){return ST[id]&&ST[id].run;}
+function anyRun(tag){return DT[tag].objs.some(id=>running(id));}
+function stateOf(id){const s=ST[id];if(!s)return 'run';const o=OBJ[id];if(CRUSH.includes(id)&&SIM.crushWait&&!s.man)return 'wait';if(s.run)return 'run';const d=o.tag&&DT[o.tag];if(!s.man&&d&&d.sb>0&&o.idx>d.qty-d.sb)return 'sb';return 'stop';}
+function crushOK(){return CRUSH.every(id=>!OBJ[id]||running(id));}
+function alarms(){const a=[];if(!running('204'))a.push('Molino primario 204 detenido');if(!running('210'))a.push('Molino secundario 210 detenido');if(!anyRun('207'))a.push('Sin bomba de alimentación a ciclón 1 (207)');if(!anyRun('211'))a.push('Sin bomba de alimentación a ciclón 2 (211)');if(!anyRun('220'))a.push('Sin bomba de descarga del espesador (220)');if(!running('217'))a.push('Rastra del espesador detenida');DT['221'].objs.forEach((id,i)=>{if(!running(id))a.push('Agitador CIL N.º '+(i+1)+' detenido');});if(!anyRun('222'))a.push('Sin aire a los tanques CIL (222)');if(FOB.level<.08)a.push('Tolva de finos vacía');if(!crushOK())a.push('Circuito de trituración detenido');if(!anyRun('402'))a.push('Sin bomba de alimentación a filtros (402)');if(!running('301'))a.push('Sistema de desorción XH-1000 detenido');return a;}
+let lastFeedOk=true;
+function simStep(dtReal){const dt=dtReal*SIM.speed;SIM.t+=dt;const hr=dt/3600;
+ // trituración: 41,7 t/h en 2 turnos; se detiene con tolva llena
+ const crushCap=41.7;if(!SIM.crushWait&&FOB.level>.93){SIM.crushWait=true;ev('Trituración en espera: tolva de finos al 93 %','w');}if(SIM.crushWait&&FOB.level<.55){SIM.crushWait=false;ev('Trituración reinicia: tolva de finos al 55 %','g');}
+ const crushIn=(crushOK()&&!SIM.crushWait)?crushCap:0;
+ const millOk=running('204')&&running('210')&&anyRun('207')&&anyRun('211')&&anyRun('220')&&FOB.level>0.005;
+ SIM.feed=millOk?20.83*(.985+.03*Math.sin(SIM.t/900)+.01*Math.random()):0;
+ if(millOk!==lastFeedOk){ev(millOk?'Molienda en marcha: alimentación restablecida':'Molienda detenida: alimentación a 0 t/h',millOk?'g':'b');lastFeedOk=millOk;}
+ FOB.level=Math.min(1,Math.max(0,FOB.level+(crushIn-SIM.feed)*hr/FOB.cap));
+ const cilOk=DT['221'].objs.every(id=>running(id))&&anyRun('222');
+ const rec=cilOk?.95:.88;SIM.ore+=SIM.feed*hr;SIM.au+=SIM.feed*hr*5*rec;
+ if(running('301'))SIM.elu=(SIM.elu+hr/14)%1;SIM.press=SIM.press.map((p,i)=>running('404-'+(i+1))?(p+hr/2.5)%1:p);
+ Object.values(ST).forEach(s=>{s.load=Math.min(.98,Math.max(.55,s.load+(Math.random()-.5)*.02));});}
+function power(){let p=0;Object.values(OBJ).forEach(o=>{if(!o.tag)return;const d=DT[o.tag];if(!d.kw)return;const st=stateOf(o.id);if(st!=='run')return;let per=d.kw*d.qty/(d.objs.length);if(d.objs.length===1)per=d.kw*(d.qty-d.sb);p+=per*ST[o.id].load;});return p;}
+
+/* =====================================================================
+   UI
+   ===================================================================== */
+const totals=(()=>{let inst=0,op=0;DATA.forEach(d=>{inst+=d.kw*d.qty;op+=d.kw*(d.qty-d.sb);});return {inst,op};})();
+// áreas
+$('#areas').innerHTML=AREAS.map(a=>{const n=DATA.filter(d=>d.area===a.k).length;return '<div class="area" data-a="'+a.k+'"><i style="background:'+a.c+'"></i>'+a.name+'<em>'+(n?n+' ítems':'')+'</em></div>';}).join('');
+document.querySelectorAll('.area').forEach(el=>el.onclick=()=>flyArea(el.dataset.a));
+// leyenda
+$('#legend').innerHTML=Object.keys(FLOW).map(k=>'<span class="leg" data-k="'+k+'"><i style="background:'+FLOW[k].c+'"></i>'+FLOW[k].n+'</span>').join('')+'<span class="leg" style="cursor:default"><i style="background:#3a3d40;height:6px"></i>Mineral (bandas)</span>';
+document.querySelectorAll('.leg[data-k]').forEach(el=>el.onclick=()=>{const k=el.dataset.k;flowOn[k]=!flowOn[k];el.classList.toggle('off',!flowOn[k]);applyFlows();});
+function applyFlows(){const on=$('#cFlow').checked;PIPES.forEach(p=>p.mesh.visible=on&&flowOn[p.kind]);}
+$('#cFlow').onchange=applyFlows;
+$('#cLbl').onchange=()=>{$('#labels').style.display=$('#cLbl').checked?'':'none';};
+$('#cXray').onchange=()=>{const x=$('#cXray').checked;BLD_MATS.forEach(m=>{m.opacity=x?.16:1;m.depthWrite=!x;m.needsUpdate=true;});};
+// velocidades
+const SPD=[[1,'×1 (tiempo real)'],[60,'×60'],[600,'×600']];
+$('#speeds').innerHTML=SPD.map(s=>'<button class="btn'+(s[0]===SIM.speed?' on':'')+'" data-s="'+s[0]+'">'+s[1]+'</button>').join('')+'<button class="btn" id="bPause">❚❚ Pausa</button>';
+let paused=false;document.querySelectorAll('#speeds [data-s]').forEach(b=>b.onclick=()=>{SIM.speed=+b.dataset.s;paused=false;$('#bPause').classList.remove('on');document.querySelectorAll('#speeds [data-s]').forEach(x=>x.classList.toggle('on',x===b));});
+$('#bPause').onclick=()=>{paused=!paused;$('#bPause').classList.toggle('on',paused);};
+// tabs
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.tabc').forEach(c=>c.classList.toggle('on',c.id===b.dataset.t));});
+// BOM
+(function(){let h='';Object.keys(SYS).forEach(s=>{h+='<tr class="sys"><td colspan="3">'+s+' · '+SYS[s]+'</td></tr>';DATA.filter(d=>d.sys===s).forEach(d=>{h+='<tr class="it" data-t="'+d.tag+'"><td class="t">'+d.tag+'</td><td>'+d.name+'<small>'+d.model+' · '+d.qty+(d.sb?' ('+d.sb+' reserva)':'')+(d.kw?' · '+fmt(d.kw,d.kw%1?1:0)+' kW':'')+'</small></td><td class="p">'+fmt(d.price)+'</td></tr>';});h+='<tr class="tot"><td></td><td>Subtotal</td><td class="p">'+fmt(SUB[s])+'</td></tr>';});
+ const tot=DATA.reduce((a,d)=>a+d.price,0);h+='<tr class="tot"><td></td><td style="color:var(--gold)">Total equipos (EXW)</td><td class="p" style="color:var(--gold)">'+fmt(tot)+'</td></tr>';$('#bom').innerHTML=h;
+ document.querySelectorAll('#bom tr.it').forEach(r=>r.onclick=()=>{const d=DT[r.dataset.t];select(d.objs[0],true);});})();
+// base de diseño
+$('#t3').innerHTML=`<h3>Índices técnicos de diseño (cotización §4.2)</h3>
+<table class="kv"><tr><td>Mineral / ley de cabeza</td><td>Oro · 5 g/t</td></tr><tr><td>Capacidad</td><td>500 t/d</td></tr><tr><td>Proceso</td><td>CIL → lingote doré</td></tr><tr><td>Molienda</td><td>−200 mallas 80 %</td></tr><tr><td>Recuperación</td><td>95 %</td></tr><tr><td>Tiempo de lixiviación</td><td>24 h</td></tr><tr><td>Días de operación</td><td>300 d/a</td></tr><tr><td>Turnos trituración</td><td>2 × 6 h/d</td></tr><tr><td>Turnos planta principal</td><td>3 × 8 h/d</td></tr><tr><td>Tamaño máx. ROM</td><td>500 mm</td></tr><tr><td>Producto de trituración</td><td>0–12 mm</td></tr></table>
+<h3>Balance derivado</h3>
+<table class="kv"><tr><td>Trituración (12 h/d)</td><td>41,7 t/h</td></tr><tr><td>Molienda (24 h/d)</td><td>20,8 t/h</td></tr><tr><td>Oro en alimentación</td><td>2 500 g/d</td></tr><tr><td>Oro recuperado</td><td>2 375 g/d ≈ 76 oz/d</td></tr><tr><td>Oro recuperado anual</td><td>≈ 712 kg/a</td></tr><tr><td>Volumen CIL (5 × Ø6,5 × 7 m)</td><td>≈ 1 160 m³</td></tr><tr><td>Pulpa requerida 24 h (40 % sól.)</td><td>≈ 935 m³</td></tr><tr><td>Potencia instalada</td><td>${fmt(totals.inst)} kW</td></tr><tr><td>Potencia sin reservas</td><td>${fmt(totals.op)} kW</td></tr></table>
+<h3>Cotización (EXW, USD)</h3>
+<table class="kv"><tr><td>Diseño de construcción</td><td>78 000</td></tr><tr><td>Equipos (Anexo 1)</td><td>1 649 377</td></tr><tr><td>Materiales de instalación</td><td>841 182</td></tr><tr><td style="color:var(--tx);font-weight:600">Total EXW</td><td style="color:var(--gold);font-weight:600">2 568 559</td></tr></table>
+<p class="note">Excluye obra civil, flete internacional, aranceles, agua, electricidad y mano de obra local.</p>
+<h3>Criterios del modelo 3D</h3>
+<p class="note">• Equipos, cantidades, potencias y precios: Anexo 1 de la cotización Xinhai XHHW20210304.<br>• Disposición por módulos (trituración, molienda-espesamiento, CIL-desorción, relaves), estilo de tanques, pasarelas y código de colores de tuberías: video de referencia de una planta CIL modular.<br>• Dimensiones de catálogo: NZSG-15 Ø15 × 3,6 m; molinos MQ “2430” = Ø2,4 × 3,0 m; SJ6.5×7.0 = Ø6,5 × 7,0 m.<br>• Supuestos (sin dato en el PDF): ubicación relativa de las áreas, tolva de finos Ø7 × 9 m, edificios, piscina de agua, vialidad y subestación.</p>
+<h3>Observaciones al documento</h3>
+<p class="note">• El §5 de la cotización menciona “flotation process”, pero el proceso del cliente, los índices y la lista de equipos son CIL. El modelo sigue la lista de equipos.<br>• Los diagramas del §5.2 muestran mesa concentradora (gravimetría), pero el Anexo 1 no la incluye, así que no se modeló.<br>• El video muestra 2 tanques de prelixiviación + 5 de adsorción; la cotización tiene 5 tanques CIL SJ6.5×7.0. El modelo usa 5.<br>• La “oferta” es de 2021 (validez 30 días): precios solo de referencia.</p>`;
+// cadena de proceso
+const CHAIN=[['A1','Trituración',()=>crushOK()?(SIM.crushWait?'w':''):'b'],['FOB','Tolva de finos',()=>FOB.level<.1?'b':FOB.level<.25?'w':''],['A2','Molienda 2 etapas',()=>SIM.feed>0?'':'b'],['A3','Espesador',()=>running('217')&&anyRun('220')?'':'b'],['A4','CIL · 5 tanques',()=>DT['221'].objs.every(running)&&anyRun('222')?'':'w'],['A5','Desorción / EW',()=>running('301')?'':'b'],['302','Fundición → doré',()=>running('302')?'':'b'],['A6','Filtrado de relaves',()=>anyRun('402')&&anyRun('404')?'':'b']];
+$('#chain').innerHTML=CHAIN.map((c,i)=>(i?'<span class="arw">→</span>':'')+'<div class="chip" data-k="'+c[0]+'"><i></i>'+c[1]+'</div>').join('');
+document.querySelectorAll('.chip').forEach(el=>el.onclick=()=>{const k=el.dataset.k;if(AREA[k])flyArea(k);else select(k,true);});
+
+/* =====================================================================
+   SELECCIÓN Y FICHA
+   ===================================================================== */
+const selBox=new T.BoxHelper(undefined,0xffc93c);selBox.material.depthTest=false;selBox.material.transparent=true;selBox.renderOrder=999;selBox.visible=false;scene.add(selBox);
+let selId=null;
+function infoOf(id){const o=OBJ[id];if(!o)return null;if(o.tag)return {kind:'eq',d:DT[o.tag],o};if(o.infra)return {kind:'infra',d:INFRA[o.infra],o};return null;}
+function select(id,focus){const o=OBJ[id];if(!o)return;selId=id;const tgt=o.group;selBox.setFromObject(tgt);selBox.visible=true;renderInfo();if(focus)focusObj(tgt);document.querySelectorAll('#bom tr.it').forEach(r=>r.classList.toggle('sel',o.tag&&r.dataset.t===o.tag));}
+function closeInfo(){selId=null;selBox.visible=false;$('#info').style.display='none';document.querySelectorAll('#bom tr.it').forEach(r=>r.classList.remove('sel'));}
+function statusHtml(st){return {run:'<span class="st run">● EN MARCHA</span>',sb:'<span class="st sb">● RESERVA (STAND-BY)</span>',stop:'<span class="st stop">● DETENIDO</span>',wait:'<span class="st wait">● EN ESPERA · tolva llena</span>'}[st];}
+function renderInfo(){const I=infoOf(selId);if(!I){closeInfo();return;}const el=$('#info');el.style.display='block';const o=I.o;
+ if(I.kind==='eq'){const d=I.d;const st=stateOf(o.id);const a=AREA[d.area];
+  el.innerHTML='<button class="x" title="Cerrar">×</button><span class="tag">'+d.tag+(d.objs.length>1?' · '+o.idx+'/'+d.objs.length:'')+'</span><h2>'+d.name+'</h2><div class="model">'+d.model+'</div><div id="ist">'+statusHtml(st)+'</div>'+
+  '<table class="kv"><tr><td>Área</td><td>'+(a?a.name:'')+'</td></tr><tr><td>Sistema (cotización)</td><td>'+d.sys+'</td></tr><tr><td>Cantidad</td><td>'+d.qty+(d.sb?' ('+(d.qty-d.sb)+' op. + '+d.sb+' res.)':'')+'</td></tr>'+(d.kw?'<tr><td>Potencia unitaria</td><td>'+fmt(d.kw,d.kw%1?1:0)+' kW · 380 V</td></tr><tr><td>Potencia instalada</td><td>'+fmt(d.kw*d.qty,1)+' kW</td></tr>':'')+'<tr><td>Precio EXW (total ítem)</td><td>USD '+fmt(d.price)+'</td></tr></table>'+
+  '<p class="fn">'+d.fn+'</p><h3>Telemetría simulada</h3><div class="tele" id="tele"></div><div class="ibtns"><button class="btn" id="bFoc">Enfocar</button>'+(d.objs.length>1?'<button class="btn" id="bPrev">◀</button><button class="btn" id="bNext">▶</button>':'')+'<button class="btn" id="bTog"></button></div>'+
+  '<div class="src">Fuente: cotización Xinhai XHHW20210304, Anexo 1 (ítem '+d.tag+'). Dimensiones modeladas a escala aproximada; telemetría simulada con valores típicos de diseño.</div>';
+  const tg=$('#bTog');const upd=()=>{tg.textContent=ST[o.id].run?'■ Detener':'▶ Arrancar';};upd();tg.onclick=()=>{toggleEq(o.id);upd();};
+  if(d.objs.length>1){const i=d.objs.indexOf(o.id);$('#bPrev').onclick=()=>select(d.objs[(i-1+d.objs.length)%d.objs.length],true);$('#bNext').onclick=()=>select(d.objs[(i+1)%d.objs.length],true);}
+ }else{const d=I.d;const a=AREA[d.area];el.innerHTML='<button class="x">×</button><span class="tag">'+o.infra+'</span><h2>'+d.name+'</h2><div class="model">'+(a?a.name:'')+'</div><p class="fn">'+d.fn+'</p><h3>Estado</h3><div class="tele" id="tele"></div><div class="ibtns"><button class="btn" id="bFoc">Enfocar</button></div><div class="src">'+d.src+'</div>';}
+ el.querySelector('.x').onclick=closeInfo;$('#bFoc').onclick=()=>focusObj(o.group);updTele();}
+function toggleEq(id){const s=ST[id];s.run=!s.run;s.man=!s.run;const o=OBJ[id];const d=DT[o.tag];
+ // equipos ligados (subobjetos)
+ Object.values(OBJ).forEach(x=>{if(x!==o&&x.group===o.group&&ST[x.id]){ST[x.id].run=s.run;ST[x.id].man=s.man;}});
+ ev((s.run?'Arranque: ':'Parada manual: ')+d.tag+' '+d.name.split('(')[0].trim()+(d.objs.length>1?' #'+o.idx:''),s.run?'g':'b');
+ // autoarranque de reserva
+ if(!s.run&&d.sb>0){const spare=d.objs.find(x=>x!==id&&!ST[x].run&&!ST[x].man);if(spare){ST[spare].run=true;ev('Reserva '+d.tag+' #'+OBJ[spare].idx+' arranca automáticamente','w');}}
+ renderInfo();}
+function tl(k,v,u,bar){return '<div><span>'+k+'</span><b>'+v+'</b>'+(u?' <small style="color:var(--mut)">'+u+'</small>':'')+(bar!=null?'<div class="bar"><i style="width:'+Math.round(bar*100)+'%"></i></div>':'')+'</div>';}
+function updTele(){const I=infoOf(selId);const box=$('#tele');if(!I||!box)return;const o=I.o;let h='';
+ if(I.kind==='infra'){if(o.infra==='FOB')h=tl('Nivel',fmt(FOB.level*100,1),'%',FOB.level)+tl('Inventario',fmt(FOB.level*FOB.cap),'t')+tl('Autonomía',SIM.feed?fmt(FOB.level*FOB.cap/SIM.feed,1):'—','h')+tl('Entrada trituración',(crushOK()&&!SIM.crushWait)?'41,7':'0','t/h');
+  else if(o.infra==='POND')h=tl('Nivel',fmt(68+6*Math.sin(SIM.t/5000),1),'%',.68)+tl('Retorno espesador',fmt(SIM.feed?28+rnd(-1,1):0,1),'m³/h')+tl('Filtrado',fmt(SIM.feed?7.5+rnd(-.5,.5):0,1),'m³/h')+tl('NaCN residual',fmt(rnd(28,34),0),'ppm');
+  else if(o.infra==='OFI')h=tl('Alimentación',fmt(SIM.feed,1),'t/h')+tl('Mineral procesado',fmt(SIM.ore,0),'t')+tl('Au recuperado',fmt(SIM.au,0),'g')+tl('Alarmas activas',alarms().length,'');
+  else if(o.infra==='SUB'||o.infra==='MCC')h=tl('Demanda',fmt(power(),0),'kW')+tl('Factor de potencia',fmt(.88+rnd(-.01,.01),2),'')+tl('Instalada',fmt(totals.inst),'kW')+tl('Tensión BT','380','V');
+  else if(o.infra==='DRY')h=tl('Torta producida',fmt(SIM.ore*1.0,0),'t')+tl('Humedad',fmt(rnd(15,17),1),'%');
+  else h=tl('Estado','Operativo','')+tl('Área',AREA[INFRA[o.infra].area].name.split(' ')[0],'');
+  box.innerHTML=h;return;}
+ const d=I.d,s=ST[o.id],st=stateOf(o.id),on=st==='run',L=on?s.load:0;const amp=d.kw?d.kw*L*1000/(1.732*380*.85*.93)*(d.objs.length>1?1:(d.qty-d.sb)):0;
+ $('#ist').innerHTML=statusHtml(st);
+ const j=(a,b,dd)=>on?fmt(rnd(a,b),dd==null?1:dd):'—';
+ switch(d.type){
+  case 'mill':h=tl('Potencia',fmt(d.kw*L,0),'kW',L)+tl('Corriente',fmt(amp,0),'A')+tl('Velocidad',on?'21,2':'0','rpm')+tl('Sólidos en descarga',j(70,74),'%')+tl('T° rodamientos',j(44,52,0),'°C')+tl('Alimentación',fmt(SIM.feed,1),'t/h');break;
+  case 'crusher':h=tl('Carga',fmt(L*100,0),'%',L)+tl('Corriente',fmt(amp,0),'A')+tl('Abertura (CSS)',{102:'50',103:'25',104:'10'}[d.tag],'mm')+tl(d.tag==='104'?'T° aceite':'T° cojinetes',j(38,46,0),'°C');break;
+  case 'conv':{const tph=on?({'202':SIM.feed,'206':SIM.feed*.08,'405':SIM.feed*1.18/2}[d.tag]||41.7):0;h=tl('Flujo',fmt(tph,1),'t/h',tph/45)+tl('Velocidad',on?'1,6':'0','m/s')+tl('Corriente',fmt(amp,1),'A')+tl('Desalineamiento',on?'OK':'—','');break;}
+  case 'pump':{const q=+(d.model.match(/Q=(\d+)/)||[0,0])[1]||({'402':55,'406':12,'219':1.2,'226':.8,'227':15,'504':18}[d.tag]||10);h=tl('Caudal',on?fmt(q*rnd(.85,.97),1):'0','m³/h',on?.85:0)+tl('Presión desc.',j(180,300,0),'kPa')+tl('Corriente',fmt(amp,1),'A')+tl('Vibración',j(1.8,3.2),'mm/s');break;}
+  case 'cyclone':h=tl('Presión de alimentación',j(75,95,0),'kPa',on?.8:0)+tl('P80 rebose',on?(d.tag==='213'?'74':'110'):'—','µm')+tl('Sólidos rebose',j(28,33),'%')+tl('Sólidos underflow',j(72,78),'%');break;
+  case 'thick':h=tl('Sólidos en descarga',j(42,47),'%',on?.45:0)+tl('Turbidez rebose',j(60,110,0),'ppm')+tl('Torque de rastra',j(18,26,0),'%',on?.22:0)+tl('Lecho',j(1.1,1.5),'m');break;
+  case 'tank':{const k=o.idx-1;const au=[1.2,.55,.25,.11,.05][k],cc=[3200,1900,1100,600,300][k];h=tl('pH',j(10.6,11.0,2),'')+tl('NaCN libre',j(300-k*30,340-k*30,0),'ppm')+tl('O₂ disuelto',j(6.5,8),'mg/L')+tl('Au en solución',on?fmt(au*rnd(.92,1.08),2):'—','ppm')+tl('Carbón',j(11,14),'g/L')+tl('Au en carbón',on?fmt(cc*rnd(.95,1.05),0):'—','g/t')+tl('Agitador',fmt(d.kw*L,1),'kW',L)+tl('Nivel',j(88,92,0),'%');break;}
+  case 'tank2':h=tl('Nivel',j(55,75,0),'%',on?.65:0)+tl('Agitador',fmt(d.kw*L,1),'kW',L)+tl('Densidad',j(1.30,1.38,2),'t/m³');break;
+  case 'blower':h=tl('Caudal',on?fmt(26.5*rnd(.95,1),1):'0','m³/min',on?.95:0)+tl('Presión',j(92,98,0),'kPa')+tl('Corriente',fmt(amp,0),'A')+tl('T° descarga',j(78,92,0),'°C');break;
+  case 'elution':{const p=SIM.elu;const ph=p<.12?'Carga de carbón':p<.25?'Calentamiento':p<.85?'Elución + EW':'Enfriamiento / descarga';h=tl('Fase',on?ph:'—','',p)+tl('Carga de carbón','1 000','kg')+tl('T° eluyente',on&&p>.12&&p<.85?fmt(rnd(145,152),0):on?fmt(rnd(40,90),0):'—','°C')+tl('Presión',on&&p>.12&&p<.85?fmt(rnd(.40,.48),2):'—','MPa')+tl('Corriente de celdas',on&&p>.25&&p<.85?fmt(rnd(480,560),0):'0','A')+tl('Au en eluido',on?fmt(rnd(80,140),0):'—','ppm');break;}
+  case 'smelt':h=tl('T° horno mufla',on?fmt(rnd(1150,1220),0):'—','°C',on?.92:0)+tl('Doré estimado/día','2,4','kg')+tl('Lingoteras','1 y 2','kg')+tl('Extracción de gases',on?'OK':'—','');break;
+  case 'press':{const p=SIM.press[o.idx-1];const ph=p<.55?'Llenado':p<.75?'Prensado':p<.9?'Soplado':'Descarga de torta';h=tl('Fase del ciclo',on?ph:'—','',p)+tl('Presión de filtración',on&&p<.75?fmt(rnd(.6,.8),2):'0','MPa')+tl('Humedad de torta',j(15,18),'%')+tl('Ciclo','≈ 150','min');break;}
+  case 'screen':h=tl('Amplitud',j(7,9),'mm')+tl('Carga',fmt(L*100,0),'%',L)+tl('Corriente',fmt(amp,1),'A');break;
+  case 'feeder':h=tl('Frecuencia',j(40,50,0),'Hz')+tl('Carga',fmt(L*100,0),'%',L)+(d.tag==='215'?tl('Cal',j(1.2,1.6),'kg/t'):'');break;
+  case 'scale':h=tl('Tonelaje',fmt(SIM.feed,2),'t/h',SIM.feed/25)+tl('Totalizador',fmt(SIM.ore,0),'t');break;
+  case 'agit':h=tl('Nivel',j(60,85,0),'%',on?.72:0)+tl('Concentración',d.tag==='225'?j(9,11)+' %':j(.1,.15,2)+' %','');break;
+  case 'vfd':h=tl('Frecuencia',j(42,50,1),'Hz',on?.9:0)+tl('Ubicación','CCM','');break;
+  case 'cscreen':case 'airlift':h=tl('Estado',on?'OK':'—','')+tl('Tanque','CIL N.º '+o.idx,'');break;
+  case 'bin':h=tl('Nivel',j(50,80,0),'%',.65);break;
+  case 'mag':h=tl('Hierro retenido hoy',on?fmt(rnd(2,6),1):'—','kg')+tl('Corriente',fmt(amp,1),'A');break;
+  default:h=tl('Carga',fmt(L*100,0),'%',L);}
+ box.innerHTML=h;}
+
+/* =====================================================================
+   CÁMARA
+   ===================================================================== */
+let fly=null;const ease=k=>k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
+function flyTo(t,p,dur){fly={t0:performance.now(),dur:(dur||1.4)*1000,ft:controls.target.clone(),fp:camera.position.clone(),tt:t.clone(),tp:p.clone()};}
+function flyArea(k){const a=AREA[k];if(!a)return;const t=V(...a.t);flyTo(t,t.clone().add(V(...a.o).multiplyScalar(1.35)));}
+function focusObj(g){const b=new T.Box3().setFromObject(g);const c=b.getCenter(new T.Vector3()),s=b.getSize(new T.Vector3());const r=Math.max(s.x,s.y,s.z);const dir=camera.position.clone().sub(controls.target).normalize();if(dir.y<.35){dir.y=.35;dir.normalize();}flyTo(c,c.clone().add(dir.multiplyScalar(Math.max(14,r*2.6+10))));}
+const HOME=[V(12,0,0),V(-108,118,168)];
+$('#bHome').onclick=()=>{stopTour();flyTo(HOME[0],HOME[1],1.8);};
+let tour=null;function stopTour(){if(tour){clearInterval(tour);tour=null;$('#bTour').classList.remove('on');$('#bTour').textContent='▶ Recorrido';}}
+$('#bTour').onclick=()=>{if(tour){stopTour();return;}const seq=['A1','A2','A3','A4','A5','A6','A0'];let i=0;flyArea(seq[0]);$('#bTour').classList.add('on');$('#bTour').textContent='■ Detener';tour=setInterval(()=>{i++;if(i>=seq.length){stopTour();flyTo(HOME[0],HOME[1],2);return;}flyArea(seq[i]);},5200);};
+controls.addEventListener('start',()=>{if(fly)fly=null;});
+
+// selección por clic
+const ray=new T.Raycaster(),mp=new T.Vector2();let down=null;
+renderer.domElement.addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY];stopTour();});
+function pickAt(e){mp.x=e.clientX/innerWidth*2-1;mp.y=-(e.clientY/innerHeight)*2+1;ray.setFromCamera(mp,camera);const hits=ray.intersectObjects(PICK,true);for(const h of hits){let o=h.object;while(o&&!(o.userData&&o.userData.sel))o=o.parent;if(o)return o.userData.sel;}return null;}
+renderer.domElement.addEventListener('pointerup',e=>{if(!down)return;const mv=Math.hypot(e.clientX-down[0],e.clientY-down[1]);down=null;if(mv>5)return;const id=pickAt(e);if(id)select(id,false);else closeInfo();});
+renderer.domElement.addEventListener('dblclick',e=>{const id=pickAt(e);if(id)select(id,true);});
+let hoverT=0;renderer.domElement.addEventListener('pointermove',e=>{const now=performance.now();if(now-hoverT<60||e.buttons)return;hoverT=now;const id=pickAt(e);const tip=$('#tip');if(id){const I=infoOf(id);const nm=I?(I.kind==='eq'?I.d.tag+' · '+I.d.name:I.d.name):id;tip.textContent=nm;tip.style.display='block';tip.style.left=(e.clientX+14)+'px';tip.style.top=(e.clientY+12)+'px';renderer.domElement.style.cursor='pointer';}else{tip.style.display='none';renderer.domElement.style.cursor='';}});
+
+/* =====================================================================
+   BUCLE
+   ===================================================================== */
+const clock=new T.Clock();let acc=0,tAnim=0;const tmpV=new T.Vector3();
+function updateKPIs(){const h=Math.floor(SIM.t/3600),m=Math.floor(SIM.t%3600/60);$('#kClock').textContent='D'+(1+Math.floor(h/24))+' '+String(h%24).padStart(2,'0')+':'+String(m).padStart(2,'0');
+ $('#kFeed').textContent=fmt(SIM.feed,1)+' t/h';$('#kFob').textContent=fmt(FOB.level*100,0)+' %';$('#kPow').textContent=fmt(power(),0)+' kW';$('#kAu').textContent=SIM.au<1000?fmt(SIM.au,0)+' g':fmt(SIM.au/1000,2)+' kg';
+ const all=Object.values(OBJ).filter(o=>o.tag&&DT[o.tag].kw);$('#kEq').textContent=all.filter(o=>stateOf(o.id)==='run').length+' / '+all.length;
+ const al=alarms();$('#kAlm').textContent=al.length;$('#kAlmBox').classList.toggle('on',al.length>0);$('#kAlmBox').title=al.join('\n');
+ document.querySelectorAll('.chip').forEach((el,i)=>{const s=CHAIN[i][2]();el.querySelector('i').className=s;});
+ LABELS.forEach(l=>{const st=stateOf(l.id);l.el.classList.toggle('stop',st==='stop');});
+ if(selId)updTele();}
+function frame(){requestAnimationFrame(frame);const dt=Math.min(clock.getDelta(),.1);tAnim+=dt;
+ if(!paused)simStep(dt);acc+=dt;if(acc>.5){acc=0;updateKPIs();}
+ if(fly){const k=Math.min(1,(performance.now()-fly.t0)/fly.dur),e=ease(k);controls.target.lerpVectors(fly.ft,fly.tt,e);camera.position.lerpVectors(fly.fp,fly.tp,e);if(k>=1)fly=null;}
+ const animOn=$('#cAnim').checked&&!paused;
+ if(animOn){ANIM.forEach(a=>{const st=stateOf(a.id);if(st==='run')a.fn(dt,tAnim);});
+  PIPES.forEach(p=>{if(p.mesh.visible){let on=true;if(p.kind==='slurry'||p.kind==='water')on=SIM.feed>0;if(p.kind==='air')on=anyRun('222');if(p.kind==='carbon')on=running('301');if(on)p.tex.offset.x-=dt*.9;}});}
+ // material de banda según carga
+ ['106','107','108','202','206','405-1','405-2'].forEach(id=>{const o=OBJ[id];const want=(stateOf(id)==='run')?beltTexBase:beltTexEmpty;if(o.mat.map.image!==want.image){const off=o.mat.map.offset.y;o.mat.map=want.clone();o.mat.map.needsUpdate=true;o.mat.map.repeat.set(1,o.L/3);o.mat.map.offset.y=off;o.belt=o.mat.map;}});
+ controls.update();
+ if(selBox.visible){selBox.material.opacity=.6+.4*Math.sin(tAnim*4);}
+ // etiquetas
+ if($('#cLbl').checked){const dist=camera.position.distanceTo(controls.target);LABELS.forEach(l=>{tmpV.copy(l.pos).project(camera);const vis=tmpV.z<1&&tmpV.x>-1.1&&tmpV.x<1.1&&tmpV.y>-1.1&&tmpV.y<1.1;const d=camera.position.distanceTo(l.pos);const show=vis&&(!l.minor||d<85)&&d<(l.minor?85:330);if(!show){l.el.style.display='none';return;}l.el.style.display='';l.el.style.left=((tmpV.x+1)/2*innerWidth)+'px';l.el.style.top=((1-tmpV.y)/2*innerHeight)+'px';l.el.style.zIndex=String(1000-Math.round(d));});}
+ renderer.render(scene,camera);}
+// arreglo: animación de bandas usa la textura vigente
+ANIM.forEach(a=>{const o=OBJ[a.id];if(o&&o.belt){a.fn=(dt)=>{o.belt.offset.y-=dt*1.6/3;};}});
+
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+ev('Planta en marcha · 500 t/d · CIL','g');updateKPIs();$('#loading').remove();frame();
+setTimeout(()=>flyTo(HOME[0],V(-92,96,140),2.2),200);
+})();
+</script>
+</body>
+</html>

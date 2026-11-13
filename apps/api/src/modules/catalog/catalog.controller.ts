@@ -1,8 +1,8 @@
 import { Controller, Get, Inject, NotFoundException, Param, ParseUUIDPipe, Query, Res, StreamableFile } from '@nestjs/common'
-import { and, asc, eq, or, sql, type SQL } from 'drizzle-orm'
+import { and, asc, eq, sql, type SQL } from 'drizzle-orm'
 import type { Response } from 'express'
 import { z } from 'zod'
-import { escapeLike, pageOf, paginationShape } from '../../common/pagination'
+import { pageOf, paginationShape } from '../../common/pagination'
 import { ZodValidationPipe } from '../../common/zod-validation.pipe'
 import { DB, type Database } from '../../database/database.module'
 import { assetFamilies, assetModels, assetTypes } from '../../database/schema'
@@ -11,8 +11,8 @@ import { setImageHeaders } from '../documents/image-upload'
 import { StorageService } from '../documents/storage.service'
 import { CurrentUser, Public } from '../iam/decorators'
 
-import { referenceMatches, referenceSearch } from './reference-manufacturers'
-import { catalogSearch } from './catalog-search'
+import { referenceMatches } from './reference-manufacturers'
+import { buildCatalogSearch } from './catalog-search'
 
 const modelsQuery = z.object({
   ...paginationShape,
@@ -127,16 +127,14 @@ export class CatalogController {
       q.stage ? modelInStage(q.stage.toUpperCase()) : undefined,
       q.network ? modelInNetwork(q.network.toUpperCase()) : undefined,
     ]
-    if (q.search) {
-      const like = `%${escapeLike(q.search)}%`
-      conditions.push(or(catalogSearch(assetModels.modelName, like), catalogSearch(assetModels.catalogTag, like), catalogSearch(assetTypes.name, like), referenceSearch(like)))
-    }
+    const search = q.search ? buildCatalogSearch(q.search) : undefined
+    conditions.push(search?.condition)
     const where = and(...conditions)
 
     const [items, [{ total }]] = await Promise.all([
       this.modelSelect()
         .where(where)
-        .orderBy(asc(assetModels.modelName), asc(assetFamilies.name), asc(assetTypes.name), asc(assetModels.id))
+        .orderBy(...(search?.order ?? []), asc(assetModels.modelName), asc(assetFamilies.name), asc(assetTypes.name), asc(assetModels.id))
         .limit(q.pageSize)
         .offset((q.page - 1) * q.pageSize),
       this.db

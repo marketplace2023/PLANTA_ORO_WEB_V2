@@ -106,8 +106,9 @@ export function CatalogPage() {
             </label>
             <div className="relative">
               <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-fur-gray-500" aria-hidden />
-              <Input id="catalog-search" type="search" className="h-10 pl-9" placeholder="Modelo, tipo o fabricante…" value={searchText} onChange={(e) => setSearchText(e.target.value)} />
+              <Input id="catalog-search" type="search" className="h-10 pl-9" placeholder="Modelo o especificación…" value={searchText} onChange={(e) => setSearchText(e.target.value)} />
             </div>
+            <p className="text-xs text-fur-gray-600">Combina términos, por ejemplo: motor 5 hp.</p>
           </div>
           <FilterSelect
             label="Etapa"

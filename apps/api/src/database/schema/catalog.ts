@@ -1,4 +1,4 @@
-import { boolean, check, integer, jsonb, pgSchema, primaryKey, text, timestamp, unique, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
+import { boolean, check, customType, index, integer, jsonb, numeric, pgSchema, primaryKey, text, timestamp, unique, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 import { createdAt, pk, updatedAt } from './common'
 import { networkMaster } from './plant'
@@ -124,6 +124,28 @@ export const assetModels = catalogSchema.table(
     imageUpdatedAt: timestamp('image_updated_at', { withTimezone: true }),
   },
 )
+
+const tsvector = customType<{ data: string }>({ dataType: () => 'tsvector' })
+
+/** Proyección interna, mantenida por triggers en la misma transacción que la ficha original. */
+export const modelSearchDocuments = catalogSchema.table('model_search_documents', {
+  modelId: uuid('model_id').primaryKey().references(() => assetModels.id, { onDelete: 'cascade' }),
+  identity: text('identity').notNull(),
+  document: text('document').notNull(),
+  searchVector: tsvector('search_vector').notNull(),
+}, t => [
+  index('model_search_document_trgm_idx').using('gin', t.document.op('gin_trgm_ops')),
+  index('model_search_vector_idx').using('gin', t.searchVector),
+])
+
+export const modelSearchQuantities = catalogSchema.table('model_search_quantities', {
+  modelId: uuid('model_id').notNull().references(() => assetModels.id, { onDelete: 'cascade' }),
+  unit: text('unit').notNull(),
+  amount: numeric('amount').notNull(),
+}, t => [
+  primaryKey({ columns: [t.modelId, t.unit, t.amount] }),
+  index('model_search_quantity_idx').on(t.unit, t.amount, t.modelId),
+])
 
 /**
  * Claves efectivas por etapa, mantenidas por triggers diferidos de PostgreSQL. Incluyen las etapas heredadas del tipo;

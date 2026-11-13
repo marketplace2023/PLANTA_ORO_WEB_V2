@@ -477,6 +477,13 @@
       "when": 1794436633650,
       "tag": "0054_lulo_contract_taxable",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1794595196226,
+      "tag": "0068_catalog_search_index",
+      "breakpoints": true
     }
   ]
 }

@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { pageOf, paginationShape } from '../../common/pagination'
 import { ZodValidationPipe } from '../../common/zod-validation.pipe'
 import { DB, type Database } from '../../database/database.module'
-import { assetFamilies, assetModels, assetTypes } from '../../database/schema'
+import { assetFamilies, assetModels, assetTypes, modelSearchDocuments } from '../../database/schema'
 import type { AuthUser } from '../../common/types'
 import { setImageHeaders } from '../documents/image-upload'
 import { StorageService } from '../documents/storage.service'
@@ -113,6 +113,7 @@ export class CatalogController {
       .from(assetModels)
       .innerJoin(assetTypes, eq(assetTypes.id, assetModels.assetTypeId))
       .innerJoin(assetFamilies, eq(assetFamilies.id, assetTypes.familyId))
+      .leftJoin(modelSearchDocuments, eq(modelSearchDocuments.modelId, assetModels.id))
   }
 
   /** Modelos del catálogo con filtros (arquitectura §34): familia, tipo, fabricante y búsqueda. */
@@ -142,6 +143,7 @@ export class CatalogController {
         .from(assetModels)
         .innerJoin(assetTypes, eq(assetTypes.id, assetModels.assetTypeId))
         .innerJoin(assetFamilies, eq(assetFamilies.id, assetTypes.familyId))
+        .leftJoin(modelSearchDocuments, eq(modelSearchDocuments.modelId, assetModels.id))
         .where(where),
     ])
     return pageOf(items, total, q.page, q.pageSize)

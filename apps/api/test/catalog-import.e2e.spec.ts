@@ -194,6 +194,8 @@ describe('Importación del listado maestro del catálogo (e2e)', () => {
     expect(result.body.imported).toBe(2)
     const res = await http().get('/api/v1/catalog/assets?search=E2E-IMPORT&pageSize=100').expect(200)
     expect(res.body.total).toBe(2)
+    const searchable = await http().get('/api/v1/catalog/assets').query({ search: 'E2E-IMPORT 7.5kw' }).expect(200)
+    expect(searchable.body.total).toBe(1)
     const m = res.body.items.find((m: { catalogTag: string }) => m.catalogTag === 'E2E-IMPORT-02')
     expect(m).toMatchObject({ specifications: { 'Potencia del motor (kW)': '7,5–75' }, technicalData: { componentes: ['Motor, tambor, corona. Un solo componente.'] }, stageCodes: ['D06'], imageUrl: null, networkCodes: ['FUR-PROC'] })
     // La misma vista previa ya no autoriza volver a aplicar sobre un catálogo diferente.

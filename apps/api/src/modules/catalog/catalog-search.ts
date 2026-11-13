@@ -1,7 +1,6 @@
 import { and, desc, ilike, or, sql, type SQLWrapper } from 'drizzle-orm'
 import { escapeLike } from '../../common/pagination'
-import { assetFamilies, assetModels, assetTypes } from '../../database/schema'
-import { referenceNames } from './reference-manufacturers'
+import { assetModels, modelSearchDocuments, modelSearchQuantities } from '../../database/schema'
 
 const combiningMarks = '[\u0300-\u036f]'
 const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -37,37 +36,16 @@ export function catalogSearchTerms(search: string): SearchTerm[] {
   return result.length ? result : [{ text: normalize(search) }]
 }
 
-const specificationRows = sql`jsonb_each_text(case when jsonb_typeof(${assetModels.specifications}) = 'object'
-  then ${assetModels.specifications} else '{}'::jsonb end) specs`
-const hasSpecificationValue = sql`nullif(trim(specs.value), '') is not null
-  and ${normalizedSql(sql`regexp_replace(trim(specs.value), ${'\\s+'}, ' ', 'g')`)} <> 'no aplica'`
-const specificationText = sql`coalesce((select string_agg(specs.key || ' ' || specs.value, ' ')
-  from ${specificationRows} where ${hasSpecificationValue}), '')`
-const identityText = sql`concat_ws(' ', ${assetModels.modelName}, ${assetModels.catalogTag}, ${assetTypes.name}, ${assetFamilies.name})`
-const documentText = sql`concat_ws(' ', ${identityText}, ${referenceNames}, ${specificationText})`
-const vector = (value: SQLWrapper) => sql`to_tsvector('spanish', coalesce(${normalizedSql(value)}, ''))`
-const searchVector = sql`setweight(${vector(identityText)}, 'A') || setweight(${vector(referenceNames)}, 'B') || setweight(${vector(specificationText)}, 'C')`
-
-const regexEscape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+// Estas proyecciones se preparan al guardar/importar, nunca al buscar.
+const identityText = modelSearchDocuments.identity
+const documentText = modelSearchDocuments.document
+const searchVector = modelSearchDocuments.searchVector
 
 function quantityMatch(term: { number: string; unit: string }) {
-  // 5, 5.0 y 5,00 son equivalentes; 15 y 5,5 no coinciden con 5.
-  const [rawInteger, rawFraction = ''] = term.number.replace(',', '.').split('.')
-  const negative = rawInteger.startsWith('-') ? '-' : ''
-  const integer = rawInteger.replace(/^[+-]/, '').replace(/^0+(?=\d)/, '') || '0'
-  const fraction = rawFraction.replace(/0+$/, '')
-  const numeric = `${negative}0*${integer}${fraction ? `[.,]${fraction}0*` : '(?:[.,]0+)?'}`
-  const start = '(^|[^a-z0-9.,+\\-])'
-  const exactNumber = `${start}${numeric}($|[^0-9.,])`
-  const unit = regexEscape(term.unit)
-  const inlineQuantity = `${start}${numeric}\\s*${unit}($|[^a-z0-9/])`
-  const value = sql`translate(${normalizedSql(sql`specs.value`)}, '²³µμ', '23uu')`
-  const keyUnit = sql`translate(regexp_replace(${normalizedSql(sql`substring(specs.key from ${'\\(([^()]*)\\)\\s*$'})`)}, ${'\\s+'}, '', 'g'), '²³µμ', '23uu')`
-  return or(
-    sql`translate(${normalizedSql(identityText)}, '²³µμ', '23uu') ~ ${inlineQuantity}`,
-    sql`exists (select 1 from ${specificationRows} where ${hasSpecificationValue}
-      and ((${keyUnit} = ${term.unit} and ${value} ~ ${exactNumber}) or ${value} ~ ${inlineQuantity}))`,
-  )!
+  return sql`exists (select 1 from ${modelSearchQuantities}
+    where ${modelSearchQuantities.modelId} = ${assetModels.id}
+      and ${modelSearchQuantities.unit} = ${term.unit}
+      and ${modelSearchQuantities.amount} = ${term.number.replace(',', '.')}::numeric)`
 }
 
 /** Todos los términos deben coincidir; una cantidad y su unidad pertenecen a la misma especificación. */
@@ -76,14 +54,14 @@ export function buildCatalogSearch(search: string) {
   const words = terms.flatMap(term => 'text' in term ? [term.text] : [])
   const condition = and(...terms.map(term => {
     if ('number' in term) return quantityMatch(term)
-    const literal = catalogSearch(documentText, `%${escapeLike(term.text)}%`)
+    const literal = ilike(documentText, `%${escapeLike(term.text)}%`)
     // Los símbolos de TAG y LIKE se conservan literales; el diccionario español permite singular/plural.
     return /^[a-z]+$/.test(term.text)
       ? or(literal, sql`${searchVector} @@ plainto_tsquery('spanish', ${term.text})`)
       : literal
   }))!
   const rank = sql`ts_rank(${searchVector}, plainto_tsquery('spanish', ${words.join(' ')}))`
-  const exactPhrase = catalogSearch(identityText, `%${escapeLike(normalize(search))}%`)
+  const exactPhrase = ilike(identityText, `%${escapeLike(normalize(search))}%`)
   return {
     condition,
     order: words.length ? [

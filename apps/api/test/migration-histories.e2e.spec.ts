@@ -30,8 +30,8 @@ describe('Integración de historias de migración de main y activos', () => {
         const before = (await db.query('select * from drizzle.__drizzle_migrations order by id')).rows
         await runMigrations(target.href)
         const complete = (await db.query('select * from drizzle.__drizzle_migrations order by id')).rows
-        expect(complete).toHaveLength(68)
-        expect(new Set(complete.map(r => r.created_at)).size).toBe(68)
+        expect(complete).toHaveLength(69)
+        expect(new Set(complete.map(r => r.created_at)).size).toBe(69)
         expect(complete.slice(0, before.length)).toEqual(before)
         expect((await db.query("select count(*)::int n from iam.users where email='merge-preserve@fur.local'")).rows[0].n).toBe(1)
         expect((await db.query("select to_regclass('asset.catalog_requests') as requests,to_regclass('catalog.family_specifications') as specifications,to_regclass('lms.instructor_profiles') as instructors")).rows[0]).toEqual({ requests: 'asset.catalog_requests', specifications: 'catalog.family_specifications', instructors: 'lms.instructor_profiles' })

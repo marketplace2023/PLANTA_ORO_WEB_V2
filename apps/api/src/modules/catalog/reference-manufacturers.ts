@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import { assetModels } from '../../database/schema'
 import { normalized } from './catalog-import.xlsx'
+import { catalogSearch } from './catalog-search'
 
 /** La ficha es la única fuente de fabricantes del modelo; nunca el antiguo maestro de marcas. */
 export function referenceIdentity(data: unknown): string {
@@ -19,5 +20,5 @@ export const referenceMatches = (id: string) => sql`exists (
 )`
 export const referenceSearch = (like: string) => sql`exists (
   select 1 from catalog.model_reference_manufacturers refs
-  where refs.asset_model_id = ${assetModels.id} and refs.name ilike ${like}
+  where refs.asset_model_id = ${assetModels.id} and ${catalogSearch(sql`refs.name`, like)}
 )`

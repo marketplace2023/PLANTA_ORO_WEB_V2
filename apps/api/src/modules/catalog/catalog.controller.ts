@@ -1,5 +1,5 @@
 import { Controller, Get, Inject, NotFoundException, Param, ParseUUIDPipe, Query, Res, StreamableFile } from '@nestjs/common'
-import { and, asc, eq, ilike, or, sql, type SQL } from 'drizzle-orm'
+import { and, asc, eq, or, sql, type SQL } from 'drizzle-orm'
 import type { Response } from 'express'
 import { z } from 'zod'
 import { escapeLike, pageOf, paginationShape } from '../../common/pagination'
@@ -12,6 +12,7 @@ import { StorageService } from '../documents/storage.service'
 import { CurrentUser, Public } from '../iam/decorators'
 
 import { referenceMatches, referenceSearch } from './reference-manufacturers'
+import { catalogSearch } from './catalog-search'
 
 const modelsQuery = z.object({
   ...paginationShape,
@@ -128,7 +129,7 @@ export class CatalogController {
     ]
     if (q.search) {
       const like = `%${escapeLike(q.search)}%`
-      conditions.push(or(ilike(assetModels.modelName, like), ilike(assetModels.catalogTag, like), ilike(assetTypes.name, like), referenceSearch(like)))
+      conditions.push(or(catalogSearch(assetModels.modelName, like), catalogSearch(assetModels.catalogTag, like), catalogSearch(assetTypes.name, like), referenceSearch(like)))
     }
     const where = and(...conditions)
 

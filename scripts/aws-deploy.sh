@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Publica Ecosistema FUR en AWS (cuenta/región fijas abajo). Requiere AWS CLI con el perfil `fur` y Docker.
 #   scripts/aws-deploy.sh api    # construye la imagen, la sube a ECR y redespliega App Runner
-#   scripts/aws-deploy.sh spa    # construye web, admin y panel, los sube a S3 e invalida CloudFront
+#   scripts/aws-deploy.sh spa    # construye los seis portales, los sube a S3 e invalida CloudFront
 #   scripts/aws-deploy.sh all
 # Arquitectura y nombres: docs/despliegue-aws.md
 set -euo pipefail
@@ -20,44 +20,57 @@ deploy_api() {
   local registry="$ACCOUNT.dkr.ecr.$REGION.amazonaws.com" tag
   tag="$(date +%Y%m%d-%H%M)"
   # Desde la raíz y con ruta relativa: Docker en Windows no entiende las rutas /c/... de Git Bash.
-  (cd "$ROOT" && docker build -f Dockerfile.api -t fur-api:latest .)
+  (cd "$ROOT" && docker build --platform linux/amd64 --provenance=false -f Dockerfile.api -t fur-api:latest .)
   aws ecr get-login-password | docker login --username AWS --password-stdin "$registry"
   docker tag fur-api:latest "$registry/fur-api:$tag"
   docker tag fur-api:latest "$registry/fur-api:latest"
   docker push "$registry/fur-api:$tag"
   docker push "$registry/fur-api:latest"
-  local arn
+  local arn source_json
   arn="$(aws apprunner list-services --query "ServiceSummaryList[?ServiceName=='fur-api'].ServiceArn | [0]" --output text)"
-  aws apprunner start-deployment --service-arn "$arn" --query OperationId --output text
+  source_json="$(aws apprunner describe-service --service-arn "$arn" --query Service.SourceConfiguration --output json)"
+  source_json="$(SOURCE_CONFIGURATION="$source_json" IMAGE_IDENTIFIER="$registry/fur-api:$tag" node -e 'const source = JSON.parse(process.env.SOURCE_CONFIGURATION); source.ImageRepository.ImageIdentifier = process.env.IMAGE_IDENTIFIER; process.stdout.write(JSON.stringify(source));')"
+  aws apprunner update-service --service-arn "$arn" --source-configuration "$source_json" --query OperationId --output text
   echo "API desplegándose (imagen $tag). Estado: aws apprunner describe-service --service-arn $arn --query Service.Status"
 }
 
 publish() { # carpeta bucket
   local dir="$1" bucket="$2"
-  aws s3 sync "$dir" "s3://$bucket" --delete --exclude index.html --exclude "assets/*" --cache-control "public,max-age=86400" --only-show-errors
-  aws s3 sync "$dir/assets" "s3://$bucket/assets" --delete --cache-control "public,max-age=31536000,immutable" --only-show-errors
+  # Conserva versiones anteriores y assets con hash para sesiones abiertas y reversión.
+  aws s3 sync "$dir" "s3://$bucket" --exclude index.html --exclude "assets/*" --cache-control "public,max-age=86400" --only-show-errors
+  aws s3 sync "$dir/assets" "s3://$bucket/assets" --cache-control "public,max-age=31536000,immutable" --only-show-errors
   aws s3 cp "$dir/index.html" "s3://$bucket/index.html" --cache-control no-cache --content-type "text/html; charset=utf-8" --only-show-errors
 }
 
 invalidate() { # nombre
   local id
   id="$(aws cloudfront list-distributions --query "DistributionList.Items[?Comment=='FUR $1'].Id | [0]" --output text)"
-  aws cloudfront create-invalidation --distribution-id "$id" --paths "/" "/index.html" --query Invalidation.Status --output text
+  aws cloudfront create-invalidation --distribution-id "$id" --paths "/*" --query Invalidation.Status --output text
 }
 
 deploy_spa() {
   # Mismo origen: CloudFront reenvía /api/* a la API, así que el build usa la ruta relativa.
   export VITE_API_URL=/api/v1
+  local professional_domain
+  professional_domain="$(aws cloudfront list-distributions --query "DistributionList.Items[?Comment=='FUR professional-services'].DomainName | [0]" --output text)"
+  if [[ -z "$professional_domain" || "$professional_domain" == "None" ]]; then echo "Falta la distribución del portal profesional" >&2; exit 1; fi
+  export VITE_PROFESSIONAL_PORTAL_URL="https://$professional_domain"
   (cd "$ROOT" && npm run build -w @fur/web)
   (cd "$PARENT/planta_beneficio_oro_admin" && npm run build)
   (cd "$PARENT/planta_beneficio_oro_panel" && npm run build)
-  if grep -lE "localhost:3000|Program Files" "$ROOT"/apps/web/dist/assets/*.js "$PARENT"/planta_beneficio_oro_admin/dist/assets/*.js "$PARENT"/planta_beneficio_oro_panel/dist/assets/*.js; then
+  (cd "$PARENT/planta_beneficio_oro_suppliers" && npm run build)
+  (cd "$PARENT/planta_beneficio_oro_cursos" && npm run build)
+  (cd "$PARENT/planta_beneficio_oro_professional_services" && npm run build)
+  if grep -lE "localhost:3000|localhost:517[0-9]|Program Files" "$ROOT"/apps/web/dist/assets/*.js "$PARENT"/planta_beneficio_oro_admin/dist/assets/*.js "$PARENT"/planta_beneficio_oro_panel/dist/assets/*.js "$PARENT"/planta_beneficio_oro_suppliers/dist/assets/*.js "$PARENT"/planta_beneficio_oro_cursos/dist/assets/*.js "$PARENT"/planta_beneficio_oro_professional_services/dist/assets/*.js; then
     echo "ERROR: el build trae una URL de API incorrecta" >&2; exit 1
   fi
   publish "$ROOT/apps/web/dist" "fur-web-$ACCOUNT"
   publish "$PARENT/planta_beneficio_oro_admin/dist" "fur-admin-$ACCOUNT"
   publish "$PARENT/planta_beneficio_oro_panel/dist" "fur-panel-$ACCOUNT"
-  invalidate web; invalidate admin; invalidate panel
+  publish "$PARENT/planta_beneficio_oro_suppliers/dist" "fur-suppliers-$ACCOUNT"
+  publish "$PARENT/planta_beneficio_oro_cursos/dist" "fur-cursos-$ACCOUNT"
+  publish "$PARENT/planta_beneficio_oro_professional_services/dist" "fur-professional-services-$ACCOUNT"
+  invalidate web; invalidate admin; invalidate panel; invalidate suppliers; invalidate cursos; invalidate professional-services
 }
 
 case "${1:-}" in

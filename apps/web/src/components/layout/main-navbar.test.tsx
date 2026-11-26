@@ -8,8 +8,8 @@ import { ModuleShortcuts } from './module-shortcuts'
 const state = vi.hoisted(() => ({ currentPlant: null as { slug: string } | null }))
 vi.mock('@/features/plant/plant-context', () => ({ usePlant: () => ({ currentPlant: state.currentPlant }) }))
 
-const PLANT_LABELS = ['Catálogo', 'Activos Físicos', 'Procesos', 'Mantenimiento', 'WMS / Inventario', 'Presupuestos (LULO)', 'Documentos']
-const SERVICE_LABELS = ['Marketplace', 'Servicios Profesionales', 'Cursos (LMS)']
+const PLANT_LABELS = ['Catálogo', 'Activos Físicos', 'Procesos', 'Mantenimiento', 'WMS / Inventario', 'Documentos']
+const SERVICE_LABELS = ['Marketplace', 'Servicios Profesionales', 'Cursos (LMS)', 'Presupuestos (LULO)']
 
 describe('Navegación unificada', () => {
   beforeEach(() => { state.currentPlant = null })
@@ -23,7 +23,7 @@ describe('Navegación unificada', () => {
     expect(screen.queryByText('Dashboards')).not.toBeInTheDocument()
   })
 
-  it.each(['horizontal', 'vertical'] as const)('Gestión de planta incorpora las tres herramientas antes ubicadas en Más (%s)', async (orientation) => {
+  it.each(['horizontal', 'vertical'] as const)('Gestión de planta conserva sus herramientas operativas (%s)', async (orientation) => {
     const user = userEvent.setup()
     state.currentPlant = { slug: 'revemin-ii' }
     const onNavigate = vi.fn()
@@ -34,7 +34,7 @@ describe('Navegación unificada', () => {
     expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(PLANT_LABELS)
     expect(screen.getByRole('menuitem', { name: 'Mantenimiento' })).toHaveAttribute('href', '/plants/revemin-ii/maintenance')
     expect(screen.getByRole('menuitem', { name: 'WMS / Inventario' })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('menuitem', { name: 'Presupuestos (LULO)' })).toHaveAttribute('href', '/plants/revemin-ii/budgets')
+    expect(screen.queryByRole('menuitem', { name: 'Presupuestos (LULO)' })).not.toBeInTheDocument()
     const documents = screen.getByRole('menuitem', { name: 'Documentos' })
     expect(documents).toHaveAttribute('href', '/plants/revemin-ii/documents')
     await user.click(documents)
@@ -45,9 +45,9 @@ describe('Navegación unificada', () => {
   it('sin planta elegida conserva el módulo solicitado y no marca todas las herramientas como activas', async () => {
     renderWithProviders(<MainNavbar />, { route: '/plants?next=budgets' })
     await userEvent.click(screen.getByRole('button', { name: 'Gestión de planta' }))
-    for (const [label, path] of [['Mantenimiento', 'maintenance'], ['WMS / Inventario', 'inventory'], ['Presupuestos (LULO)', 'budgets'], ['Documentos', 'documents']]) {
+    for (const [label, path] of [['Mantenimiento', 'maintenance'], ['WMS / Inventario', 'inventory'], ['Documentos', 'documents']]) {
       const link = screen.getByRole('menuitem', { name: label })
-      expect(link).toHaveAttribute('href', path === 'budgets' ? '/budgets' : `/plants?next=${path}`)
+      expect(link).toHaveAttribute('href', `/plants?next=${path}`)
       expect(link).not.toHaveAttribute('aria-current')
     }
     expect(screen.getByRole('menuitem', { name: 'Catálogo' })).toHaveAttribute('href', '/catalog')
@@ -59,6 +59,7 @@ describe('Navegación unificada', () => {
     await user.click(screen.getByRole('button', { name: 'Servicios' }))
     expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(SERVICE_LABELS)
     expect(screen.getByRole('menuitem', { name: 'Marketplace' })).toHaveAttribute('href', '/marketplace')
+    expect(screen.getByRole('menuitem', { name: 'Presupuestos (LULO)' })).toHaveAttribute('href', '/budgets')
     expect(screen.queryByRole('menuitem', { name: 'Mantenimiento' })).not.toBeInTheDocument()
     await user.keyboard('{Escape}')
     expect(screen.queryByRole('menu')).not.toBeInTheDocument()

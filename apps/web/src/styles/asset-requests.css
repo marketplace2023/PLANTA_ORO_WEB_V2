@@ -1,0 +1,8 @@
+/* Formularios de activos y solicitudes: superficies y estados del rebranding FUR. */
+.fur-asset-dialog { border: 1px solid var(--border); border-radius: 18px; background: var(--popover); box-shadow: var(--fur-shadow-lg); }
+.fur-asset-dialog > header, .fur-asset-dialog > [data-slot=dialog-header] { background: var(--card); border-bottom-color: var(--border); }
+.fur-asset-dialog [data-slot=dialog-title] { color: var(--foreground); font-weight: 650; letter-spacing: -.025em; }
+.fur-asset-dialog input, .fur-asset-dialog textarea, .fur-asset-dialog select, .fur-asset-dialog [data-slot=select-trigger] { border-radius: 10px; }
+.fur-request-status { --status-color: var(--fur-orange-500); display: inline-flex; align-items: center; white-space: nowrap; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--status-color) 28%, var(--border)); background: color-mix(in srgb, var(--status-color) 10%, var(--card)); color: color-mix(in srgb, var(--status-color) 55%, var(--foreground)); padding: 4px 9px; font-size: 11px; font-weight: 650; }
+.fur-request-status[data-status=APPROVED] { --status-color: var(--fur-green-500); }
+.fur-request-status[data-status=REJECTED] { --status-color: var(--fur-red-500); }

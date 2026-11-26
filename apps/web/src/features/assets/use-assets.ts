@@ -24,8 +24,9 @@ export type AssetItem = {
   model: { id: string; name: string; imageUrl: string | null }
   /** `description`: texto del tipo (p. ej. «Criba / parrilla de recepción de mineral ROM»); null si no tiene. */
   type: { code: string; name: string; description: string | null }
-  family: { code: string; name: string }
+  family: { id?: string; code: string; tagCode?: string; name: string }
   manufacturer: string | null
+  referenceModels?: Array<{ id: string; modelName: string; catalogTag?: string | null }>
   networks: NetworkRef[]
 }
 
@@ -64,6 +65,7 @@ export type AssetFur = {
   asset: AssetDetail
   plant: { id: string; name: string; slug: string; code: string }
   stage: AssetItem['stage']
+  referenceModels?: Array<{ id: string; modelName: string; catalogTag?: string | null }>
   networks: NetworkRef[]
   documents: DocumentItem[]
   /** Vacío si quien consulta no tiene maintenance.read. */
@@ -167,9 +169,12 @@ export const useAssetFur =(slug: string | undefined, assetId: string | undefined
   })
 
 export type AssetInput = {
-  tag: string
+  familyId?: string
+  referenceModelIds?: string[]
+  specifications?: Record<string, unknown>
+  components?: string[]
   name: string
-  assetModelId: string
+  assetModelId?: string
   stageCode?: string | null
   serialNumber?: string | null
   status?: AssetStatus
@@ -180,6 +185,18 @@ export type AssetInput = {
   networkCodes?: string[]
   /** null quita la posición del mapa. */
   mapPosition?: { x: number; y: number } | null
+}
+
+export type AssetTagSelection = { familyId: string; stageCode: string; networkCode: string }
+
+/** Vista previa sin reservar correlativo; cada combinación tiene su propia consulta. */
+export function useAssetTagPreview(slug: string, selection: AssetTagSelection | null, active = true) {
+  return useQuery({
+    queryKey: ['plant', slug, 'assets', 'tag-preview', selection],
+    queryFn: () => api<{ tag: string }>(`/plants/${slug}/assets/tag-preview${toQuery(selection ?? {})}`),
+    enabled: active && !!selection,
+    retry: false,
+  })
 }
 
 export function useCreateAsset(slug: string) {
@@ -252,9 +269,10 @@ export function useDecommissionAsset(slug: string, assetId: string) {
 
 // ---------- Catálogo global ----------
 
-export type CatalogFamily = { id: string; code: string; name: string; icon: string | null }
+export type CatalogFamily = { id: string; code: string; tagCode?: string; name: string; icon: string | null }
 export type CatalogModel = {
   id: string
+  catalogTag?: string | null
   modelName: string
   status: string
   specifications: Record<string, unknown>
@@ -270,7 +288,7 @@ export type CatalogModel = {
   stageInherited?: boolean
   networkCodes: string[]
   type: { id: string; code: string; name: string; description?: string | null; stageCodes: string[] }
-  family: { id: string; code: string; name: string; icon: string | null }
+  family: { id: string; code: string; tagCode?: string; name: string; icon: string | null }
   referenceManufacturers?: Array<{ nombre: string; alcance: string | null; sitioWeb: string | null }>
 }
 export type CatalogManufacturer = { id: string; name: string; countryCode: string | null }

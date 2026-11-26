@@ -13,7 +13,6 @@ describe('Resumen de activos de la planta (geoportal) (e2e)', () => {
   let modelId: string
   let plantId: string
 
-  const create = (s: Session, body: object) => http().post('/api/v1/plants/e2e-geo/assets').set('Authorization', bearer(s)).send(body)
   const summary = (s?: Session) => {
     const r = http().get('/api/v1/plants/e2e-geo/assets/summary')
     return (s ? r.set('Authorization', bearer(s)) : r).expect(200)
@@ -35,11 +34,10 @@ describe('Resumen de activos de la planta (geoportal) (e2e)', () => {
     modelId = (await t.model('MOLINO_BOLAS', 'E2E Modelo geoportal')).id
     ;[pa, consumer] = await Promise.all(['pa', 'consumer'].map((n) => login(app, n)))
 
-    const base = { assetModelId: modelId }
-    await create(pa, { ...base, tag: 'G-1', name: 'Molino 1', stageCode: 'D06', networkCodes: ['FUR-PROC', 'FUR-PTE'], status: 'OPERATIVE', criticality: 'CRITICAL', isPublic: true }).expect(201)
-    await create(pa, { ...base, tag: 'G-2', name: 'Molino 2', stageCode: 'D06', networkCodes: ['FUR-PROC'], status: 'OPERATIVE', criticality: 'HIGH', isPublic: false }).expect(201)
-    await create(pa, { ...base, tag: 'G-3', name: 'Molino 3', stageCode: 'D07', status: 'REPAIR', criticality: 'LOW', isPublic: true }).expect(201)
-    await create(pa, { ...base, tag: 'G-4', name: 'Sin etapa', status: 'MAINTENANCE', criticality: 'LOW', isPublic: true }).expect(201)
+    await t.legacyAsset(plantId, modelId, 'G-1', { name: 'Molino 1', stageCode: 'D06', networkCodes: ['FUR-PROC', 'FUR-PTE'], status: 'OPERATIVE', criticality: 'CRITICAL', isPublic: true })
+    await t.legacyAsset(plantId, modelId, 'G-2', { name: 'Molino 2', stageCode: 'D06', networkCodes: ['FUR-PROC'], status: 'OPERATIVE', criticality: 'HIGH', isPublic: false })
+    await t.legacyAsset(plantId, modelId, 'G-3', { name: 'Molino 3', stageCode: 'D07', status: 'REPAIR', criticality: 'LOW', isPublic: true })
+    await t.legacyAsset(plantId, modelId, 'G-4', { name: 'Sin etapa', status: 'MAINTENANCE', criticality: 'LOW', isPublic: true })
   })
 
   afterAll(async () => {

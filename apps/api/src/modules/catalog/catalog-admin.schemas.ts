@@ -22,9 +22,10 @@ const technicalData = z.object({
   })).max(2000).optional(),
 }).catchall(z.unknown())
 
-export const createFamilySchema = z.object({ code, name, description: text.optional(), icon: z.string().trim().max(40).optional() })
+const familyTagCode = z.string().trim().toUpperCase().regex(/^[A-Z][A-Z0-9]{2,11}$/, 'Código TAG: 3 a 12 letras o números, empezando por una letra')
+export const createFamilySchema = z.object({ code, tagCode: familyTagCode, name, description: text.optional(), icon: z.string().trim().max(40).optional() })
 export const updateFamilySchema = z
-  .object({ name, description: text.nullable(), icon: z.string().trim().max(40).nullable() })
+  .object({ tagCode: familyTagCode, name, description: text.nullable(), icon: z.string().trim().max(40).nullable() })
   .partial()
   .refine((v) => Object.keys(v).length > 0, 'Indique al menos un campo')
 

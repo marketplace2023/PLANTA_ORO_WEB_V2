@@ -36,7 +36,7 @@ type Props = {
   /** Lanzar un ApiError mapea los errores por campo bajo cada input; otro error se muestra como mensaje general. */
   onSubmit: (values: FieldValues) => Promise<unknown>
   /** Contenido adicional dentro del formulario, tras los campos (p. ej. un selector de archivo). */
-  extra?: React.ReactNode
+  extra?: React.ReactNode | ((values: FieldValues) => React.ReactNode)
 }
 
 /** Formulario modal genérico: valida obligatorios/JSON/números en el cliente y muestra los errores del servidor por campo. */
@@ -148,7 +148,7 @@ export function FieldsDialog({ title, description, fields, initial = {}, submitL
             {errors._form && <p className="rounded-md bg-fur-red-500/10 p-3 text-sm text-fur-red-500">{errors._form}</p>}
           </div>
 
-          {extra}
+          {typeof extra === 'function' ? extra(values) : extra}
           <DialogFooter>
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancelar

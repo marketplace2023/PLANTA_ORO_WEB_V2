@@ -1,17 +1,18 @@
 import { Controller, Get, Inject, NotFoundException, Param, ParseUUIDPipe, Query, Res, StreamableFile } from '@nestjs/common'
-import { and, asc, eq, ilike, or, sql, type SQL } from 'drizzle-orm'
+import { and, asc, eq, sql, type SQL } from 'drizzle-orm'
 import type { Response } from 'express'
 import { z } from 'zod'
-import { escapeLike, pageOf, paginationShape } from '../../common/pagination'
+import { pageOf, paginationShape } from '../../common/pagination'
 import { ZodValidationPipe } from '../../common/zod-validation.pipe'
 import { DB, type Database } from '../../database/database.module'
-import { assetFamilies, assetModels, assetTypes } from '../../database/schema'
+import { assetFamilies, assetModels, assetTypes, modelSearchDocuments } from '../../database/schema'
 import type { AuthUser } from '../../common/types'
 import { setImageHeaders } from '../documents/image-upload'
 import { StorageService } from '../documents/storage.service'
 import { CurrentUser, Public } from '../iam/decorators'
 
-import { referenceMatches, referenceSearch } from './reference-manufacturers'
+import { referenceMatches } from './reference-manufacturers'
+import { buildCatalogSearch } from './catalog-search'
 
 const modelsQuery = z.object({
   ...paginationShape,
@@ -106,12 +107,13 @@ export class CatalogController {
         stageInherited: modelStagesInherited,
         networkCodes: modelNetworkCodes,
         type: { id: assetTypes.id, code: assetTypes.code, name: assetTypes.name, description: assetTypes.description, stageCodes: typeStageCodes },
-        family: { id: assetFamilies.id, code: assetFamilies.code, name: assetFamilies.name, icon: assetFamilies.icon },
+        family: { id: assetFamilies.id, code: assetFamilies.code, tagCode: assetFamilies.tagCode, name: assetFamilies.name, icon: assetFamilies.icon },
         referenceManufacturers: sql<Array<{ nombre: string; alcance: string | null; sitioWeb: string | null }>>`case when jsonb_typeof(${assetModels.technicalData}->'fabricantesReferencia') = 'array' then ${assetModels.technicalData}->'fabricantesReferencia' else '[]'::jsonb end`,
       })
       .from(assetModels)
       .innerJoin(assetTypes, eq(assetTypes.id, assetModels.assetTypeId))
       .innerJoin(assetFamilies, eq(assetFamilies.id, assetTypes.familyId))
+      .leftJoin(modelSearchDocuments, eq(modelSearchDocuments.modelId, assetModels.id))
   }
 
   /** Modelos del catálogo con filtros (arquitectura §34): familia, tipo, fabricante y búsqueda. */
@@ -126,16 +128,14 @@ export class CatalogController {
       q.stage ? modelInStage(q.stage.toUpperCase()) : undefined,
       q.network ? modelInNetwork(q.network.toUpperCase()) : undefined,
     ]
-    if (q.search) {
-      const like = `%${escapeLike(q.search)}%`
-      conditions.push(or(ilike(assetModels.modelName, like), ilike(assetModels.catalogTag, like), ilike(assetTypes.name, like), referenceSearch(like)))
-    }
+    const search = q.search ? buildCatalogSearch(q.search) : undefined
+    conditions.push(search?.condition)
     const where = and(...conditions)
 
     const [items, [{ total }]] = await Promise.all([
       this.modelSelect()
         .where(where)
-        .orderBy(asc(assetFamilies.name), asc(assetTypes.name), asc(assetModels.modelName), asc(assetModels.id))
+        .orderBy(...(search?.order ?? []), asc(assetModels.modelName), asc(assetFamilies.name), asc(assetTypes.name), asc(assetModels.id))
         .limit(q.pageSize)
         .offset((q.page - 1) * q.pageSize),
       this.db
@@ -143,6 +143,7 @@ export class CatalogController {
         .from(assetModels)
         .innerJoin(assetTypes, eq(assetTypes.id, assetModels.assetTypeId))
         .innerJoin(assetFamilies, eq(assetFamilies.id, assetTypes.familyId))
+        .leftJoin(modelSearchDocuments, eq(modelSearchDocuments.modelId, assetModels.id))
         .where(where),
     ])
     return pageOf(items, total, q.page, q.pageSize)

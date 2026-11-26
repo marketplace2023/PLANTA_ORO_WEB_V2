@@ -1,4 +1,5 @@
-import { boolean, integer, jsonb, pgSchema, primaryKey, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core'
+import { boolean, check, customType, index, integer, jsonb, numeric, pgSchema, primaryKey, text, timestamp, unique, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
 import { createdAt, pk, updatedAt } from './common'
 import { networkMaster } from './plant'
 import { stageMaster } from './process'
@@ -10,6 +11,8 @@ export const catalogSchema = pgSchema('catalog')
 export const assetFamilies = catalogSchema.table('asset_families', {
   id: pk(),
   code: varchar('code', { length: 40 }).notNull().unique(),
+  /** Abreviatura única para nuevas altas. Editarla no renumera los TAG ya asignados. */
+  tagCode: varchar('tag_code', { length: 12 }).notNull().default('').unique(),
   /** Código CA del maestro Excel; permite actualizar el nombre sin duplicar la familia. */
   categoryCode: varchar('category_code', { length: 20 }).unique(),
   name: varchar('name', { length: 120 }).notNull(),
@@ -17,7 +20,22 @@ export const assetFamilies = catalogSchema.table('asset_families', {
   description: text('description'),
   /** Nombre de ícono de Lucide. */
   icon: varchar('icon', { length: 40 }),
-})
+}, (t) => [check('asset_families_tag_code_format', sql`${t.tagCode} ~ '^[A-Z][A-Z0-9]{2,11}$'`)])
+
+/** Maestro de parámetros técnicos: una definición pertenece exclusivamente a una familia. */
+export const familySpecifications = catalogSchema.table('family_specifications', {
+  id: pk(),
+  familyId: uuid('family_id').notNull().references(() => assetFamilies.id, { onDelete: 'cascade' }),
+  label: varchar('label', { length: 200 }).notNull(),
+  unit: varchar('unit', { length: 60 }),
+  valueType: varchar('value_type', { length: 10 }).notNull().$type<'NUMBER' | 'TEXT' | 'RANGE' | 'LIST' | 'BOOLEAN'>(),
+  required: boolean('required').notNull().default(false),
+  sortOrder: integer('sort_order').notNull().default(0),
+}, t => [
+  unique('family_specifications_family_label_unique').on(t.familyId, t.label),
+  uniqueIndex('family_specifications_family_label_ci_unique').on(t.familyId, sql`lower(${t.label})`),
+  check('family_specifications_value_type_check', sql`${t.valueType} in ('NUMBER', 'TEXT', 'RANGE', 'LIST', 'BOOLEAN')`),
+])
 
 export const manufacturers = catalogSchema.table('manufacturers', {
   id: pk(),
@@ -106,6 +124,28 @@ export const assetModels = catalogSchema.table(
     imageUpdatedAt: timestamp('image_updated_at', { withTimezone: true }),
   },
 )
+
+const tsvector = customType<{ data: string }>({ dataType: () => 'tsvector' })
+
+/** Proyección interna, mantenida por triggers en la misma transacción que la ficha original. */
+export const modelSearchDocuments = catalogSchema.table('model_search_documents', {
+  modelId: uuid('model_id').primaryKey().references(() => assetModels.id, { onDelete: 'cascade' }),
+  identity: text('identity').notNull(),
+  document: text('document').notNull(),
+  searchVector: tsvector('search_vector').notNull(),
+}, t => [
+  index('model_search_document_trgm_idx').using('gin', t.document.op('gin_trgm_ops')),
+  index('model_search_vector_idx').using('gin', t.searchVector),
+])
+
+export const modelSearchQuantities = catalogSchema.table('model_search_quantities', {
+  modelId: uuid('model_id').notNull().references(() => assetModels.id, { onDelete: 'cascade' }),
+  unit: text('unit').notNull(),
+  amount: numeric('amount').notNull(),
+}, t => [
+  primaryKey({ columns: [t.modelId, t.unit, t.amount] }),
+  index('model_search_quantity_idx').on(t.unit, t.amount, t.modelId),
+])
 
 /**
  * Claves efectivas por etapa, mantenidas por triggers diferidos de PostgreSQL. Incluyen las etapas heredadas del tipo;

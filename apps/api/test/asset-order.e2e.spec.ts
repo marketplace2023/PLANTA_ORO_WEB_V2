@@ -19,8 +19,8 @@ describe('Orden manual de los activos (e2e)', () => {
   const ids: Record<string, string> = {}
 
   const base = '/api/v1/plants/e2e-ord1/assets'
-  const create = (tag: string, stageCode = 'D06', s: Session = pa) =>
-    http().post(base).set('Authorization', bearer(s)).send({ tag, name: `Equipo ${tag}`, assetModelId: modelId, stageCode })
+  const create = (tag: string, stageCode = 'D06') =>
+    t.legacyAsset(plant.id, modelId, tag, { name: `Equipo ${tag}`, stageCode })
   const order = async (query = '') => {
     const res = await http().get(`${base}?sort=order&pageSize=100${query}`).set('Authorization', bearer(pa)).expect(200)
     return (res.body.items as Array<{ tag: string }>).map((a) => a.tag)
@@ -43,13 +43,12 @@ describe('Orden manual de los activos (e2e)', () => {
     const [paU, otherU] = await Promise.all([t.user('ordpa'), t.user('ordpb'), t.user('ordconsumer')])
     await t.assign(paU.id, plant.id, 'PLANT_ADMIN')
     await t.assign(otherU.id, other.id, 'PLANT_ADMIN')
-    const [pb] = await Promise.all(['ordpb'].map((n) => login(app, n)))
     ;[pa, consumer] = await Promise.all(['ordpa', 'ordconsumer'].map((n) => login(app, n)))
-    ids.foreign = (await http().post('/api/v1/plants/e2e-ord2/assets').set('Authorization', bearer(pb)).send({ tag: 'X-1', name: 'Ajeno', assetModelId: modelId, stageCode: 'D06' }).expect(201)).body.id
+    ids.foreign = (await t.legacyAsset(other.id, modelId, 'X-1', { name: 'Ajeno', stageCode: 'D06' })).id
 
     // Se registran del tag «mayor» al «menor» para que el orden manual no coincida con el alfabético.
-    for (const tag of ['ZZ-3', 'MM-2', 'AA-1']) ids[tag] = (await create(tag).expect(201)).body.id
-    ids['D7-1'] = (await create('D7-1', 'D07').expect(201)).body.id
+    for (const tag of ['ZZ-3', 'MM-2', 'AA-1']) ids[tag] = (await create(tag)).id
+    ids['D7-1'] = (await create('D7-1', 'D07')).id
   })
 
   afterAll(async () => {
@@ -68,7 +67,7 @@ describe('Orden manual de los activos (e2e)', () => {
     await reorder([ids['AA-1'], ids['ZZ-3'], ids['MM-2']]).expect(200)
     expect(await order('&stage=D06')).toEqual(['AA-1', 'ZZ-3', 'MM-2'])
     // Un activo nuevo sigue yendo al final.
-    await create('BB-4').expect(201)
+    await create('BB-4')
     expect(await order('&stage=D06')).toEqual(['AA-1', 'ZZ-3', 'MM-2', 'BB-4'])
   })
 

@@ -204,7 +204,9 @@ export async function runSeedDev(url: string, password = DEV_PASSWORD, { include
     }
 
     // Activos de demostración de REVEMIN II (idempotente por tag).
-    const modelByName = new Map((await db.select().from(s.assetModels)).map((m) => [m.modelName, m.id]))
+    const seededModels = await db.select().from(s.assetModels)
+    const modelByName = new Map(seededModels.map((m) => [m.modelName, m.id]))
+    const modelDataByName = new Map(seededModels.map((m) => [m.modelName, m]))
     const stageByCode = new Map(
       (
         await db
@@ -244,6 +246,8 @@ export async function runSeedDev(url: string, password = DEV_PASSWORD, { include
             plantId: revemin.id,
             plantStageId: a.stage ? stageByCode.get(a.stage) : null,
             assetModelId: modelByName.get(a.model)!,
+            specifications: modelDataByName.get(a.model)!.specifications,
+            technicalData: modelDataByName.get(a.model)!.technicalData,
             furCode: buildFurCode(revemin.code, seq),
             tag: a.tag,
             name: a.name,

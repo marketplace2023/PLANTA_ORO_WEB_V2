@@ -1,13 +1,22 @@
 import { boolean, date, index, integer, jsonb, pgSchema, primaryKey, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core'
-import { assetModels, manufacturers } from './catalog'
+import { assetFamilies, assetModels, manufacturers } from './catalog'
 import { createdAt, pk, updatedAt } from './common'
 import { plants } from './core'
 import { users } from './iam'
-import { plantNetworks } from './plant'
-import { plantStages } from './process'
+import { networkMaster, plantNetworks } from './plant'
+import { plantStages, stageMaster } from './process'
 
 // Arquitectura §13: instancias físicas que una planta realmente posee/usa.
 export const assetSchema = pgSchema('asset')
+
+/** Secuencia sin reinicio anual por planta, red, etapa y familia. No depende del número de activos vivos. */
+export const assetTagSequences = assetSchema.table('tag_sequences', {
+  plantId: uuid('plant_id').notNull().references(() => plants.id, { onDelete: 'cascade' }),
+  networkMasterId: uuid('network_master_id').notNull().references(() => networkMaster.id),
+  stageMasterId: uuid('stage_master_id').notNull().references(() => stageMaster.id),
+  familyId: uuid('family_id').notNull().references(() => assetFamilies.id),
+  lastValue: integer('last_value').notNull(),
+}, (t) => [primaryKey({ columns: [t.plantId, t.networkMasterId, t.stageMasterId, t.familyId] })])
 
 /** Estados del activo (arquitectura §13.2, design.md §16). */
 export const ASSET_STATUSES = [
@@ -36,8 +45,11 @@ export const assets = assetSchema.table(
     /** Etapa habilitada de ESTA planta (se valida en el servicio). Nulo = aún sin asignar a una etapa. */
     plantStageId: uuid('plant_stage_id').references(() => plantStages.id, { onDelete: 'set null' }),
     assetModelId: uuid('asset_model_id')
-      .notNull()
       .references(() => assetModels.id),
+    familyId: uuid('family_id').references(() => assetFamilies.id),
+    /** Copia inicial del modelo; los cambios de la unidad física no modifican el catálogo. */
+    specifications: jsonb('specifications').notNull().default({}),
+    technicalData: jsonb('technical_data').notNull().default({}),
     /** Ficha Única de Registro: identificador persistente y legible, p. ej. FUR-REV-II-00042. */
     furCode: varchar('fur_code', { length: 60 }).notNull(),
     tag: varchar('tag', { length: 60 }).notNull(),
@@ -67,6 +79,11 @@ export const assets = assetSchema.table(
 )
 
 /** Un activo puede relacionarse con varias redes, siempre habilitadas en su planta (§47.3). */
+export const assetCatalogReferences = assetSchema.table('catalog_references', {
+  assetId: uuid('asset_id').notNull().references(() => assets.id, { onDelete: 'cascade' }),
+  assetModelId: uuid('asset_model_id').notNull().references(() => assetModels.id, { onDelete: 'cascade' }),
+}, t => [primaryKey({ columns: [t.assetId, t.assetModelId] })])
+
 export const assetNetworks = assetSchema.table(
   'asset_networks',
   {
@@ -97,3 +114,18 @@ export const assetStatusHistory = assetSchema.table(
   },
   (t) => [index('idx_asset_status_history_asset').on(t.assetId, t.changedAt)],
 )
+
+/** Solicitud de catálogo: conserva la ficha de planta hasta su aprobación. */
+export const catalogRequests = assetSchema.table('catalog_requests', {
+  id: pk(),
+  plantId: uuid('plant_id').notNull().references(() => plants.id, { onDelete: 'cascade' }),
+  submittedBy: uuid('submitted_by').notNull().references(() => users.id),
+  draft: jsonb('draft').notNull(),
+  status: varchar('status', { length: 12 }).notNull().default('PENDING'),
+  modelId: uuid('model_id').references(() => assetModels.id),
+  assetId: uuid('asset_id').references(() => assets.id),
+  decisionNote: text('decision_note'),
+  decidedBy: uuid('decided_by').references(() => users.id),
+  createdAt: createdAt(),
+  decidedAt: timestamp('decided_at', { withTimezone: true }),
+})

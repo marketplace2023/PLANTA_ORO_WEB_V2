@@ -41,12 +41,7 @@ describe('Posición de etapas y activos en el mapa de la planta (e2e)', () => {
     await t.assign(opU.id, plant.id, 'OPERATOR')
     const model = await t.model('MOLINO_BOLAS', 'E2E Modelo mapa')
     ;[pa, operator] = await Promise.all(['pa', 'operator'].map((n) => login(app, n)))
-    const res = await http()
-      .post('/api/v1/plants/e2e-mapa/assets')
-      .set('Authorization', bearer(pa))
-      .send({ tag: 'MAP-1', name: 'Molino del mapa', assetModelId: model.id, stageCode: 'D06', isPublic: true, metadata: { nota: 'conservar' } })
-      .expect(201)
-    assetId = res.body.id
+    assetId = (await t.legacyAsset(plant.id, model.id, 'MAP-1', { name: 'Molino del mapa', stageCode: 'D06', isPublic: true, metadata: { nota: 'conservar' } })).id
   })
 
   afterAll(async () => {

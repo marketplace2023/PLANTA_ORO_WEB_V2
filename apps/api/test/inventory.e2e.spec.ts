@@ -72,7 +72,7 @@ describe('Inventario / WMS (e2e)', () => {
     techId = byName.tech.id
     ;[admin, pa, wh, lead, tech, tech2, op, mgr, outsider] = await Promise.all(names.map((n) => login(app, n)))
 
-    asset = (await http().post('/api/v1/plants/e2e-i1/assets').set('Authorization', bearer(pa)).send({ tag: 'MB-1', name: 'Molino 1', assetModelId: model }).expect(201)).body.id
+    asset = (await t.legacyAsset(plantA.id, model, 'MB-1', { name: 'Molino 1' })).id
     whA = (await send('post', `${I}/warehouses`, wh, { code: 'ALM1', name: 'Almacén central' }).expect(201)).body.id
     locA = (await send('post', `${I}/locations`, wh, { warehouseId: whA, code: 'A-01', name: 'Rack A-01', locationType: 'RACK' }).expect(201)).body.id
     locB = (await send('post', `${I}/locations`, wh, { warehouseId: whA, code: 'B-01', name: 'Rack B-01', locationType: 'RACK' }).expect(201)).body.id

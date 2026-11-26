@@ -76,8 +76,8 @@ describe('Documentos (e2e)', () => {
     await t.assign(whU.id, plantA.id, 'WAREHOUSE')
     ;[admin, pa, maint, wh, consumer] = await Promise.all(['admin', 'pa', 'maint', 'wh', 'consumer'].map((n) => login(app, n)))
 
-    const mk = async (slug: string, s: Session, tag: string, isPublic: boolean) =>
-      (await http().post(`/api/v1/plants/${slug}/assets`).set('Authorization', bearer(s)).send({ tag, name: tag, assetModelId: modelId, isPublic }).expect(201)).body.id as string
+    const mk = async (slug: string, _s: Session, tag: string, isPublic: boolean) =>
+      (await t.legacyAssetBySlug(slug, modelId, tag, { isPublic })).id
     pubAssetId = await mk('e2e-d1', pa, 'PUB-1', true)
     privAssetId = await mk('e2e-d1', pa, 'PRV-1', false)
     bAssetId = await mk('e2e-d2', admin, 'B-1', true)

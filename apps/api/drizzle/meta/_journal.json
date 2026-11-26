@@ -264,127 +264,225 @@
     {
       "idx": 37,
       "version": "7",
+      "when": 1793716830935,
+      "tag": "0037_asset_technical_snapshot",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1793733596880,
+      "tag": "0038_asset_generated_tags",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1793737518366,
+      "tag": "0039_editable_family_tag_codes",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1793802202990,
+      "tag": "0040_independent_plant_assets",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1793820854225,
+      "tag": "0041_family_specifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1793821792347,
+      "tag": "0042_specification_names_unique",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1793825986532,
+      "tag": "0043_adjusted_family_specifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1793891141043,
+      "tag": "0044_registration_family_specifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1793894134050,
+      "tag": "0045_catalog_origin_requests",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1793895665638,
+      "tag": "0046_specification_numbers_as_text",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1793898649179,
+      "tag": "0047_specification_ranges_as_text",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1793998965170,
+      "tag": "0048_family_master_v4",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
       "when": 1794236503774,
       "tag": "0037_lesson_video",
       "breakpoints": true
     },
     {
-      "idx": 38,
+      "idx": 50,
       "version": "7",
       "when": 1794238264150,
       "tag": "0038_lesson_video_constraints",
       "breakpoints": true
     },
     {
-      "idx": 39,
+      "idx": 51,
       "version": "7",
       "when": 1794240062999,
       "tag": "0039_course_authoring",
       "breakpoints": true
     },
     {
-      "idx": 40,
+      "idx": 52,
       "version": "7",
       "when": 1794245022586,
       "tag": "0040_course_cover_upload",
       "breakpoints": true
     },
     {
-      "idx": 41,
+      "idx": 53,
       "version": "7",
       "when": 1794249540715,
       "tag": "0041_instructor_profiles",
       "breakpoints": true
     },
     {
-      "idx": 42,
+      "idx": 54,
       "version": "7",
       "when": 1794253210656,
       "tag": "0042_shop_commerce",
       "breakpoints": true
     },
     {
-      "idx": 43,
+      "idx": 55,
       "version": "7",
       "when": 1794253440734,
       "tag": "0043_commerce_inventory_reviews",
       "breakpoints": true
     },
     {
-      "idx": 44,
+      "idx": 56,
       "version": "7",
       "when": 1794258423938,
       "tag": "0044_marketplace_business_tools",
       "breakpoints": true
     },
     {
-      "idx": 45,
+      "idx": 57,
+      "version": "7",
+      "when": 1794268800000,
+      "tag": "0049_complete_family_specifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 58,
       "version": "7",
       "when": 1794339280005,
       "tag": "0045_professional_commerce",
       "breakpoints": true
     },
     {
-      "idx": 46,
+      "idx": 59,
       "version": "7",
       "when": 1794420573507,
       "tag": "0046_lulo_master_recovery",
       "breakpoints": true
     },
     {
-      "idx": 47,
+      "idx": 60,
       "version": "7",
       "when": 1794422871233,
       "tag": "0047_lulo_catalog_review",
       "breakpoints": true
     },
     {
-      "idx": 48,
+      "idx": 61,
       "version": "7",
       "when": 1794425306391,
       "tag": "0048_lulo_operational",
       "breakpoints": true
     },
     {
-      "idx": 49,
+      "idx": 62,
       "version": "7",
       "when": 1794429984556,
       "tag": "0049_lulo_real_masters",
       "breakpoints": true
     },
     {
-      "idx": 50,
+      "idx": 63,
       "version": "7",
       "when": 1794432678810,
       "tag": "0050_lulo_work_lifecycle",
       "breakpoints": true
     },
     {
-      "idx": 51,
+      "idx": 64,
       "version": "7",
       "when": 1794433333193,
       "tag": "0051_lulo_plant_catalogs",
       "breakpoints": true
     },
     {
-      "idx": 52,
+      "idx": 65,
       "version": "7",
       "when": 1794434828130,
       "tag": "0052_lulo_recalculation_proposals",
       "breakpoints": true
     },
     {
-      "idx": 53,
+      "idx": 66,
       "version": "7",
       "when": 1794434938249,
       "tag": "0053_lulo_reference_masters",
       "breakpoints": true
     },
     {
-      "idx": 54,
+      "idx": 67,
       "version": "7",
       "when": 1794436633650,
       "tag": "0054_lulo_contract_taxable",
+      "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1794595196226,
+      "tag": "0068_catalog_search_index",
       "breakpoints": true
     }
   ]

@@ -1,3 +1,5 @@
+import { SpecificationsAdmin } from '@/components/catalog/specifications-admin'
+import { FamilySpecificationFields } from '@/components/assets/family-specification-fields'
 import { ImageIcon, Pencil, Plus, ShieldAlert } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -36,6 +38,7 @@ const TABS = [
   ['types', 'Tipos'],
   ['manufacturers', 'Fabricantes'],
   ['models', 'Modelos'],
+  ['specifications', 'Especificaciones'],
 ] as const
 type TabKey = (typeof TABS)[number][0]
 
@@ -72,7 +75,8 @@ function Families() {
   const update = useUpdateFamily()
   const [dialog, setDialog] = useState<{ item?: CatalogFamily } | null>(null)
   const fields = (editing: boolean): Field[] => [
-    ...(editing ? [] : [{ name: 'code', label: 'Código', required: true, help: 'Mayúsculas, números y guion bajo. No se puede cambiar después.' }]),
+    { name: 'tagCode', label: 'Código TAG', required: true, placeholder: 'MOT', help: 'Único. De 3 a 12 letras o números, empezando por una letra. Cambiarlo solo afecta a futuras altas de activos.' },
+    ...(editing ? [] : [{ name: 'code', label: 'Código de integración', required: true, help: 'Mayúsculas, números y guion bajo. No se puede cambiar después.' }]),
     { name: 'name', label: 'Nombre', required: true },
     { name: 'icon', label: 'Ícono (Lucide)', placeholder: 'cog' },
     { name: 'description', label: 'Descripción', type: 'textarea' },
@@ -82,11 +86,12 @@ function Families() {
       {families.isError ? <ErrorState onRetry={() => void families.refetch()} /> : families.isLoading ? <Loading /> : (
         <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <Table>
-            <TableHeader><TableRow><TableHead>Código</TableHead><TableHead>Nombre</TableHead><TableHead>Ícono</TableHead><TableHead><span className="sr-only">Acciones</span></TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Código TAG</TableHead><TableHead>Código de integración</TableHead><TableHead>Nombre</TableHead><TableHead>Ícono</TableHead><TableHead><span className="sr-only">Acciones</span></TableHead></TableRow></TableHeader>
             <TableBody>
               {families.data!.map((f) => (
                 <TableRow key={f.id}>
-                  <TableCell className="fur-code">{f.code}</TableCell>
+                  <TableCell className="fur-code font-semibold">{f.tagCode ?? '—'}</TableCell>
+                  <TableCell className="fur-code text-muted-foreground">{f.code}</TableCell>
                   <TableCell>{f.name}</TableCell>
                   <TableCell className="text-fur-gray-600">{f.icon ?? '—'}</TableCell>
                   <TableCell className="text-right">
@@ -102,13 +107,13 @@ function Families() {
         <FieldsDialog
           title={dialog.item ? `Editar ${dialog.item.name}` : 'Nueva familia'}
           fields={fields(!!dialog.item)}
-          initial={dialog.item ? { name: dialog.item.name, icon: dialog.item.icon ?? '' } : {}}
+          initial={dialog.item ? { tagCode: dialog.item.tagCode ?? '', name: dialog.item.name, icon: dialog.item.icon ?? '' } : {}}
           submitLabel={dialog.item ? 'Guardar cambios' : 'Crear familia'}
           onClose={() => setDialog(null)}
           onSubmit={(v: FieldValues) =>
             dialog.item
-              ? update.mutateAsync({ id: dialog.item.id, name: String(v.name), icon: orNull(v.icon) })
-              : create.mutateAsync({ code: String(v.code), name: String(v.name), icon: orUndef(v.icon), description: orUndef(v.description) })
+              ? update.mutateAsync({ id: dialog.item.id, tagCode: String(v.tagCode).trim().toUpperCase(), name: String(v.name), icon: orNull(v.icon) })
+              : create.mutateAsync({ code: String(v.code), tagCode: String(v.tagCode).trim().toUpperCase(), name: String(v.name), icon: orUndef(v.icon), description: orUndef(v.description) })
           }
         />
       )}
@@ -184,6 +189,8 @@ function Models() {
   const q = useDebouncedValue(search.trim(), 300)
   const models = useCatalogModels({ search: q || undefined, status: 'ALL' }, 50)
   const types = useCatalogTypes()
+  const families = useCatalogFamilies()
+  const [specDraft, setSpecDraft] = useState<{ typeCode: string; values: Record<string, unknown> } | null>(null)
   const create = useCreateModel()
   const update = useUpdateModel()
   const uploadImage = useUploadModelImage()
@@ -191,7 +198,8 @@ function Models() {
   const [references, setReferences] = useState<ReferenceManufacturer[]>([])
   const [image, setImage] = useState<ImageChange>({ file: null, remove: false })
   const [dialog, setDialog] = useState<{ item?: CatalogModel } | null>(null)
-  const openDialog = (item?: CatalogModel) => { setImage({ file: null, remove: false }); setReferences(item?.referenceManufacturers ?? []); setDialog({ item }) }
+  const specsFor = (typeCode: string) => specDraft?.typeCode === typeCode ? specDraft.values : dialog?.item?.type.code === typeCode ? dialog.item.specifications : {}
+  const openDialog = (item?: CatalogModel) => { setSpecDraft(null); setImage({ file: null, remove: false }); setReferences(item?.referenceManufacturers ?? []); setDialog({ item }) }
 
 
   return (
@@ -233,15 +241,14 @@ function Models() {
           fields={[
             ...(dialog.item ? [] : [{ name: 'typeCode', label: 'Tipo', type: 'select', required: true, options: (types.data ?? []).map((t) => ({ value: t.code, label: `${t.familyName} · ${t.name}` })) } as Field]),
             { name: 'modelName', label: 'Modelo', required: true },
-            { name: 'specifications', label: 'Especificaciones (JSON)', type: 'json', help: 'Ej.: {"powerKw": 500, "poles": 6}' },
             ...(dialog.item ? [{ name: 'status', label: 'Estado', type: 'select', options: [{ value: 'ACTIVE', label: 'Activo' }, { value: 'INACTIVE', label: 'Inactivo' }] } as Field] : []),
           ]}
-          initial={dialog.item ? { modelName: dialog.item.modelName, specifications: JSON.stringify(dialog.item.specifications, null, 2), status: dialog.item.status } : {}}
+          initial={dialog.item ? { modelName: dialog.item.modelName, status: dialog.item.status } : {}}
           submitLabel={dialog.item ? 'Guardar cambios' : 'Crear modelo'}
           onClose={() => setDialog(null)}
-          extra={<><ReferenceManufacturersFields value={references} onChange={setReferences} /><ModelImagePicker currentUrl={dialog.item?.imageUrl ?? null} value={image} onChange={setImage} /></>}
+          extra={v => { const typeCode = dialog.item?.type.code ?? String(v.typeCode ?? ''); const familyId = families.data?.find(f => f.code === types.data?.find(t => t.code === typeCode)?.familyCode)?.id ?? ''; return <><FamilySpecificationFields key={typeCode} familyId={familyId} value={specsFor(typeCode)} onChange={values => setSpecDraft({ typeCode, values })} /><ReferenceManufacturersFields value={references} onChange={setReferences} /><ModelImagePicker currentUrl={dialog.item?.imageUrl ?? null} value={image} onChange={setImage} /></> }}
           onSubmit={async (v) => {
-            const specifications = JSON.parse(String(v.specifications || '{}'))
+            const specifications = specsFor(dialog.item?.type.code ?? String(v.typeCode))
             const saved = dialog.item
               ? await update.mutateAsync({ id: dialog.item.id, modelName: String(v.modelName), technicalData: { ...dialog.item.technicalData, fabricantesReferencia: references }, specifications, status: v.status as 'ACTIVE' | 'INACTIVE' })
               : await create.mutateAsync({ typeCode: String(v.typeCode), modelName: String(v.modelName), technicalData: { fabricantesReferencia: references }, specifications })
@@ -293,6 +300,7 @@ export function AdminCatalogPage() {
       {tab === 'types' && <Types />}
       {tab === 'manufacturers' && <Manufacturers />}
       {tab === 'models' && <Models />}
+      {tab === 'specifications' && <SpecificationsAdmin />}
     </>
   )
 }

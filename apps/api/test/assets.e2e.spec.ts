@@ -1,7 +1,8 @@
+import { assetFamilies, familySpecifications } from '../src/database/schema'
 import type { INestApplication } from '@nestjs/common'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import request from 'supertest'
-import { assets, assetStatusHistory, auditEvents, plantSettings, plants } from '../src/database/schema'
+import { assetModels, assets, assetStatusHistory, auditEvents, plantSettings, plants } from '../src/database/schema'
 import { bearer, createApp, login, type Session, TestDb } from './helpers'
 
 type Plant = typeof plants.$inferSelect
@@ -18,23 +19,30 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
   let pa: Session // administrador de planta A: todos los permisos
   let maint: Session // jefe de mantenimiento A: asset.read + asset.update, sin create/delete
   let consumer: Session // sin rol en ninguna planta
+  let specificationIds: string[] = []
   let modelId: string
   let motorModelId: string
+  let millTagCode: string
+  const legacyUnits: Array<{ id: string; tag: string }> = []
 
   const A = '/api/v1/plants/e2e-a1/assets'
-  const post = (body: object, s: Session = pa, base = A) => http().post(base).set('Authorization', bearer(s)).send(body)
+  const post = (body: object, s: Session = pa, base = A) => http().post(base).set('Authorization', bearer(s)).send({ stageCode: 'D06', networkCodes: ['FUR-IOT'], ...body })
   const patch = (id: string, body: object, s: Session = pa) => http().patch(`${A}/${id}`).set('Authorization', bearer(s)).send(body)
   const base = () => ({ tag: 'MB-301', name: 'Molino de bolas 1', assetModelId: modelId })
 
   beforeAll(async () => {
     app = await createApp()
     t = new TestDb()
+    const makeModel = t.model.bind(t)
+    t.model = async (...args: Parameters<TestDb['model']>) => { const model = await makeModel(...args); await t.originLinks(model.id, ['D06', 'D07'], ['FUR-IOT', 'FUR-PTE']); return model }
     await t.cleanup()
+    const [family] = await t.db.select().from(assetFamilies).where(eq(assetFamilies.code, 'MOLINOS'))
+    specificationIds = (await t.db.insert(familySpecifications).values([{ familyId: family.id, label: 'Potencia', unit: 'kW', valueType: 'TEXT' as const }, { familyId: family.id, label: 'Tensión', unit: 'V', valueType: 'NUMBER' as const }]).onConflictDoNothing().returning()).map(d => d.id)
 
     plantA = await t.plant('a1', 'PUBLIC')
     plantB = await t.plant('b1', 'PUBLIC')
     privPlant = await t.plant('priv', 'PRIVATE')
-    for (const p of [plantA, plantB]) {
+    for (const p of [plantA, plantB, privPlant]) {
       await t.enableStage(p.id, 'D06')
       await t.enableStage(p.id, 'D07')
       await t.enableNetwork(p.id, 'FUR-IOT')
@@ -45,6 +53,8 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
 
     modelId = (await t.model('MOLINO_BOLAS', 'E2E Bolas 16.5x24', 'E2E Metso')).id
     motorModelId = (await t.model('MOTOR_ELECTRICO', 'E2E Motor 4 MW', 'E2E WEG')).id
+    const { rows } = await t.pool.query('select f.tag_code from catalog.asset_families f join catalog.asset_types t on t.family_id=f.id where t.code=$1', ['MOLINO_BOLAS'])
+    millTagCode = rows[0].tag_code
 
     const [adminU, paU, maintU] = await Promise.all([
       t.user('admin', { isGlobalAdmin: true }),
@@ -60,6 +70,7 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
   })
 
   afterAll(async () => {
+    if (specificationIds.length) await t.db.delete(familySpecifications).where(inArray(familySpecifications.id, specificationIds))
     await t.cleanup()
     await t.close()
     await app.close()
@@ -79,7 +90,7 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
         ...base(),
         tag: 'mb-301',
         stageCode: 'D06',
-        networkCodes: ['FUR-IOT', 'FUR-PTE'],
+        networkCodes: ['FUR-IOT'],
         criticality: 'CRITICAL',
         location: 'Nave de molienda',
         serialNumber: 'SN-0001',
@@ -87,7 +98,7 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
 
       expect(res.body).toMatchObject({
         furCode: 'FUR-E2E-A1-00001',
-        tag: 'MB-301', // el tag se normaliza a mayúsculas
+        tag: `FUR-IOT-D06-${millTagCode}-001`, // el cliente no decide el TAG
         status: 'OPERATIVE',
         criticality: 'CRITICAL',
         isPublic: false, // privado por defecto
@@ -97,7 +108,8 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
         family: { code: 'MOLINOS' },
         manufacturer: 'E2E Metso', // fabricante heredado del modelo
       })
-      expect(res.body.networks.map((n: { code: string }) => n.code)).toEqual(['FUR-PTE', 'FUR-IOT'])
+      expect(res.body.networks.map((n: { code: string }) => n.code)).toEqual(['FUR-IOT'])
+      legacyUnits.push({ id: res.body.id, tag: 'MB-301' })
 
       const history = await t.db.select().from(assetStatusHistory).where(eq(assetStatusHistory.assetId, res.body.id))
       expect(history).toMatchObject([{ oldStatus: null, newStatus: 'OPERATIVE', reason: 'Alta del activo' }])
@@ -105,13 +117,15 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
       expect(audit).toMatchObject({ module: 'assets', plantId: plantA.id })
     })
 
-    it('el siguiente activo toma el FUR siguiente y un tag repetido da 409 sin quemar números', async () => {
+    it('el siguiente activo toma el FUR siguiente y una alta inválida no consume números', async () => {
       const second = await post({ tag: 'MT-301', name: 'Motor del molino', assetModelId: motorModelId }).expect(201)
       expect(second.body.furCode).toBe('FUR-E2E-A1-00002')
+      legacyUnits.push({ id: second.body.id, tag: 'MT-301' })
 
-      await post(base()).expect(409) // MB-301 ya existe
+      await post({ ...base(), networkCodes: [] }).expect(400)
       const third = await post({ tag: 'MT-302', name: 'Motor 2', assetModelId: motorModelId }).expect(201)
       expect(third.body.furCode).toBe('FUR-E2E-A1-00003') // la transacción revertida no consumió el 3
+      legacyUnits.push({ id: third.body.id, tag: 'MT-302' })
 
       // El mismo tag en OTRA planta sí es válido: el tag es único por planta.
       const other = await post(base(), admin, '/api/v1/plants/e2e-b1/assets').expect(201)
@@ -135,8 +149,8 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
     })
 
     it('rechaza redes no habilitadas en la planta (§47.3)', async () => {
-      const res = await post({ ...base(), tag: 'X4', networkCodes: ['FUR-IOT', 'FUR-CAM', 'FUR-MNT'] }).expect(400)
-      expect(res.body.message).toMatch(/FUR-CAM.*FUR-MNT|FUR-MNT.*FUR-CAM/)
+      const res = await post({ ...base(), tag: 'X4', networkCodes: ['FUR-MNT'] }).expect(400)
+      expect(res.body.message).toContain('FUR-MNT')
     })
 
     it('valida modelo, padre y datos', async () => {
@@ -147,7 +161,7 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
       await post({ ...base(), tag: 'X7', parentAssetId: inB.body.items[0].id }).expect(400) // padre de otra planta
 
       const bad = await post({ tag: '', name: '', assetModelId: modelId, status: 'ROTO', criticality: 'ALTA', installationDate: '15/03/2022' }).expect(400)
-      expect(bad.body.errors.map((e: { path: string }) => e.path).sort()).toEqual(['criticality', 'installationDate', 'name', 'status', 'tag'])
+      expect(bad.body.errors.map((e: { path: string }) => e.path).sort()).toEqual(['criticality', 'installationDate', 'name', 'status'])
     })
 
     it('un activo no puede crearse ya dado de baja', async () => {
@@ -159,7 +173,9 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
     let boot: string // id de un activo para otras pruebas
 
     beforeAll(async () => {
-      const mk = (tag: string, extra: object) => post({ tag, name: `Activo ${tag}`, assetModelId: modelId, ...extra }).expect(201)
+      // Datos anteriores al cambio: el listado y la FUR deben conservar sus TAG originales.
+      for (const unit of legacyUnits) await t.db.update(assets).set({ tag: unit.tag }).where(eq(assets.id, unit.id))
+      const mk = (tag: string, extra: object) => t.legacyAsset(plantA.id, modelId, tag, { name: `Activo ${tag}`, ...extra })
       await mk('LST-A', { stageCode: 'D07', status: 'MAINTENANCE', criticality: 'HIGH', location: 'Nave sur', isPublic: true, networkCodes: ['FUR-IOT'] })
       await mk('LST-B', { stageCode: 'D07', status: 'STANDBY', criticality: 'LOW', location: 'Nave norte', isPublic: true })
       await mk('LST-C', { status: 'STOCK', criticality: 'LOW', location: 'Almacén central' })
@@ -273,7 +289,7 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
       expect(res.body.asset).toMatchObject({ furCode: 'FUR-E2E-A1-00001', tag: 'MB-301', serialNumber: 'SN-0001' })
       expect(res.body.plant).toMatchObject({ slug: 'e2e-a1', code: 'E2E-A1' })
       expect(res.body.stage).toMatchObject({ code: 'D06' })
-      expect(res.body.networks).toHaveLength(2)
+      expect(res.body.networks).toHaveLength(1)
       expect(res.body.history).toHaveLength(1)
       expect(res.body.history[0]).toMatchObject({ newStatus: 'OPERATIVE', reason: 'Alta del activo', changedBy: expect.stringContaining('pa') })
       // Módulos de fases futuras: presentes pero vacíos.
@@ -323,21 +339,22 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
       expect(await t.db.select().from(assetStatusHistory).where(eq(assetStatusHistory.assetId, id))).toHaveLength(before.length)
     })
 
-    it('cambia de etapa (solo habilitadas), la desasigna y reemplaza las redes', async () => {
+    it('cambia de etapa y red sin perder la clasificación obligatoria del origen', async () => {
       expect((await patch(id, { stageCode: 'D07' }).expect(200)).body.stage.code).toBe('D07')
       await patch(id, { stageCode: 'D11' }).expect(400) // deshabilitada
-      expect((await patch(id, { stageCode: null }).expect(200)).body.stage).toBeNull()
+      await patch(id, { stageCode: null }).expect(400)
 
       const nets = await patch(id, { networkCodes: ['FUR-PTE'] }).expect(200)
       expect(nets.body.networks.map((n: { code: string }) => n.code)).toEqual(['FUR-PTE'])
       await patch(id, { networkCodes: ['FUR-MNT'] }).expect(400) // deshabilitada en la planta
-      expect((await patch(id, { networkCodes: [] }).expect(200)).body.networks).toEqual([])
+      await patch(id, { networkCodes: [] }).expect(400)
     })
 
-    it('el tag puede cambiar pero no chocar con otro; el FUR nunca cambia', async () => {
-      await patch(id, { tag: 'MB-301' }).expect(409)
-      const res = await patch(id, { tag: 'ed-1b', furCode: 'FUR-HACK-1' }).expect(200)
-      expect(res.body.tag).toBe('ED-1B')
+    it('ni el TAG ni el FUR pueden sobreescribirse desde el cliente', async () => {
+      const before = (await http().get(`${A}/${id}`).set('Authorization', bearer(pa)).expect(200)).body
+      await patch(id, { tag: 'MB-301' }).expect(400)
+      const res = await patch(id, { name: 'Identidad estable', tag: 'ed-1b', furCode: 'FUR-HACK-1' }).expect(200)
+      expect(res.body.tag).toBe(before.tag)
       expect(res.body.furCode).toMatch(/^FUR-E2E-A1-\d{5}$/)
     })
 
@@ -359,7 +376,7 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
   describe('baja lógica', () => {
     let id: string
     beforeAll(async () => {
-      id = (await post({ tag: 'BAJA-1', name: 'Para dar de baja', assetModelId: modelId, isPublic: true }).expect(201)).body.id
+      id = (await t.legacyAsset(plantA.id, modelId, 'BAJA-1', { name: 'Para dar de baja', isPublic: true })).id
     })
 
     it('exige asset.delete: solo el administrador de planta', async () => {
@@ -392,6 +409,69 @@ describe('Activos físicos y ficha FUR (e2e)', () => {
     it('un activo dado de baja no se puede modificar y la baja es idempotente', async () => {
       await patch(id, { name: 'resucitado' }).expect(409)
       await http().delete(`${A}/${id}`).set('Authorization', bearer(pa)).expect(204)
+    })
+  })
+
+  describe('ficha técnica independiente por activo', () => {
+    let sourceId: string
+    let firstId: string
+    let secondId: string
+    const initialSpecs = { 'Potencia (kW)': '30–37', dimensions: { height: 2, unit: 'm' } }
+    const initialData = { componentes: ['Impulsor', 'Rodamientos'], descripcion: 'Modelo de referencia' }
+
+    it('copia la plantilla al crear dos unidades, incluso en plantas distintas', async () => {
+      sourceId = (await t.model('MOLINO_BOLAS', 'E2E plantilla independiente', 'E2E Referencia')).id
+      await t.db.update(assetModels).set({ specifications: initialSpecs, technicalData: initialData }).where(eq(assetModels.id, sourceId))
+      const first = await post({ tag: 'SNAP-01', name: 'Unidad A', assetModelId: sourceId }).expect(201)
+      const second = await post({ tag: 'SNAP-02', name: 'Unidad B', assetModelId: sourceId }, admin, '/api/v1/plants/e2e-b1/assets').expect(201)
+      firstId = first.body.id
+      secondId = second.body.id
+      for (const result of [first, second]) expect(result.body).toMatchObject({ specifications: initialSpecs, technicalData: initialData })
+    })
+
+    it('guarda las modificaciones de la unidad sin tocar el modelo ni la otra planta', async () => {
+      const ownSpecs = { 'Potencia (kW)': '37', 'Tensión (V)': 480 }
+      await patch(firstId, { specifications: ownSpecs, components: ['Impulsor instalado', 'Motor 37 kW'] }).expect(200)
+      const own = await http().get(`${A}/${firstId}/fur`).set('Authorization', bearer(pa)).expect(200)
+      expect(own.body.asset).toMatchObject({ specifications: ownSpecs, technicalData: { ...initialData, componentes: ['Impulsor instalado', 'Motor 37 kW'] } })
+      const other = await http().get(`/api/v1/plants/e2e-b1/assets/${secondId}`).set('Authorization', bearer(admin)).expect(200)
+      expect(other.body).toMatchObject({ specifications: initialSpecs, technicalData: initialData })
+      const [source] = await t.db.select().from(assetModels).where(eq(assetModels.id, sourceId))
+      expect(source).toMatchObject({ specifications: initialSpecs, technicalData: initialData })
+      const [event] = await t.db.select().from(auditEvents).where(and(eq(auditEvents.entityId, firstId), eq(auditEvents.action, 'updated')))
+      expect(event.newData).toMatchObject({ specifications: ownSpecs, technicalData: { componentes: ['Impulsor instalado', 'Motor 37 kW'] } })
+    })
+
+    it('un cambio posterior del catálogo no cambia las copias; las altas nuevas usan la nueva versión', async () => {
+      await t.db.update(assetModels).set({ specifications: { 'Potencia (kW)': '55' }, technicalData: { componentes: ['Motor 55 kW'] } }).where(eq(assetModels.id, sourceId))
+      const first = await http().get(`${A}/${firstId}`).set('Authorization', bearer(pa)).expect(200)
+      expect(first.body.specifications['Potencia (kW)']).toBe('37')
+      const second = await http().get(`/api/v1/plants/e2e-b1/assets/${secondId}`).set('Authorization', bearer(admin)).expect(200)
+      expect(second.body).toMatchObject({ specifications: initialSpecs, technicalData: initialData })
+      const fresh = await post({ tag: 'SNAP-03', name: 'Nueva unidad', assetModelId: sourceId }).expect(201)
+      expect(fresh.body).toMatchObject({ specifications: { 'Potencia (kW)': '55' }, technicalData: { componentes: ['Motor 55 kW'] } })
+    })
+
+    it('permite reemplazar la plantilla al crear, y dejar especificaciones y componentes vacíos', async () => {
+      const customized = await post({ tag: 'SNAP-04', name: 'Personalizado', assetModelId: sourceId, specifications: { 'Potencia (kW)': '22' }, components: ['Motor 22 kW'] }).expect(201)
+      expect(customized.body).toMatchObject({ specifications: { 'Potencia (kW)': '22' }, technicalData: { componentes: ['Motor 22 kW'] } })
+      await patch(customized.body.id, { specifications: {}, components: [] }).expect(200)
+      const empty = await http().get(`${A}/${customized.body.id}`).set('Authorization', bearer(pa)).expect(200)
+      expect(empty.body).toMatchObject({ specifications: {}, technicalData: { componentes: [] } })
+      const createdEmpty = await post({ tag: 'SNAP-05', name: 'Vacío', assetModelId: sourceId, specifications: {}, components: [] }).expect(201)
+      expect(createdEmpty.body).toMatchObject({ specifications: {}, technicalData: { componentes: [] } })
+    })
+
+    it('cambiar el modelo conserva la ficha propia y valida permisos, aislamiento y componentes', async () => {
+      await patch(firstId, { assetModelId: motorModelId }).expect(200)
+      const result = await http().get(`${A}/${firstId}`).set('Authorization', bearer(pa)).expect(200)
+      expect(result.body.specifications['Potencia (kW)']).toBe('37')
+      expect(result.body.technicalData.componentes).toEqual(['Impulsor instalado', 'Motor 37 kW'])
+      await patch(firstId, { components: ['Cambio no permitido'] }, consumer).expect(403)
+      await http().patch(`/api/v1/plants/e2e-b1/assets/${firstId}`).set('Authorization', bearer(admin)).send({ components: [] }).expect(404)
+      await patch(firstId, { components: [null] }).expect(400)
+      await patch(firstId, { components: ['   '] }).expect(400)
+      await patch(firstId, { specifications: [] }).expect(400)
     })
   })
 

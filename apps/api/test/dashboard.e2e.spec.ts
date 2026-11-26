@@ -2,6 +2,7 @@ import type { INestApplication } from '@nestjs/common'
 import { sql } from 'drizzle-orm'
 import request from 'supertest'
 import { providers } from '../src/database/schema'
+import { DEFAULT_STAGE_COUNT } from '../src/database/seed'
 import { bearer, createApp, login, type Session, TestDb } from './helpers'
 
 describe('Dashboard del ecosistema (e2e)', () => {
@@ -55,7 +56,7 @@ describe('Dashboard del ecosistema (e2e)', () => {
       manufacturers: await n(sql`select count(*)::int as n from catalog.manufacturers`),
       models: await n(sql`select count(*)::int as n from catalog.asset_models`),
     })
-    expect(body.masters).toEqual({ stages: 19, networks: 10 })
+    expect(body.masters).toEqual({ stages: DEFAULT_STAGE_COUNT, networks: 10 })
   })
 
   it('las organizaciones pendientes de aprobar se cuentan aparte del total', async () => {

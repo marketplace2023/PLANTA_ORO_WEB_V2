@@ -1,3 +1,4 @@
+import { formatSpecificationValue, visibleSpecificationEntries } from '@/lib/specification-value'
 import { Archive, Boxes, LockKeyhole, Pencil, SearchX, Star, Upload, Wrench } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -34,13 +35,13 @@ function Fact({ label, children }: { label: React.ReactNode; children: React.Rea
 }
 
 function KeyValueTable({ data }: { data: Record<string, unknown> | undefined }) {
-  const entries = Object.entries(data ?? {})
+  const entries = visibleSpecificationEntries(data)
   if (entries.length === 0) return <p className="text-sm text-fur-gray-600">Sin datos registrados.</p>
   return (
     <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
       {entries.map(([k, v]) => (
         <Fact key={k} label={k}>
-          <span className="fur-code font-normal">{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
+          <span className="fur-code font-normal">{formatSpecificationValue(v)}</span>
         </Fact>
       ))}
     </dl>
@@ -55,8 +56,9 @@ function Summary({ fur }: { fur: AssetFur }) {
         <span className="fur-code">{asset.furCode}</span>
       </Fact>
       <Fact label="Familia">{asset.family.name}</Fact>
-      <Fact label="Tipo">{asset.type.name}</Fact>
-      <Fact label="Modelo">{asset.model.name}</Fact>
+      {asset.type.code && <Fact label="Tipo">{asset.type.name}</Fact>}
+      {asset.model.id && <Fact label="Modelo">{asset.model.name}</Fact>}
+      <Fact label="Referencias del catálogo">{asset.referenceModels?.map(model => model.modelName).join(', ') || '—'}</Fact>
       <Fact label="Fabricante">{asset.manufacturer ?? '—'}</Fact>
       {'serialNumber' in asset && <Fact label="Número de serie">{asset.serialNumber ?? '—'}</Fact>}
       <Fact label="Ubicación">{asset.location ?? '—'}</Fact>
@@ -469,13 +471,21 @@ export function AssetFurPage() {
           </TabsContent>
           <TabsContent value="specs" className="space-y-6">
             <section>
-              <h2 className="mb-3 text-lg text-fur-navy-900">Especificaciones del modelo</h2>
+              <h2 className="mb-3 text-lg text-fur-navy-900">Especificaciones del activo</h2>
               <KeyValueTable data={asset.specifications} />
             </section>
-            {asset.technicalData && (
+            {Array.isArray(asset.technicalData?.componentes) && asset.technicalData.componentes.length > 0 && (
+              <section aria-label="Componentes del activo">
+                <h2 className="mb-3 text-lg text-fur-navy-900">Componentes del activo</h2>
+                <ul className="list-inside list-disc space-y-2 text-sm">
+                  {asset.technicalData.componentes.map((component, index) => <li key={index}>{String(component)}</li>)}
+                </ul>
+              </section>
+            )}
+            {asset.technicalData && Object.keys(asset.technicalData).some(key => key !== 'componentes') && (
               <section>
                 <h2 className="mb-3 text-lg text-fur-navy-900">Datos técnicos</h2>
-                <KeyValueTable data={asset.technicalData} />
+                <KeyValueTable data={Object.fromEntries(Object.entries(asset.technicalData).filter(([key]) => key !== 'componentes'))} />
               </section>
             )}
             {generalSections.length > 0 && (

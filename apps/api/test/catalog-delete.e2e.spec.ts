@@ -33,17 +33,13 @@ describe('Eliminar del catálogo (e2e)', () => {
     await t.assign(paU.id, plant.id, 'PLANT_ADMIN')
     ;[admin, pa] = await Promise.all(['admin', 'pa'].map((n) => login(app, n)))
 
-    famId = (await post(`${C}/families`, { code: 'E2E_DEL_F', name: 'E2E Familia a eliminar' }).expect(201)).body.id
+    famId = (await post(`${C}/families`, { code: 'E2E_DEL_F', tagCode: 'EDF', name: 'E2E Familia a eliminar' }).expect(201)).body.id
     typeId = (await post(`${C}/types`, { familyCode: 'E2E_DEL_F', code: 'E2E_DEL_T', name: 'E2E Tipo a eliminar', stageCodes: ['D06'] }).expect(201)).body.id
     makerId = (await post(`${C}/manufacturers`, { name: 'E2E Fabricante a eliminar' }).expect(201)).body.id
     usedModelId = (await post(`${C}/models`, { typeCode: 'E2E_DEL_T', modelName: 'E2E Modelo en uso', networkCodes: ['FUR-PROC'] }).expect(201)).body.id
     freeModelId = (await post(`${C}/models`, { typeCode: 'E2E_DEL_T', modelName: 'E2E Modelo repetido', networkCodes: ['FUR-PROC'] }).expect(201)).body.id
     // Un activo de planta que usa el primer modelo.
-    await http()
-      .post('/api/v1/plants/e2e-del1/assets')
-      .set('Authorization', bearer(pa))
-      .send({ tag: 'E2E-DEL-1', name: 'Activo que usa el modelo', assetModelId: usedModelId })
-      .expect(201)
+    await t.legacyAsset(plant.id, usedModelId, 'E2E-DEL-1', { name: 'Activo que usa el modelo' })
   })
 
   afterAll(async () => {
@@ -116,7 +112,7 @@ describe('Eliminar del catálogo (e2e)', () => {
       await del(`${C}/families/${famId}`).expect(409)
 
       // Un tipo y una familia vacíos sí se van, con sus etapas y redes.
-      await post(`${C}/families`, { code: 'E2E_DEL_F2', name: 'E2E Familia vacía' }).expect(201)
+      await post(`${C}/families`, { code: 'E2E_DEL_F2', tagCode: 'EDV', name: 'E2E Familia vacía' }).expect(201)
       const t2 = (await post(`${C}/types`, { familyCode: 'E2E_DEL_F2', code: 'E2E_DEL_T2', name: 'E2E Tipo vacío', stageCodes: ['D06', 'D07'] }).expect(201)).body
       await del(`${C}/types/${t2.id}`).expect(204)
       expect(await t.db.select().from(assetTypes).where(eq(assetTypes.code, 'E2E_DEL_T2'))).toHaveLength(0)

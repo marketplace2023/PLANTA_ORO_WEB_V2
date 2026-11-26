@@ -23,8 +23,8 @@ export type MasterRow = {
 }
 export type MasterWorkbook = { fingerprint: string; rows: MasterRow[]; issues: ImportIssue[]; specificationCount: number }
 const requiredHeaders: Record<string, string[]> = {
-  'Listado maestro': ['TAG ACTIVO', 'Nombre', 'Código CA', 'Categoría N4', 'Tipo', 'Denominación de etapa'],
-  'Categorías N4': ['Código CA', 'Categoría N4'],
+  'Listado maestro': ['TAG ACTIVO', 'Nombre', 'Código CA', 'Familia', 'Tipo', 'Denominación de etapa'],
+  'Familias': ['Código CA', 'Familia'],
   'Características': ['TAG ACTIVO', 'Componentes principales'],
   'Especificaciones': ['TAG ACTIVO', 'Parámetro técnico', 'Unidad', 'Valor / estado'],
 }
@@ -46,7 +46,7 @@ export async function parseMasterWorkbook(buffer: Buffer): Promise<MasterWorkboo
   const issues: ImportIssue[] = []
   const tables = new Map<string, Array<{ row: number; values: Record<string, string> }>>()
   for (const [name, headers] of Object.entries({ ...requiredHeaders, ...optionalHeaders })) {
-    const sheet = book.find(s => s.sheet === name)
+    const sheet = book.find(s => s.sheet === name) ?? (name === 'Familias' ? book.find(s => s.sheet === 'Categorías N4') : undefined)
     if (!sheet) {
       if (Object.hasOwn(requiredHeaders, name)) issues.push({ sheet: name, row: 1, message: `Falta la hoja «${name}»` })
       continue
@@ -59,6 +59,10 @@ export async function parseMasterWorkbook(buffer: Buffer): Promise<MasterWorkboo
       const title = normalized(String(cell ?? ''))
       if (columns.has(title) && title) issues.push({ sheet: name, row: 1, message: `Columna repetida: ${cell}` })
       columns.set(title, col)
+    }
+    // Los nombres actuales tienen prioridad; se admiten libros anteriores sin renombrarlos.
+    if (headers.includes('Familia') && !columns.has(normalized('Familia')) && columns.has(normalized('Categoría N4'))) {
+      columns.set(normalized('Familia'), columns.get(normalized('Categoría N4'))!)
     }
     for (const h of headers) if (!columns.has(normalized(h))) issues.push({ sheet: name, row: 1, message: `Falta la columna «${h}»` })
     const rows: Array<{ row: number; values: Record<string, string> }> = []
@@ -79,10 +83,10 @@ export async function parseMasterWorkbook(buffer: Buffer): Promise<MasterWorkboo
   }
   const ca = (s: string) => /^\d+$/.test(s) ? s.padStart(2, '0') : s
   const families = new Map<string, string>()
-  for (const { row, values: v } of tables.get('Categorías N4') ?? []) {
-    const code = ca(v['Código CA']), name = v['Categoría N4']
-    if (!/^[A-Z0-9_]{1,20}$/.test(code) || !name || name.length > 120) issues.push({ sheet: 'Categorías N4', row, message: 'El Código CA admite 1–20 letras mayúsculas, números o guion bajo; el nombre de familia es obligatorio y admite hasta 120 caracteres' })
-    if (families.has(code)) issues.push({ sheet: 'Categorías N4', row, message: `Código CA repetido: ${code}` })
+  for (const { row, values: v } of tables.get('Familias') ?? []) {
+    const code = ca(v['Código CA']), name = v.Familia
+    if (!/^[A-Z0-9_]{1,20}$/.test(code) || !name || name.length > 120) issues.push({ sheet: 'Familias', row, message: 'El Código CA admite 1–20 letras mayúsculas, números o guion bajo; el nombre de familia es obligatorio y admite hasta 120 caracteres' })
+    if (families.has(code)) issues.push({ sheet: 'Familias', row, message: `Código CA repetido: ${code}` })
     families.set(code, name)
   }
   const tags = new Set<string>()
@@ -93,7 +97,7 @@ export async function parseMasterWorkbook(buffer: Buffer): Promise<MasterWorkboo
       if (!v[field] || v[field].length > max) issues.push({ sheet: 'Listado maestro', row, message: `«${field}» es obligatorio y admite hasta ${max} caracteres` })
     }
     if (tags.has(tag)) issues.push({ sheet: 'Listado maestro', row, message: `TAG repetido: ${tag}` })
-    if (!families.has(categoryCode)) issues.push({ sheet: 'Listado maestro', row, message: `Código CA ${categoryCode} ausente en «Categorías N4»` })
+    if (!families.has(categoryCode)) issues.push({ sheet: 'Listado maestro', row, message: `Código CA ${categoryCode} ausente en «Familias»` })
     tags.add(tag)
     rows.push({ row, tag, name: v.Nombre, categoryCode, family: families.get(categoryCode) ?? '', type: v.Tipo, stage: v['Denominación de etapa'], components: [], specifications: {}, referenceManufacturers: tables.has('Fabricantes de referencia') ? [] : null })
   }

@@ -1,8 +1,8 @@
 import type { INestApplication } from '@nestjs/common'
 import ExcelJS from 'exceljs'
-import { eq, like } from 'drizzle-orm'
+import { and, eq, like, inArray } from 'drizzle-orm'
 import request from 'supertest'
-import { assetFamilies, assetModels, assetModelNetworks, assetModelStages, assetTypes, assetTypeStages, assets, auditEvents, manufacturers } from '../src/database/schema'
+import { familySpecifications, assetFamilies, assetModels, assetModelNetworks, assetModelStages, assetTypes, assetTypeStages, assets, auditEvents, manufacturers } from '../src/database/schema'
 import { bearer, createApp, login, type Session, TestDb } from './helpers'
 
 async function workbook(options: { tags?: [string, string]; duplicate?: boolean; orphan?: boolean; rename?: boolean; splitFamily?: boolean; makers?: [string, string]; missingSpecifications?: boolean; invalidSpecification?: boolean; omitSpecificationsSheet?: boolean; components?: unknown[][]; references?: unknown[][] } = {}) {
@@ -10,11 +10,11 @@ async function workbook(options: { tags?: [string, string]; duplicate?: boolean;
   const book = new ExcelJS.Workbook()
   const master = book.addWorksheet('Listado maestro')
   master.addRows([
-    ['TAG ACTIVO', 'Nombre', 'Código CA', 'Categoría N4', 'Tipo', 'Fabricante / modelo', 'Denominación de etapa'],
+    ['TAG ACTIVO', 'Nombre', 'Código CA', 'Familia', 'Tipo', 'Fabricante / modelo', 'Denominación de etapa'],
     [tags[0], options.rename ? 'E2E Modelo renombrado' : 'E2E Modelo uno', '97', '97 — E2E familia (por verificar)', 'E2E Tipo maestro', options.makers?.[0] ?? 'E2E Fabricante', 'Molienda primaria'],
     [options.duplicate ? tags[0] : tags[1], options.rename ? 'E2E Modelo dos renombrado' : 'E2E Modelo dos', options.splitFamily ? '98' : '97', '97 — E2E familia', 'E2E Tipo maestro', options.makers?.[1] ?? 'E2E Fabricante', 'Molienda secundaria'],
   ])
-  book.addWorksheet('Categorías N4').addRows([['Código CA', 'Categoría N4'], ['97', options.rename ? 'E2E Familia renombrada' : 'E2E Familia canónica'], ['98', 'E2E Otra familia']])
+  book.addWorksheet('Familias').addRows([['Código CA', 'Familia'], ['97', options.rename ? 'E2E Familia renombrada' : 'E2E Familia canónica'], ['98', 'E2E Otra familia']])
   book.addWorksheet('Características').addRows([
     ['TAG ACTIVO', 'Componentes principales'], ...(options.components ?? [[tags[1], 'Motor, tambor, corona. Un solo componente.'], [tags[0], 'Motor, reductor, eje.']]),
   ])
@@ -43,7 +43,7 @@ describe('Importación del listado maestro del catálogo (e2e)', () => {
   const cleanup = async () => {
     await t.cleanup()
     await t.db.delete(assetTypes).where(eq(assetTypes.name, 'E2E Tipo maestro'))
-    await t.db.delete(assetFamilies).where(eq(assetFamilies.categoryCode, '97'))
+    await t.db.delete(assetFamilies).where(inArray(assetFamilies.categoryCode, ['97', '98']))
   }
   beforeAll(async () => {
     t = new TestDb()
@@ -61,6 +61,10 @@ describe('Importación del listado maestro del catálogo (e2e)', () => {
     await t.db.delete(assetFamilies).where(eq(assetFamilies.categoryCode, '97'))
     await t.db.delete(assetFamilies).where(eq(assetFamilies.categoryCode, '98'))
     await t.db.delete(manufacturers).where(like(manufacturers.name, 'E2E %'))
+    for (const code of ['97', '98']) {
+      const [family] = await t.db.insert(assetFamilies).values({ code: `N4_${code}`, categoryCode: code, tagCode: `TST${code}`, name: code === '97' ? 'E2E Familia canónica' : 'E2E Otra familia' }).returning()
+      await t.db.insert(familySpecifications).values([{ familyId: family.id, label: 'Material', valueType: 'TEXT' }, { familyId: family.id, label: 'Potencia del motor', unit: 'kW', valueType: 'TEXT' }])
+    }
   })
   const importInitial = async (networks = ['FUR-PROC']) => {
     const file = await workbook(), p = await preview(file, networks).expect(201)
@@ -74,6 +78,43 @@ describe('Importación del listado maestro del catálogo (e2e)', () => {
     networks: await t.db.select().from(assetModelNetworks), audit: await t.db.select().from(auditEvents),
   })
   afterAll(async () => { await cleanup(); await t.close(); await app.close() })
+
+  it('identifica la familia y el CA al rechazar un parámetro de especificación', async () => {
+    const [family] = await t.db.select().from(assetFamilies).where(eq(assetFamilies.categoryCode, '97'))
+    await t.db.delete(familySpecifications).where(and(eq(familySpecifications.familyId, family.id), eq(familySpecifications.label, 'Material')))
+    const file = await workbook(), before = await dataSnapshot()
+    const result = (await preview(file).expect(201)).body
+    expect(result.issues).toEqual([expect.objectContaining({
+      sheet: 'Listado maestro', row: 2,
+      message: 'Familia «E2E Familia canónica» (CA 97): «Material» no es una especificación definida para esta familia',
+    })])
+    await apply(file, result.fingerprint).expect(400)
+    expect(await dataSnapshot()).toEqual(before)
+  })
+
+  it('muestra ambas familias de una coincidencia ambigua en la fila real del Excel', async () => {
+    const [family] = await t.db.select().from(assetFamilies).where(eq(assetFamilies.categoryCode, '97'))
+    await t.db.update(assetFamilies).set({ name: 'E2E Familia propietaria del CA' }).where(eq(assetFamilies.id, family.id))
+    const [other] = await t.db.insert(assetFamilies).values({ code: 'E2E_IMPORT_AMBIGUOUS', tagCode: 'AMBIMP', name: 'E2E Familia canónica' }).returning()
+    try {
+      const result = (await preview(await workbook()).expect(201)).body
+      const ambiguity = result.issues.find((i: { message: string }) => i.message.includes('Coincidencia ambigua'))
+      expect(ambiguity).toMatchObject({ sheet: 'Listado maestro', row: 2 })
+      expect(ambiguity.message).toContain('familia del Excel «E2E Familia canónica» (CA 97)')
+      expect(ambiguity.message).toContain('«E2E Familia propietaria del CA» (N4_97, CA 97)')
+      expect(ambiguity.message).toContain('«E2E Familia canónica» (E2E_IMPORT_AMBIGUOUS, sin CA)')
+    } finally { await t.db.delete(assetFamilies).where(eq(assetFamilies.id, other.id)) }
+  })
+
+  it('distingue la familia del Excel de la familia registrada usada para validar', async () => {
+    const [family] = await t.db.select().from(assetFamilies).where(eq(assetFamilies.categoryCode, '97'))
+    await t.db.update(assetFamilies).set({ name: 'E2E Familia propietaria del CA' }).where(eq(assetFamilies.id, family.id))
+    await t.db.delete(familySpecifications).where(and(eq(familySpecifications.familyId, family.id), eq(familySpecifications.label, 'Material')))
+    const result = (await preview(await workbook()).expect(201)).body
+    const problem = result.issues.find((i: { row: number; message: string }) => i.row === 2 && i.message.includes('«Material»'))
+    expect(problem.message).toContain('Familia «E2E Familia canónica» (CA 97)')
+    expect(problem.message).toContain('Se validó contra «E2E Familia propietaria del CA» (N4_97) por el Código CA indicado.')
+  })
 
   it('exige administrador global antes de procesar archivos', async () => {
     for (const endpoint of ['/catalog/imports/preview', '/catalog/imports']) {
@@ -109,7 +150,7 @@ describe('Importación del listado maestro del catálogo (e2e)', () => {
   it('la vista previa unifica por Código CA y cruza las hojas por TAG, sin escribir', async () => {
     const p = await preview(await workbook()).expect(201)
     expect(p.body.issues).toEqual([])
-    expect(p.body.summary).toMatchObject({ models: { create: 2, update: 0 }, families: { create: 1, update: 0 }, types: { create: 1, update: 0 }, specifications: 2 })
+    expect(p.body.summary).toMatchObject({ models: { create: 2, update: 0 }, families: { create: 0, update: 1 }, types: { create: 1, update: 0 }, specifications: 2 })
     expect(p.body.rows[1]).toMatchObject({ tag: 'E2E-IMPORT-02', family: 'E2E Familia canónica', stages: ['D06'], components: ['Motor, tambor, corona. Un solo componente.'], specifications: { 'Potencia del motor (kW)': '7,5–75' } })
     expect(await models()).toHaveLength(0)
   })
@@ -145,7 +186,7 @@ describe('Importación del listado maestro del catálogo (e2e)', () => {
     const p = await preview(await workbook({ splitFamily: true })).expect(201)
     expect(p.body.issues).toEqual([])
     expect(p.body.summary.types).toEqual({ create: 2, update: 0 })
-    expect(p.body.summary.families).toEqual({ create: 2, update: 0 })
+    expect(p.body.summary.families).toEqual({ create: 0, update: 2 })
   })
   it('aplica todo y publica cada modelo con sus especificaciones, componente y etapa', async () => {
     const file = await workbook(), p = await preview(file).expect(201)
@@ -153,6 +194,8 @@ describe('Importación del listado maestro del catálogo (e2e)', () => {
     expect(result.body.imported).toBe(2)
     const res = await http().get('/api/v1/catalog/assets?search=E2E-IMPORT&pageSize=100').expect(200)
     expect(res.body.total).toBe(2)
+    const searchable = await http().get('/api/v1/catalog/assets').query({ search: 'E2E-IMPORT 7.5kw' }).expect(200)
+    expect(searchable.body.total).toBe(1)
     const m = res.body.items.find((m: { catalogTag: string }) => m.catalogTag === 'E2E-IMPORT-02')
     expect(m).toMatchObject({ specifications: { 'Potencia del motor (kW)': '7,5–75' }, technicalData: { componentes: ['Motor, tambor, corona. Un solo componente.'] }, stageCodes: ['D06'], imageUrl: null, networkCodes: ['FUR-PROC'] })
     // La misma vista previa ya no autoriza volver a aplicar sobre un catálogo diferente.

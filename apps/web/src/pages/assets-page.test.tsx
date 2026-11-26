@@ -224,8 +224,9 @@ describe('Activos Físicos (listado)', () => {
         'GET /plants/revemin-ii/stages': { body: STAGES },
         'GET /plants/revemin-ii/networks': { body: NETWORKS },
         'GET /catalog/families': { body: FAMILIES },
-        'GET /catalog/assets': { body: page([{ id: 'm1', modelName: 'Bolas 16.5x24 ft', type: { name: 'Molino de bolas' }, manufacturer: { name: 'Metso' } }]) },
+        'GET /catalog/assets': { body: page([{ id: 'm1', modelName: 'Bolas 16.5x24 ft', networkCodes: ['FUR-PTE'], type: { name: 'Molino de bolas' }, manufacturer: { name: 'Metso' } }]) },
         'GET /plants/revemin-ii/assets': { body: page([asset()]) },
+        'GET /plants/revemin-ii/assets/tag-preview': { body: { tag: 'FUR-IOT-D06-MOL-001' } },
         'POST /plants/revemin-ii/assets': post,
       })
     }
@@ -236,8 +237,10 @@ describe('Activos Físicos (listado)', () => {
       const dialog = await openForm(mock as never)
       await userEvent.click(within(dialog).getByRole('button', { name: 'Crear activo' }))
 
-      expect(await within(dialog).findAllByText('Requerido')).toHaveLength(2)
-      expect(within(dialog).getByText('Selecciona un modelo del catálogo')).toBeInTheDocument()
+      expect(await within(dialog).findAllByText('Requerido')).toHaveLength(1)
+      expect(within(dialog).getByText('Selecciona una etapa para generar el TAG')).toBeInTheDocument()
+      expect(within(dialog).getByText('Selecciona una red para generar el TAG')).toBeInTheDocument()
+      expect(within(dialog).getByText('Selecciona una familia', { selector: 'p' })).toBeInTheDocument()
       expect(mock.count('POST /plants/revemin-ii/assets')).toBe(0)
     })
 
@@ -246,13 +249,17 @@ describe('Activos Físicos (listado)', () => {
       renderAssets()
       const dialog = await openForm(mock as never)
 
-      expect(await within(dialog).findByRole('checkbox', { name: /FUR-IOT/ })).toBeInTheDocument()
-      expect(within(dialog).getByRole('checkbox', { name: /FUR-PTE/ })).toBeInTheDocument()
-      expect(within(dialog).queryByRole('checkbox', { name: /FUR-MNT/ })).not.toBeInTheDocument() // deshabilitada
+      const network = within(dialog).getByRole('combobox', { name: 'Red transversal' })
+      await waitFor(() => expect(network).toBeEnabled())
+      await userEvent.click(network)
+      expect(await screen.findByRole('option', { name: /FUR-IOT/ })).toBeInTheDocument()
+      expect(screen.getByRole('option', { name: /FUR-PTE/ })).toBeInTheDocument()
+      expect(screen.queryByRole('option', { name: /FUR-MNT/ })).not.toBeInTheDocument() // deshabilitada
+      await userEvent.keyboard('{Escape}')
 
       await userEvent.click(within(dialog).getByRole('combobox', { name: 'Etapa' }))
       const options = (await screen.findAllByRole('option')).map((o) => o.textContent)
-      expect(options).toEqual(expect.arrayContaining(['Sin etapa asignada', 'D06 — Molienda Primaria', 'D07 — Molienda Secundaria']))
+      expect(options).toEqual(expect.arrayContaining(['Sin etapa asignada', 'D06 - Molienda Primaria', 'D07 - Molienda Secundaria']))
       expect(options.some((o) => o?.includes('D11'))).toBe(false) // deshabilitada
     })
 
@@ -261,19 +268,26 @@ describe('Activos Físicos (listado)', () => {
       renderAssets()
       const dialog = await openForm(mock as never)
 
-      await userEvent.type(within(dialog).getByLabelText('Tag'), 'mb-401')
+      expect(within(dialog).getByLabelText('Tag')).toHaveAttribute('readonly')
+      await userEvent.click(within(dialog).getByRole('combobox', { name: 'Familia' }))
+      await userEvent.click(await screen.findByRole('option', { name: /Molinos/ }))
+      await userEvent.clear(within(dialog).getByLabelText('Nombre'))
       await userEvent.type(within(dialog).getByLabelText('Nombre'), 'Molino nuevo')
-      await userEvent.click(within(dialog).getByRole('combobox', { name: 'Modelo del catálogo' }))
-      await userEvent.click(await screen.findByRole('option', { name: /Bolas 16.5x24 ft/ }))
-      await userEvent.click(await within(dialog).findByRole('checkbox', { name: /FUR-IOT/ }))
+      await userEvent.click(within(dialog).getByRole('combobox', { name: 'Red transversal' }))
+      await userEvent.click(await screen.findByRole('option', { name: /FUR-IOT/ }))
+      await userEvent.click(within(dialog).getByRole('combobox', { name: 'Etapa' }))
+      await userEvent.click(await screen.findByRole('option', { name: 'D06 - Molienda Primaria' }))
       await userEvent.click(within(dialog).getByRole('button', { name: 'Crear activo' }))
 
       expect(await screen.findByText('Ficha del activo')).toBeInTheDocument()
       const body = JSON.parse(mock.calls.find((c) => c.method === 'POST')!.init.body as string)
       expect(body).toEqual({
-        tag: 'mb-401',
+        stageCode: 'D06',
         name: 'Molino nuevo',
-        assetModelId: 'm1',
+        familyId: 'f1',
+        referenceModelIds: [],
+        specifications: {},
+        components: [],
         criticality: 'MEDIUM',
         isPublic: false,
         networkCodes: ['FUR-IOT'],
@@ -281,18 +295,21 @@ describe('Activos Físicos (listado)', () => {
       })
     })
 
-    it('un tag repetido (409) se muestra en el campo Tag y el diálogo sigue abierto', async () => {
-      const mock = withModelsAndPost(() => ({ status: 409, body: { message: 'Ya existe un activo con el tag MB-301 en esta planta' } }))
+    it('un conflicto al reservar TAG (409) se muestra y el diálogo sigue abierto', async () => {
+      const mock = withModelsAndPost(() => ({ status: 409, body: { message: 'No se pudo reservar un TAG único para esta planta. Inténtalo de nuevo.' } }))
       renderAssets()
       const dialog = await openForm(mock as never)
 
-      await userEvent.type(within(dialog).getByLabelText('Tag'), 'MB-301')
+      await userEvent.click(within(dialog).getByRole('combobox', { name: 'Red transversal' }))
+      await userEvent.click(await screen.findByRole('option', { name: /FUR-IOT/ }))
       await userEvent.type(within(dialog).getByLabelText('Nombre'), 'Duplicado')
-      await userEvent.click(within(dialog).getByRole('combobox', { name: 'Modelo del catálogo' }))
-      await userEvent.click(await screen.findByRole('option', { name: /Bolas 16.5x24 ft/ }))
+      await userEvent.click(within(dialog).getByRole('combobox', { name: 'Familia' }))
+      await userEvent.click(await screen.findByRole('option', { name: /Molinos/ }))
+      await userEvent.click(within(dialog).getByRole('combobox', { name: 'Etapa' }))
+      await userEvent.click(await screen.findByRole('option', { name: 'D06 - Molienda Primaria' }))
       await userEvent.click(within(dialog).getByRole('button', { name: 'Crear activo' }))
 
-      expect(await within(dialog).findByText(/Ya existe un activo con el tag MB-301/)).toBeInTheDocument()
+      expect(await within(dialog).findByText(/No se pudo reservar un TAG único/)).toBeInTheDocument()
       expect(within(dialog).getByLabelText('Tag')).toHaveAttribute('aria-invalid', 'true')
     })
   })

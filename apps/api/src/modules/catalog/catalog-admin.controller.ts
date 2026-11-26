@@ -1,3 +1,4 @@
+import { validateFamilySpecifications } from './family-specifications'
 import { randomUUID } from 'node:crypto'
 import { Body, ConflictException, Controller, Delete, HttpCode, Inject, NotFoundException, Param, ParseUUIDPipe, Patch, Post, Req, UploadedFile, UseInterceptors } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
@@ -8,7 +9,7 @@ import { isUniqueViolation } from '../../common/db-errors'
 import type { AppRequest } from '../../common/types'
 import { ZodValidationPipe } from '../../common/zod-validation.pipe'
 import { DB, type Database } from '../../database/database.module'
-import { assetFamilies, assetModels, assetModelStages, assetModelNetworks, assets, assetTypes, assetTypeStages, items as inventoryItems, listings, manufacturers, networkMaster, stageMaster } from '../../database/schema'
+import { catalogRequests, assetFamilies, assetModels, assetModelStages, assetModelNetworks, assets, assetTypes, assetTypeStages, items as inventoryItems, listings, manufacturers, networkMaster, stageMaster } from '../../database/schema'
 import { AuditService } from '../audit/audit.service'
 import { StorageService } from '../documents/storage.service'
 import { GlobalAdminOnly } from '../iam/decorators'
@@ -63,9 +64,19 @@ export class CatalogAdminController {
 
   // ---------- Familias ----------
 
+  private familyConflict(err: unknown, integrationCode?: string, tagCode?: string): never {
+    if (isUniqueViolation(err)) {
+      const error = err as { constraint?: string; cause?: { constraint?: string } }
+      const constraint = error.constraint ?? error.cause?.constraint
+      if (constraint === 'asset_families_tag_code_unique') this.conflict(`una familia con el código TAG ${tagCode}`)
+      this.conflict(`una familia con el código de integración ${integrationCode}`)
+    }
+    throw err
+  }
+
   @Post('families')
   async createFamily(@Body(new ZodValidationPipe(createFamilySchema)) dto: CreateFamilyDto, @Req() req: AppRequest) {
-    const [row] = await this.db.insert(assetFamilies).values(dto).returning().catch((e) => (isUniqueViolation(e) ? this.conflict(`una familia con el código ${dto.code}`) : Promise.reject(e)))
+    const [row] = await this.db.insert(assetFamilies).values(dto).returning().catch(e => this.familyConflict(e, dto.code, dto.tagCode))
     await this.record(req, 'asset_family', row.id, 'created', { new: dto })
     return row
   }
@@ -74,7 +85,7 @@ export class CatalogAdminController {
   async updateFamily(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(updateFamilySchema)) dto: UpdateFamilyDto, @Req() req: AppRequest) {
     const [before] = await this.db.select().from(assetFamilies).where(eq(assetFamilies.id, id))
     if (!before) throw new NotFoundException('Familia no encontrada')
-    const [row] = await this.db.update(assetFamilies).set(dto).where(eq(assetFamilies.id, id)).returning()
+    const [row] = await this.db.update(assetFamilies).set(dto).where(eq(assetFamilies.id, id)).returning().catch(e => this.familyConflict(e, before.code, dto.tagCode))
     await this.record(req, 'asset_family', id, 'updated', { old: before, new: dto })
     return row
   }
@@ -85,6 +96,7 @@ export class CatalogAdminController {
     const [before] = await this.db.select().from(assetFamilies).where(eq(assetFamilies.id, id))
     if (!before) throw new NotFoundException('Familia no encontrada')
     await this.assertUnused(`No se puede eliminar la familia «${before.name}»:`, [
+      { table: assets, column: assets.familyId, id, text: n => `la usan ${n} activo(s) de planta.` },
       { table: assetTypes, column: assetTypes.familyId, id, text: (n) => `tiene ${n} tipo(s). Elimina o mueve esos tipos a otra familia primero.` },
       { table: listings, column: listings.assetFamilyId, id, text: (n) => `la usan ${n} publicación(es) del marketplace.` },
     ])
@@ -257,8 +269,9 @@ export class CatalogAdminController {
 
   @Post('models')
   async createModel(@Body(new ZodValidationPipe(createModelSchema)) dto: CreateModelDto, @Req() req: AppRequest) {
-    const [type] = await this.db.select({ id: assetTypes.id }).from(assetTypes).where(eq(assetTypes.code, dto.typeCode))
+    const [type] = await this.db.select({ id: assetTypes.id, familyId: assetTypes.familyId }).from(assetTypes).where(eq(assetTypes.code, dto.typeCode))
     if (!type) throw validationError('typeCode', `El tipo ${dto.typeCode} no existe`)
+    dto.specifications = await validateFamilySpecifications(this.db, type.familyId, dto.specifications)
     const stageIds = await this.modelStageIds(type.id, dto.stageCodes ?? []) // valida antes de crear nada
     const networkIds = await this.masterIds('networkCodes', dto.networkCodes ?? [])
 
@@ -277,6 +290,10 @@ export class CatalogAdminController {
   async updateModel(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(updateModelSchema)) dto: UpdateModelDto, @Req() req: AppRequest) {
     const [before] = await this.db.select().from(assetModels).where(eq(assetModels.id, id))
     if (!before) throw new NotFoundException('Modelo no encontrado')
+    if (dto.specifications !== undefined) {
+      const [type] = await this.db.select().from(assetTypes).where(eq(assetTypes.id, before.assetTypeId))
+      dto.specifications = await validateFamilySpecifications(this.db, type.familyId, dto.specifications, before.specifications as Record<string, unknown>)
+    }
     const { stageCodes, networkCodes, ...fields } = dto
     const stageIds = stageCodes ? await this.modelStageIds(before.assetTypeId, stageCodes) : undefined
     const networkIds = networkCodes ? await this.masterIds('networkCodes', networkCodes) : undefined
@@ -302,6 +319,7 @@ export class CatalogAdminController {
     const [before] = await this.db.select().from(assetModels).where(eq(assetModels.id, id))
     if (!before) throw new NotFoundException('Modelo no encontrado')
     await this.assertUnused(`No se puede eliminar el modelo «${before.modelName}»:`, [
+      { table: catalogRequests, column: catalogRequests.modelId, id, text: (n) => `lo usan ${n} solicitud(es) de incorporación. Conserva el modelo para mantener la trazabilidad de la solicitud.` },
       { table: assets, column: assets.assetModelId, id, text: (n) => `lo usan ${n} activo(s) de planta. Desactívalo, o cambia el modelo de esos activos, antes de eliminarlo.` },
       { table: inventoryItems, column: inventoryItems.assetModelId, id, text: (n) => `está vinculado a ${n} ítem(s) de inventario.` },
     ])

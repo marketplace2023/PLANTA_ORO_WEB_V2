@@ -83,7 +83,7 @@ describe('Compras: requisiciones, RFQ y cotizaciones (e2e)', () => {
     await send('patch', `/api/v1/providers/${provSuspended}`, admin, { status: 'SUSPENDED' }).expect(200)
 
     const model = (await t.model('MOLINO_BOLAS', 'E2E Bolas compras')).id
-    asset = (await send('post', '/api/v1/plants/e2e-q1/assets', admin, { tag: 'MB-1', name: 'Molino 1', assetModelId: model, stageCode: 'D06' }).expect(201)).body.id
+    asset = (await t.legacyAsset(plantA.id, model, 'MB-1', { name: 'Molino 1', stageCode: 'D06' })).id
     const wid = (await send('post', '/api/v1/plants/e2e-q1/inventory/warehouses', wh, { code: 'ALM', name: 'Almacén' }).expect(201)).body.id
     loc = (await send('post', '/api/v1/plants/e2e-q1/inventory/locations', wh, { warehouseId: wid, code: 'R1', name: 'Rack 1' }).expect(201)).body.id
     item = (await send('post', '/api/v1/plants/e2e-q1/inventory/items', wh, { sku: 'SELLO-1', name: 'Sello mecánico', uom: 'und', minStock: 5, maxStock: 10, unitCost: 100 }).expect(201)).body.id

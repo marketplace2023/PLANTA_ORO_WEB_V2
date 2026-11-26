@@ -13,8 +13,8 @@ function useCatalogMutation<T, V>(fn: (v: V) => Promise<T>) {
 
 const send = <T>(method: 'POST' | 'PATCH', path: string, body: unknown) => api<T>(path, { method, ...jsonBody(body) })
 
-export const useCreateFamily = () => useCatalogMutation((v: { code: string; name: string; description?: string; icon?: string }) => send('POST', '/catalog/families', v))
-export const useUpdateFamily = () => useCatalogMutation(({ id, ...v }: { id: string; name?: string; description?: string | null; icon?: string | null }) => send('PATCH', `/catalog/families/${id}`, v))
+export const useCreateFamily = () => useCatalogMutation((v: { code: string; tagCode: string; name: string; description?: string; icon?: string }) => send('POST', '/catalog/families', v))
+export const useUpdateFamily = () => useCatalogMutation(({ id, ...v }: { id: string; tagCode?: string; name?: string; description?: string | null; icon?: string | null }) => send('PATCH', `/catalog/families/${id}`, v))
 export const useCreateType = () => useCatalogMutation((v: { familyCode: string; code: string; name: string; description?: string }) => send('POST', '/catalog/types', v))
 export const useUpdateType = () => useCatalogMutation(({ id, ...v }: { id: string; name?: string; familyCode?: string; description?: string | null }) => send('PATCH', `/catalog/types/${id}`, v))
 export const useCreateManufacturer = () => useCatalogMutation((v: { name: string; countryCode?: string; website?: string }) => send('POST', '/catalog/manufacturers', v))

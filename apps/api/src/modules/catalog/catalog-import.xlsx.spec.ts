@@ -21,12 +21,12 @@ async function workbook(options: { components?: unknown[][]; references?: unknow
   const book = new ExcelJS.Workbook()
   const master = book.addWorksheet('Listado maestro')
   const masterRows = [
-    ['TAG ACTIVO', 'Nombre', 'Código CA', 'Categoría N4', 'Tipo', 'Fabricante / modelo', 'Denominación de etapa'],
+    ['TAG ACTIVO', 'Nombre', 'Código CA', 'Familia', 'Tipo', 'Fabricante / modelo', 'Denominación de etapa'],
     ['TEST-01', 'Modelo uno', '08', 'Bombas', 'Bomba de pulpa', 'Pendiente', 'Molienda primaria'],
     ['TEST-02', 'Modelo dos', '08', 'Bombas', 'Bomba de pulpa', 'Pendiente', 'Molienda primaria'],
   ]
   master.addRows(options.omitLegacyManufacturer ? masterRows.map(row => row.filter((_, index) => index !== 5)) : masterRows)
-  book.addWorksheet('Categorías N4').addRows([['Código CA', 'Categoría N4'], ['08', 'Bombas']])
+  book.addWorksheet('Familias').addRows([['Código CA', 'Familia'], ['08', 'Bombas']])
   book.addWorksheet('Características').addRows([['TAG ACTIVO', 'Componentes principales'], ...(options.components ?? [['TEST-01', 'Motor, carcasa y eje.']])])
   book.addWorksheet('Especificaciones').addRows([
     ['TAG ACTIVO', 'Parámetro técnico', 'Unidad', 'Valor / estado'],
@@ -39,6 +39,39 @@ async function workbook(options: { components?: unknown[][]; references?: unknow
 }
 
 describe('Componentes y fabricantes de referencia por TAG', () => {
+  it('usa la hoja Familias y toma el nombre canónico por Código CA', async () => {
+    const book = new ExcelJS.Workbook()
+    await book.xlsx.load(Uint8Array.from(await workbook()).buffer)
+    book.getWorksheet('Listado maestro')!.getCell('D2').value = 'Nombre alternativo en el listado'
+    const parsed = await parseMasterWorkbook(Buffer.from(await book.xlsx.writeBuffer()))
+    expect(parsed.issues).toEqual([])
+    expect(parsed.rows[0]).toMatchObject({ categoryCode: '08', family: 'Bombas' })
+  })
+
+  it('acepta los nombres anteriores de hoja y columnas para libros existentes', async () => {
+    const book = new ExcelJS.Workbook()
+    await book.xlsx.load(Uint8Array.from(await workbook()).buffer)
+    const families = book.getWorksheet('Familias')!
+    families.name = 'Categorías N4'
+    families.getCell('B1').value = 'Categoría N4'
+    book.getWorksheet('Listado maestro')!.getCell('D1').value = 'Categoría N4'
+    const parsed = await parseMasterWorkbook(Buffer.from(await book.xlsx.writeBuffer()))
+    expect(parsed.issues).toEqual([])
+    expect(parsed.rows[0].family).toBe('Bombas')
+  })
+
+  it('muestra los nuevos nombres al informar hojas o columnas faltantes', async () => {
+    const book = new ExcelJS.Workbook()
+    await book.xlsx.load(Uint8Array.from(await workbook()).buffer)
+    book.removeWorksheet(book.getWorksheet('Familias')!.id)
+    book.getWorksheet('Listado maestro')!.getCell('D1').value = 'Otra columna'
+    const parsed = await parseMasterWorkbook(Buffer.from(await book.xlsx.writeBuffer()))
+    expect(parsed.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ sheet: 'Familias', message: 'Falta la hoja «Familias»' }),
+      expect.objectContaining({ sheet: 'Listado maestro', message: 'Falta la columna «Familia»' }),
+    ]))
+  })
+
   it('admite la plantilla nueva de seis columnas sin Fabricante / modelo', async () => {
     const parsed = await parseMasterWorkbook(await workbook({ omitLegacyManufacturer: true, references: [['TEST-01', 'Siemens', '', '']] }))
     expect(parsed.issues).toEqual([])

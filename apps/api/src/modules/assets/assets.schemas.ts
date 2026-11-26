@@ -32,12 +32,21 @@ export const listAssetsQuerySchema = z.object({
 })
 
 const text = (max: number) => z.string().trim().min(1).max(max)
+const specifications = z.record(z.string().min(1).max(300).refine(key => key.trim().length > 0), z.unknown())
+  .refine(value => Object.keys(value).length <= 500, 'Máximo 500 especificaciones')
+const components = z.array(text(2000)).max(500)
+
+export const assetTagPreviewSchema = z.object({ familyId: z.uuid().optional(), assetModelId: z.uuid().optional(), stageCode, networkCode }).refine(v => !!v.familyId || !!v.assetModelId, 'Selecciona una familia')
+export type AssetTagPreviewQuery = z.infer<typeof assetTagPreviewSchema>
 
 export const createAssetSchema = z.object({
-  tag: text(60).transform((t) => t.toUpperCase()),
   name: text(200),
   assetModelId: z.uuid(),
-  stageCode: stageCode.optional(),
+  familyId: z.uuid().optional(),
+  referenceModelIds: z.array(z.uuid()).max(0, "Selecciona un único modelo de origen mediante assetModelId").default([]),
+  specifications: specifications.optional(),
+  components: components.optional(),
+  stageCode,
   serialNumber: text(120).optional(),
   installationDate: z.iso.date().optional(),
   commissionDate: z.iso.date().optional(),
@@ -49,14 +58,24 @@ export const createAssetSchema = z.object({
   // Privado por defecto: exponer un activo públicamente debe ser explícito.
   isPublic: z.boolean().default(false),
   metadata: z.record(z.string(), z.unknown()).default({}),
-  networkCodes: z.array(networkCode).max(20).default([]),
+  networkCodes: z.array(networkCode).length(1, 'Selecciona una sola red para generar el TAG'),
+})
+
+export const assetRequestSchema = createAssetSchema.omit({ assetModelId: true }).extend({
+  familyId: z.uuid(),
+  // Contexto de la solicitud; no forma parte de la ficha del modelo ni del activo aprobado.
+  requestNote: z.string().trim().max(5000, 'La nota de la solicitud admite hasta 5.000 caracteres').optional(),
+  sourceRequestId: z.uuid().optional(),
 })
 
 export const updateAssetSchema = z
   .object({
-    tag: text(60).transform((t) => t.toUpperCase()),
     name: text(200),
     assetModelId: z.uuid(),
+    familyId: z.uuid(),
+    referenceModelIds: z.array(z.uuid()).max(0, "Selecciona un único modelo de origen mediante assetModelId"),
+    specifications,
+    components,
     stageCode: stageCode.nullable(),
     serialNumber: text(120).nullable(),
     installationDate: z.iso.date().nullable(),

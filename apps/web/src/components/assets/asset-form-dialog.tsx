@@ -1,24 +1,36 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
+import { AssetTechnicalFields } from './asset-technical-fields'
+import { FamilyPicker } from './family-picker'
+import { CatalogModelPicker } from './catalog-model-picker'
+import { ClipboardList, ExternalLink, Network, Package, X } from 'lucide-react'
+import { technicalDraft, technicalPayload } from '@/lib/asset-technical'
+import { useDebouncedValue } from '@/lib/use-debounced-value'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import {
   useCatalogModels,
+  useCatalogFamilies,
+  useAssetTagPreview,
   useCreateAsset,
   useUpdateAsset,
   type AssetDetail,
   type AssetInput,
+  type CatalogModel,
 } from '@/features/assets/use-assets'
 import { usePlantNetworks, usePlantStages } from '@/features/plant/use-plant-data'
-import { ApiError } from '@/lib/api'
+import { api, ApiError } from '@/lib/api'
 import { ASSET_CRITICALITIES, ASSET_STATUSES, criticalityLabel, statusLabel, type AssetCriticality, type AssetStatus } from '@/lib/assets'
 
 const NO_STAGE = '__none__'
+const NO_NETWORK = '__none__'
+const KEEP_NETWORKS = '__keep__'
 
 type Props = {
   open: boolean
@@ -37,23 +49,28 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
   const editing = !!asset
   const create = useCreateAsset(plantSlug)
   const update = useUpdateAsset(plantSlug, asset?.id ?? '')
-  const pending = editing ? update.isPending : create.isPending
+  const queryClient = useQueryClient()
+  const [requestMode, setRequestMode] = useState(false)
+  const [requestNote, setRequestNote] = useState('')
+  const submitRequest = useMutation({ mutationFn: (body: AssetInput & { requestNote?: string }) => api(`/plants/${plantSlug}/catalog-requests`, { method: 'POST', body: JSON.stringify(body) }) })
+  const pending = editing ? update.isPending : create.isPending || submitRequest.isPending
 
-  const models = useCatalogModels({}, 100)
+  const [modelSearch, setModelSearch] = useState('')
+  const search = useDebouncedValue(modelSearch.trim())
+  const [technical, setTechnical] = useState(() => technicalDraft(asset?.specifications, asset?.technicalData))
   const stages = usePlantStages(plantSlug)
   const networks = usePlantNetworks(plantSlug)
 
   const [form, setForm] = useState({
-    tag: asset?.tag ?? '',
     name: asset?.name ?? '',
-    assetModelId: asset?.model.id ?? '',
+    familyId: asset?.family.id ?? '',
     stageCode: asset?.stage?.code ?? NO_STAGE,
     serialNumber: asset?.serialNumber ?? '',
     status: (asset?.status ?? 'OPERATIVE') as AssetStatus,
     statusReason: '',
     criticality: (asset?.criticality ?? 'MEDIUM') as AssetCriticality,
-    location: asset?.location ?? '',
     isPublic: asset?.isPublic ?? false,
+    // La clasificación del activo se elige directamente en la planta.
     networkCodes: asset?.networks.map((n) => n.code) ?? ([] as string[]),
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -61,6 +78,28 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
 
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }))
   const statusChanged = editing && form.status !== asset.status
+  const families = useCatalogFamilies()
+  const selectedFamily = families.data?.find(family => family.id === form.familyId || (!form.familyId && family.code === asset?.family.code))
+  const familyId = selectedFamily?.id ?? form.familyId
+  const [references, setReferences] = useState<NonNullable<AssetDetail['referenceModels']>>(asset?.model.id ? [{ id: asset.model.id, modelName: asset.model.name, catalogTag: null }] : [])
+  const models = useCatalogModels({ family: selectedFamily?.code ?? '__none__', stage: form.stageCode !== NO_STAGE ? form.stageCode : undefined, network: form.networkCodes.length === 1 ? form.networkCodes[0] : undefined, search: search || undefined, status: 'ACTIVE' }, 100)
+  const enabledStages = stages.data?.filter(s => s.isEnabled) ?? []
+  const enabledNetworks = networks.data?.filter(n => n.isEnabled) ?? []
+  const networkCodes = form.networkCodes
+  const tagSelection = familyId && form.stageCode !== NO_STAGE && networkCodes.length === 1
+    ? { familyId, stageCode: form.stageCode, networkCode: networkCodes[0] } : null
+  const suggestedTag = useAssetTagPreview(plantSlug, tagSelection, open && !editing)
+  const partialTag = `${networkCodes.length === 1 ? networkCodes[0] : 'XXX'}-${form.stageCode !== NO_STAGE ? form.stageCode : 'XXX'}-${selectedFamily?.tagCode ?? 'XXX'}-${tagSelection ? '…' : '001'}`
+  const tagPreview = suggestedTag.data?.tag ?? partialTag
+
+  function selectModel(model: CatalogModel) {
+    setReferences([{ id: model.id, modelName: model.modelName, catalogTag: model.catalogTag }])
+    setModelSearch('')
+    if (!editing && model.id !== references[0]?.id) {
+      setTechnical(technicalDraft(structuredClone(model.specifications), structuredClone(model.technicalData)))
+    }
+    if (!form.name.trim()) set('name', model.modelName)
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -68,36 +107,48 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
     setFormError(undefined)
 
     const next: Record<string, string> = {}
-    if (!form.tag.trim()) next.tag = 'Requerido'
     if (!form.name.trim()) next.name = 'Requerido'
-    if (!form.assetModelId) next.assetModelId = 'Selecciona un modelo del catálogo'
+    if (!familyId) next.familyId = 'Selecciona una familia'
+    if (!requestMode && !references[0]) next.assetModelId = 'Selecciona el modelo de origen del catálogo'
+    if (!editing && form.stageCode === NO_STAGE) next.stageCode = 'Selecciona una etapa para generar el TAG'
+    if (!editing && networkCodes.length !== 1) next.networkCodes = 'Selecciona una red para generar el TAG'
     if (Object.keys(next).length > 0) return setErrors(next)
 
+    let ownTechnical: ReturnType<typeof technicalPayload>
+    try { ownTechnical = technicalPayload(technical) }
+    catch (error) { setFormError(error instanceof Error ? error.message : 'Revisa la ficha técnica.'); return }
+
     const common: AssetInput = {
-      tag: form.tag.trim(),
+      ...ownTechnical,
       name: form.name.trim(),
-      assetModelId: form.assetModelId,
+      familyId,
+      ...(!requestMode && references[0] && { assetModelId: references[0].id }),
       criticality: form.criticality,
       isPublic: form.isPublic,
-      networkCodes: form.networkCodes,
+      networkCodes,
       status: form.status,
     }
     const stageCode = form.stageCode === NO_STAGE ? null : form.stageCode
 
     try {
+      if (!editing && requestMode) {
+        await submitRequest.mutateAsync({ ...common, stageCode: stageCode!, ...(requestNote.trim() && { requestNote: requestNote.trim() }), ...(form.serialNumber.trim() && { serialNumber: form.serialNumber.trim() }) })
+        await queryClient.invalidateQueries({ queryKey: ['plant', plantSlug, 'catalog-requests'] })
+        toast.success('Solicitud enviada. El activo se registrará cuando administración la apruebe.')
+        onOpenChange(false)
+        return
+      }
       const saved = editing
         ? await update.mutateAsync({
             ...common,
             stageCode,
             serialNumber: form.serialNumber.trim() || null,
-            location: form.location.trim() || null,
             ...(statusChanged && form.statusReason.trim() && { statusReason: form.statusReason.trim() }),
           })
         : await create.mutateAsync({
             ...common,
             ...(stageCode && { stageCode }),
             ...(form.serialNumber.trim() && { serialNumber: form.serialNumber.trim() }),
-            ...(form.location.trim() && { location: form.location.trim() }),
           })
       toast.success(editing ? 'Activo actualizado' : `Activo creado: ${saved.furCode}`)
       onOpenChange(false)
@@ -105,6 +156,7 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
     } catch (err) {
       if (err instanceof ApiError && err.fieldErrors.length > 0) {
         setErrors(Object.fromEntries(err.fieldErrors.map((f) => [f.path, f.message])))
+        setFormError(err.fieldErrors.map(field => field.message).join(' '))
       } else if (err instanceof ApiError && err.status === 403) {
         setFormError('No tienes permiso para esta acción.')
       } else if (err instanceof ApiError && err.status === 409) {
@@ -123,160 +175,183 @@ export function AssetFormDialog({ open, onOpenChange, plantSlug, asset, onSaved 
       </p>
     )
 
-  const enabledStages = stages.data?.filter((s) => s.isEnabled) ?? []
-  const enabledNetworks = networks.data?.filter((n) => n.isEnabled) ?? []
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle>{editing ? `Editar ${asset.tag}` : 'Nuevo activo'}</DialogTitle>
-          <DialogDescription>
-            {editing ? `El código FUR (${asset.furCode}) es permanente.` : 'El código FUR se genera automáticamente al guardar.'}
-          </DialogDescription>
+      <DialogContent showCloseButton={false} className="fur-asset-dialog flex max-h-[92dvh] w-[calc(100%-1.5rem)] min-w-0 max-w-4xl flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-4xl">
+        <DialogHeader className="shrink-0 gap-0 border-b border-border px-5 py-5 sm:px-7">
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-fur-gold-500/15 text-fur-navy-900"><Package className="size-5" aria-hidden /></span>
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
+                <DialogTitle className="truncate text-xl leading-snug font-semibold tracking-tight" title={editing ? asset.tag : undefined}>{editing ? 'Editar ' + asset.tag : 'Nuevo activo'}</DialogTitle>
+                {!editing && <span aria-label="Vista previa del TAG" aria-live="polite" aria-atomic="true" title={tagPreview} className="fur-code max-w-full truncate rounded-lg border border-fur-gold-500/30 bg-fur-gold-500/10 px-2.5 py-1 text-xs font-medium text-fur-navy-900">{tagPreview}</span>}
+              </div>
+              <DialogDescription className="text-sm leading-relaxed [overflow-wrap:anywhere]">
+                {editing ? 'El código FUR (' + asset.furCode + ') es permanente.' : 'El TAG y el código FUR se asignan al guardar.'}
+              </DialogDescription>
+            </div>
+            <DialogClose asChild><Button type="button" variant="ghost" size="icon-sm" className="shrink-0 rounded-lg" aria-label="Cerrar"><X className="size-4" /></Button></DialogClose>
+          </div>
         </DialogHeader>
 
-        <form onSubmit={onSubmit} className="space-y-4" noValidate>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="tag">Tag</Label>
-              <Input id="tag" className="fur-code h-10" value={form.tag} onChange={(e) => set('tag', e.target.value)} {...a11y('tag')} />
-              {fieldError('tag')}
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="name">Nombre</Label>
-              <Input id="name" className="h-10" value={form.name} onChange={(e) => set('name', e.target.value)} {...a11y('name')} />
-              {fieldError('name')}
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="assetModelId">Modelo del catálogo</Label>
-            <Select value={form.assetModelId} onValueChange={(v) => set('assetModelId', v)}>
-              <SelectTrigger id="assetModelId" className="h-10 w-full" aria-label="Modelo del catálogo" {...a11y('assetModelId')}>
-                <SelectValue placeholder={models.isLoading ? 'Cargando catálogo…' : 'Selecciona un modelo'} />
-              </SelectTrigger>
-              <SelectContent>
-                {models.data?.items.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>
-                    {m.type.name} · {m.modelName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {fieldError('assetModelId')}
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="stageCode">Etapa</Label>
-              <Select value={form.stageCode} onValueChange={(v) => set('stageCode', v)}>
-                <SelectTrigger id="stageCode" className="h-10 w-full" aria-label="Etapa">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NO_STAGE}>Sin etapa asignada</SelectItem>
-                  {enabledStages.map((s) => (
-                    <SelectItem key={s.code} value={s.code}>
-                      {s.code} — {s.displayName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {fieldError('stageCode')}
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="criticality">Criticidad</Label>
-              <Select value={form.criticality} onValueChange={(v) => set('criticality', v as AssetCriticality)}>
-                <SelectTrigger id="criticality" className="h-10 w-full" aria-label="Criticidad">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ASSET_CRITICALITIES.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {criticalityLabel(c)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="status">Estado</Label>
-              <Select value={form.status} onValueChange={(v) => set('status', v as AssetStatus)}>
-                <SelectTrigger id="status" className="h-10 w-full" aria-label="Estado">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ASSET_STATUSES.filter((s) => s !== 'DECOMMISSIONED').map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {statusLabel(s)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="location">Ubicación</Label>
-              <Input id="location" className="h-10" value={form.location} onChange={(e) => set('location', e.target.value)} {...a11y('location')} />
-              {fieldError('location')}
-            </div>
-          </div>
-
-          {statusChanged && (
-            <div className="space-y-1.5">
-              <Label htmlFor="statusReason">Motivo del cambio de estado (opcional)</Label>
-              <Textarea id="statusReason" value={form.statusReason} onChange={(e) => set('statusReason', e.target.value)} />
-            </div>
-          )}
-
-          <div className="space-y-1.5">
-            <Label htmlFor="serialNumber">Número de serie</Label>
-            <Input id="serialNumber" className="h-10" value={form.serialNumber} onChange={(e) => set('serialNumber', e.target.value)} />
-          </div>
-
-          <fieldset className="space-y-2">
-            <legend className="text-sm font-medium">Redes transversales</legend>
-            {enabledNetworks.length === 0 ? (
-              <p className="text-sm text-fur-gray-600">La planta no tiene redes habilitadas.</p>
-            ) : (
-              <div className="grid gap-2 sm:grid-cols-2">
-                {enabledNetworks.map((n) => (
-                  <label key={n.code} className="flex items-center gap-2 text-sm">
-                    <Checkbox
-                      checked={form.networkCodes.includes(n.code)}
-                      onCheckedChange={(on) =>
-                        set('networkCodes', on ? [...form.networkCodes, n.code] : form.networkCodes.filter((c) => c !== n.code))
-                      }
-                    />
-                    <span className="fur-code">{n.code}</span> {n.name}
-                  </label>
-                ))}
+        <form onSubmit={onSubmit} className="flex min-h-0 min-w-0 flex-1 flex-col" noValidate>
+          <div className="min-h-0 min-w-0 flex-1 space-y-7 overflow-x-hidden overflow-y-auto overscroll-contain px-5 py-6 sm:px-7">
+            <section className="min-w-0 space-y-5" aria-label="Clasificación e identificación">
+              <h3 className="flex items-center gap-2 text-sm font-semibold"><ClipboardList className="size-4 text-fur-navy-900" aria-hidden /> Clasificación e identificación</h3>
+              <div className="min-w-0 space-y-2">
+                <Label htmlFor="networkCode">Red transversal</Label>
+                <Select value={networkCodes.length > 1 ? KEEP_NETWORKS : networkCodes[0] ?? NO_NETWORK} onValueChange={code => { if (code !== KEEP_NETWORKS && (networkCodes.length !== 1 || networkCodes[0] !== code)) { set('networkCodes', code === NO_NETWORK ? [] : [code]); setReferences([]); setModelSearch('') } }} disabled={networks.isPending || networks.isError}>
+                  <SelectTrigger id="networkCode" className="h-11 w-full min-w-0 max-w-full bg-background data-[size=default]:h-11 *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:truncate *:data-[slot=select-value]:block" aria-label="Red transversal" {...a11y('networkCodes')}>
+                    <SelectValue placeholder="Selecciona una red" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {networkCodes.length > 1 && <SelectItem value={KEEP_NETWORKS}>Conservar redes actuales ({networkCodes.length})</SelectItem>}
+                    <SelectItem value={NO_NETWORK}>Sin red asignada</SelectItem>
+                    {enabledNetworks.map(network => <SelectItem key={network.code} value={network.code}>{network.code} · {network.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  {networks.isPending ? 'Cargando redes de la planta…' : networks.isError ? 'No se pudieron cargar las redes de la planta.' : networkCodes.length > 1 ? 'Este activo ya tiene varias redes. Se conservarán hasta que selecciones una sola.' : enabledNetworks.length === 0 ? 'La planta no tiene redes habilitadas.' : editing ? 'Selecciona una sola red para este activo.' : 'Selecciona la red transversal de este activo.'}
+                </p>
+                {fieldError('networkCodes')}
               </div>
-            )}
-            {fieldError('networkCodes')}
-          </fieldset>
+                <div className="min-w-0 space-y-2">
+                  <Label htmlFor="stageCode">Etapa</Label>
+                  <Select value={form.stageCode} onValueChange={v => { if (v !== form.stageCode) { set('stageCode', v); setReferences([]); setModelSearch('') } }}>
+                    <SelectTrigger id="stageCode" className="h-11 w-full min-w-0 max-w-full bg-background data-[size=default]:h-11 *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:truncate *:data-[slot=select-value]:block" aria-label="Etapa">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NO_STAGE}>Sin etapa asignada</SelectItem>
+                      {enabledStages.map((s) => (
+                        <SelectItem key={s.code} value={s.code}>
+                          {s.code} - {s.displayName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {fieldError('stageCode')}
+                </div>
+              <div className="min-w-0 space-y-2">
+                <Label htmlFor="familyId">Familia</Label>
+                <FamilyPicker value={familyId} items={families.data ?? []} loading={families.isPending} failed={families.isError} onRetry={() => void families.refetch()} invalid={!!errors.familyId}
+                  onChange={id => { if (id !== familyId) { set('familyId', id); setReferences([]); setModelSearch(''); setTechnical(current => ({ ...current, specifications: [] })) } }} />
+                {fieldError('familyId')}
+              </div>
 
-          <label className="flex items-start gap-2 text-sm">
-            <Checkbox checked={form.isPublic} onCheckedChange={(on) => set('isPublic', on === true)} className="mt-0.5" />
-            <span>
-              Visible públicamente
-              <span className="block text-xs text-fur-gray-600">Solo se muestra a visitantes si la planta publica sus activos.</span>
-            </span>
-          </label>
+              <div className="min-w-0 space-y-3 rounded-lg border border-border p-4">
+                <Label htmlFor="assetModelId">Modelo de origen del catálogo *</Label>
+                {!requestMode && (familyId && form.stageCode !== NO_STAGE && networkCodes.length === 1 ? <CatalogModelPicker
+                  value={references[0]?.id ?? ''} selected={references[0] ?? null} items={models.data?.items ?? []} total={models.data?.total ?? 0}
+                  search={modelSearch} onSearchChange={setModelSearch} onSelect={selectModel}
+                  loading={models.isFetching || modelSearch.trim() !== search} failed={models.isError} onRetry={() => void models.refetch()} invalid={!!errors.assetModelId} /> : <p className="text-sm text-muted-foreground">Selecciona la red, la etapa y la familia para consultar sus modelos.</p>)}
+                {fieldError('assetModelId')}
+                {!editing && <label className="flex cursor-pointer items-start gap-3 text-sm"><Checkbox checked={requestMode} onCheckedChange={on => { setRequestMode(on === true); setReferences([]) }} /><span>No existe en el catálogo: solicitar incorporación<span className="mt-1 block text-xs text-muted-foreground">Completa la ficha. Administración la revisará y completará el catálogo. El activo se creará únicamente después de su aprobación.</span></span></label>}
+                {!editing && requestMode && <div className="space-y-2">
+                  <Label htmlFor="requestNote">Nota de la solicitud (opcional)</Label>
+                  <Textarea id="requestNote" value={requestNote} onChange={e => setRequestNote(e.target.value)} maxLength={5000} rows={4} className="resize-y" placeholder="Explica los motivos de la incorporación y cualquier contexto que ayude a administración a evaluar la solicitud." aria-describedby="request-note-hint" />
+                  <p id="request-note-hint" className="text-xs text-muted-foreground">Administración recibirá esta nota junto con la ficha. {requestNote.length.toLocaleString('es')} / 5.000 caracteres.</p>
+                </div>}
+                {!requestMode && <p className="text-xs text-muted-foreground">Al crear el activo, seleccionar un modelo carga sus especificaciones y componentes como punto de partida. Puedes ajustarlos para tu planta sin modificar el catálogo.</p>}
+              </div>
 
-          <div role="alert" aria-live="polite">
-            {formError && <p className="rounded-md bg-fur-red-500/10 p-3 text-sm text-fur-red-500">{formError}</p>}
+              <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+                <div className="min-w-0 space-y-2">
+                  <Label htmlFor="tag">Tag</Label>
+                  <Input id="tag" className="fur-code h-11 min-w-0 bg-muted/40" readOnly value={editing ? asset.tag : tagPreview} placeholder="Se genera al guardar" {...a11y('tag')} aria-describedby={errors.tag ? 'tag-error' : 'asset-tag-hint'} />
+                  <p id="asset-tag-hint" className="text-xs leading-relaxed text-muted-foreground">{editing ? 'El TAG es permanente.' : suggestedTag.isError ? 'No se pudo actualizar la vista previa. El TAG se asignará al guardar.' : suggestedTag.isFetching ? 'Consultando el siguiente correlativo…' : 'Vista previa. El TAG definitivo se asigna al guardar.'}</p>
+                  {fieldError('tag')}
+                </div>
+                <div className="min-w-0 space-y-2">
+                  <Label htmlFor="name">Nombre</Label>
+                  <Input id="name" className="h-11 min-w-0 bg-background" value={form.name} onChange={(e) => set('name', e.target.value)} {...a11y('name')} />
+                  {fieldError('name')}
+                </div>
+              </div>
+
+            </section>
+
+            <section className="min-w-0 space-y-5 border-t border-border pt-6" aria-label="Datos de la unidad">
+              <h3 className="flex items-center gap-2 text-sm font-semibold"><Network className="size-4 text-fur-navy-900" aria-hidden /> Datos de la unidad</h3>
+              <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+                <div className="min-w-0 space-y-2">
+                  <Label htmlFor="criticality">Criticidad</Label>
+                  <Select value={form.criticality} onValueChange={(v) => set('criticality', v as AssetCriticality)}>
+                    <SelectTrigger id="criticality" className="h-11 w-full min-w-0 max-w-full bg-background data-[size=default]:h-11 *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:truncate *:data-[slot=select-value]:block" aria-label="Criticidad">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ASSET_CRITICALITIES.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {criticalityLabel(c)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="min-w-0 space-y-2">
+                  <Label htmlFor="status">Estado</Label>
+                  <Select value={form.status} onValueChange={(v) => set('status', v as AssetStatus)}>
+                    <SelectTrigger id="status" className="h-11 w-full min-w-0 max-w-full bg-background data-[size=default]:h-11 *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:truncate *:data-[slot=select-value]:block" aria-label="Estado">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ASSET_STATUSES.filter((s) => s !== 'DECOMMISSIONED').map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {statusLabel(s)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {statusChanged && (
+                <div className="min-w-0 space-y-2">
+                  <Label htmlFor="statusReason">Motivo del cambio de estado (opcional)</Label>
+                  <Textarea id="statusReason" value={form.statusReason} onChange={(e) => set('statusReason', e.target.value)} />
+                </div>
+              )}
+
+              <div className="min-w-0 space-y-2">
+                <Label htmlFor="serialNumber">Número de serie</Label>
+                <Input id="serialNumber" className="h-11 min-w-0 bg-background" value={form.serialNumber} onChange={(e) => set('serialNumber', e.target.value)} />
+              </div>
+
+
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg bg-muted/35 p-3 text-sm">
+                <Checkbox checked={form.isPublic} onCheckedChange={(on) => set('isPublic', on === true)} className="mt-0.5" />
+                <span>
+                  Visible públicamente
+                  <span className="mt-0.5 block text-xs text-muted-foreground">Solo se muestra a visitantes si la planta publica sus activos.</span>
+                </span>
+              </label>
+
+            </section>
+
+            <AssetTechnicalFields key={editing ? familyId : `${familyId}:${references[0]?.id ?? ''}`} familyId={familyId} value={technical} onChange={setTechnical} />
+            {fieldError('specifications')}
+            {fieldError('components')}
+
+
+
+            {!editing && requestMode && <div className="border-t border-border pt-4">
+              <a href={`${(import.meta.env.VITE_PLANT_PANEL_URL ?? 'http://localhost:5174').replace(/\/$/, '')}/plants/${encodeURIComponent(plantSlug)}/catalog-requests`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm font-medium text-fur-navy-900 underline underline-offset-4">
+                Ver solicitudes de esta planta <ExternalLink className="size-4" aria-hidden />
+                <span className="sr-only">(abre en una pestaña nueva)</span>
+              </a>
+            </div>}
+            <div role="alert" aria-live="polite">
+              {formError && <p className="rounded-md bg-fur-red-500/10 p-3 text-sm text-fur-red-500">{formError}</p>}
+            </div>
+
           </div>
-
-          <DialogFooter>
+          <DialogFooter className="static z-auto m-0 shrink-0 gap-2 rounded-none bg-muted/30 px-5 py-4 sm:px-7">
             <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? 'Guardando…' : editing ? 'Guardar cambios' : 'Crear activo'}
+              {pending ? 'Guardando…' : editing ? 'Guardar cambios' : requestMode ? 'Enviar solicitud' : 'Crear activo'}
             </Button>
           </DialogFooter>
         </form>

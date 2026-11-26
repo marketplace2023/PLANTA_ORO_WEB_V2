@@ -8,7 +8,7 @@ La vista previa no guarda cambios. Muestra las altas y actualizaciones, todos lo
 
 ## Mapeo
 
-- `Listado maestro / Código CA` identifica la familia. Su nombre canónico se toma de `Categorías N4 / Categoría N4`; las variantes y comentarios de la categoría del listado no crean familias adicionales.
+- `Listado maestro / Código CA` identifica la familia. Su nombre canónico se toma de `Familias / Familia`; las variantes y comentarios de la categoría del listado no crean familias adicionales.
 - `Tipo` identifica el tipo dentro de su familia. Un mismo nombre puede pertenecer a familias distintas.
 - `Nombre` es el nombre del modelo.
 - `Fabricante / modelo` (en libros antiguos) se ignora y deja de ser obligatorio. No crea ni actualiza marcas. Los fabricantes se toman únicamente de Fabricantes de referencia.

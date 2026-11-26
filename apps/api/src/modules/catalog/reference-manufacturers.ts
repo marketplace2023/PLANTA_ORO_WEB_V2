@@ -17,7 +17,3 @@ export const referenceMatches = (id: string) => sql`exists (
   select 1 from catalog.model_reference_manufacturers refs
   where refs.asset_model_id = ${assetModels.id} and refs.id = ${id}::uuid
 )`
-export const referenceSearch = (like: string) => sql`exists (
-  select 1 from catalog.model_reference_manufacturers refs
-  where refs.asset_model_id = ${assetModels.id} and refs.name ilike ${like}
-)`
